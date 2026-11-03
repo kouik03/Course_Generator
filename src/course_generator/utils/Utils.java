@@ -1127,7 +1127,8 @@ public class Utils {
 		 * (hh:mm:ss) %+ :Ascend from start %- :Descend from start %+d :Ascend from the
 		 * previous location %-d :Descend from the previous location %M :Cut-off margin
 		 * (+ ahead / - late) %P :Average moving pace from previous roadbook point
-		 * (or start) to this point, excluding this point's aid-station pause
+		 * (or start) to this point, excluding this point's aid-station pause %Dd :
+		 * Distance from previous roadbook point (or start)
 		 */
 		int i = 0;
 		int step = 0;
@@ -1163,11 +1164,9 @@ public class Utils {
 						step = 0;
 						break;
 
-					// %D:Distance from the start
+					// %D: Distance from start / %Dd: distance from previous roadbook point
 					case 'D':
-						sr = sr + String.format("%.1f", r.getTotal(settings.Unit) / 1000.0)
-								+ Utils.uLDist2String(settings.Unit);
-						step = 0;
+						step = 7;
 						break;
 
 					// %T:Time (hh:mm)
@@ -1285,6 +1284,41 @@ public class Utils {
 					break;
 				}
 
+				case 7: // %D / %Dd
+				{
+					switch (s.charAt(i)) {
+					case 'd': {
+						int currentIndex = Math.max(0, (int) r.getNum() - 1);
+						int previousIndex = 0;
+						for (int j = currentIndex - 1; j >= 0; j--) {
+							if ((cd.data.get(j).getTag() & CgConst.TAG_ROADBOOK) != 0) {
+								previousIndex = j;
+								break;
+							}
+						}
+						double deltaDistance = r.getTotal(CgConst.UNIT_METER)
+								- cd.data.get(previousIndex).getTotal(CgConst.UNIT_METER);
+						if (settings.Unit == CgConst.UNIT_MILES_FEET)
+							deltaDistance = Utils.Meter2uMiles(deltaDistance);
+						sr = sr + String.format("%.1f", deltaDistance / 1000.0)
+								+ Utils.uLDist2String(settings.Unit);
+						step = 0;
+						break;
+					}
+					case '%':
+						sr = sr + String.format("%.1f", r.getTotal(settings.Unit) / 1000.0)
+								+ Utils.uLDist2String(settings.Unit);
+						step = 1;
+						break;
+					default:
+						sr = sr + String.format("%.1f", r.getTotal(settings.Unit) / 1000.0)
+								+ Utils.uLDist2String(settings.Unit);
+						sr = sr + s.charAt(i);
+						step = 0;
+						break;
+					}
+					break;
+				}
 				case 2: // %h
 				{
 					switch (s.charAt(i)) {
@@ -1397,6 +1431,9 @@ public class Utils {
 				sr = sr + String.format("%.0f", res.cp);
 			} else if (step == 6) {
 				sr = sr + String.format("%.0f", res.cm);
+			} else if (step == 7) {
+				sr = sr + String.format("%.1f", r.getTotal(settings.Unit) / 1000.0)
+						+ Utils.uLDist2String(settings.Unit);
 			}
 
 			if (cd != null) {
