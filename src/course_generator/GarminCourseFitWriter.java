@@ -60,7 +60,7 @@ public final class GarminCourseFitWriter {
             long startTimestamp = startTime.getTimestamp().longValue();
 
             boolean hasCalculatedTimeline = track.TotalTime > 0 || last.getTime() > 0;
-            long lastElapsed = elapsedSeconds(track, last, track.data.size() - 1, hasCalculatedTimeline);
+            long lastElapsed = timelineEndSeconds(track, hasCalculatedTimeline);
             DateTime endTime = new DateTime(startTimestamp + lastElapsed);
 
             FileIdMesg fileId = new FileIdMesg();
@@ -160,9 +160,16 @@ public final class GarminCourseFitWriter {
                     + Math.round(track.getClimbP(CgConst.UNIT_METER)) + "m, D-="
                     + Math.round(track.getClimbM(CgConst.UNIT_METER)) + "m");
         } finally {
-            if (!success && output.exists()) {
-                // Do not leave a partially encoded course behind.
-                output.delete();
+            if (!success) {
+                if (encoder != null) {
+                    try {
+                        encoder.close();
+                    } catch (RuntimeException ignored) {
+                        // The partial file is deleted below.
+                    }
+                }
+                if (output.exists())
+                    output.delete();
             }
         }
     }
@@ -191,6 +198,13 @@ public final class GarminCourseFitWriter {
             return dot > 0 ? track.Name.substring(0, dot) : track.Name;
         }
         return "Course Generator";
+    }
+
+    private static long timelineEndSeconds(TrackData track, boolean hasCalculatedTimeline) {
+        long end = 0L;
+        for (int i = 0; i < track.data.size(); i++)
+            end = Math.max(end, elapsedSeconds(track, track.data.get(i), i, hasCalculatedTimeline));
+        return end;
     }
 
     private static long elapsedSeconds(TrackData track, CgData point, int index, boolean hasCalculatedTimeline) {
