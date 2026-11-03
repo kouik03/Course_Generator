@@ -368,7 +368,8 @@ public class JPanelStatistics extends JPanel {
 				.append(bundle.getString("JPanelStastistics.kmPace.segment"))
 				.append("</SPAN></TD><TD><SPAN class=\"header\">")
 				.append(bundle.getString("JPanelStastistics.kmPace.pace"))
-				.append("</SPAN></TD></TR>");
+				.append("</SPAN></TD><TD><SPAN class=\"header\">D+</SPAN></TD>")
+				.append("<TD><SPAN class=\"header\">D-</SPAN></TD></TR>");
 
 		for (double startDistance = 0.0; startDistance < totalDistance - 0.01; startDistance += 1000.0) {
 			double endDistance = Math.min(startDistance + 1000.0, totalDistance);
@@ -390,8 +391,14 @@ public class JPanelStatistics extends JPanel {
 			if (segmentDistance > 0.0 && segmentTime > 0.0)
 				pace = FormatKilometerPace(segmentTime * 1000.0 / segmentDistance);
 
+			double[] climb = CalculateClimbForDistanceRange(startDistance, endDistance);
+
 			section.append("<TR><TD><SPAN class=\"item\">").append(distanceLabel)
 					.append("</SPAN></TD><TD><SPAN class=\"value\">").append(pace)
+					.append("</SPAN></TD><TD><SPAN class=\"value\">")
+					.append(String.format(Locale.getDefault(), "%.0f m", climb[0]))
+					.append("</SPAN></TD><TD><SPAN class=\"value\">")
+					.append(String.format(Locale.getDefault(), "%.0f m", climb[1]))
 					.append("</SPAN></TD></TR>");
 		}
 
@@ -437,6 +444,73 @@ public class JPanelStatistics extends JPanel {
 				+ ratio * (cumulativeMovingTime[upper] - cumulativeMovingTime[lower]);
 	}
 
+	/**
+	 * Calculate ascent/descent for an exact distance range using the same spatial
+	 * resampling step as TrackData.CalcClimb(). Elevation is interpolated at the
+	 * kilometer boundaries so each row describes exactly that kilometer.
+	 */
+	private double[] CalculateClimbForDistanceRange(double startDistance, double endDistance) {
+		double climbP = 0.0;
+		double climbM = 0.0;
+
+		if (endDistance <= startDistance)
+			return new double[] { climbP, climbM };
+
+		double sampleStep = Math.max(1.0, (double) settings.ClimbThresholdForCalculation);
+		double previousDistance = startDistance;
+		double previousElevation = InterpolateElevationAtDistance(startDistance);
+
+		while (previousDistance < endDistance) {
+			double currentDistance = Math.min(previousDistance + sampleStep, endDistance);
+			double currentElevation = InterpolateElevationAtDistance(currentDistance);
+			double delta = currentElevation - previousElevation;
+
+			if (delta > 0.0)
+				climbP += delta;
+			else if (delta < 0.0)
+				climbM -= delta;
+
+			if (currentDistance >= endDistance)
+				break;
+
+			previousDistance = currentDistance;
+			previousElevation = currentElevation;
+		}
+
+		return new double[] { climbP, climbM };
+	}
+
+	private double InterpolateElevationAtDistance(double targetDistance) {
+		if (targetDistance <= track.data.get(0).getTotal(CgConst.UNIT_METER))
+			return track.data.get(0).getElevation(CgConst.UNIT_METER);
+
+		int last = track.data.size() - 1;
+		if (targetDistance >= track.data.get(last).getTotal(CgConst.UNIT_METER))
+			return track.data.get(last).getElevation(CgConst.UNIT_METER);
+
+		int low = 0;
+		int high = last;
+		while (low < high) {
+			int mid = (low + high) >>> 1;
+			if (track.data.get(mid).getTotal(CgConst.UNIT_METER) < targetDistance)
+				low = mid + 1;
+			else
+				high = mid;
+		}
+
+		int upper = low;
+		int lower = Math.max(0, upper - 1);
+		double lowerDistance = track.data.get(lower).getTotal(CgConst.UNIT_METER);
+		double upperDistance = track.data.get(upper).getTotal(CgConst.UNIT_METER);
+
+		if (upperDistance <= lowerDistance)
+			return track.data.get(upper).getElevation(CgConst.UNIT_METER);
+
+		double ratio = (targetDistance - lowerDistance) / (upperDistance - lowerDistance);
+		double lowerElevation = track.data.get(lower).getElevation(CgConst.UNIT_METER);
+		double upperElevation = track.data.get(upper).getElevation(CgConst.UNIT_METER);
+		return lowerElevation + ratio * (upperElevation - lowerElevation);
+	}
 	private String FormatKilometerPace(double secondsPerKilometer) {
 		if (Double.isNaN(secondsPerKilometer) || Double.isInfinite(secondsPerKilometer)
 				|| secondsPerKilometer <= 0.0)
