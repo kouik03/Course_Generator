@@ -120,10 +120,18 @@ public final class GarminCourseFitWriter {
                 record.setAltitude(Float.valueOf((float) point.getElevation(CgConst.UNIT_METER)));
                 encoder.write(record);
 
-                // The roadbook itself is defined by TAG_ROADBOOK. MRBOPT_SEL only
-                // controls the optional mini-roadbook label and must not hide an
-                // aid station from the FIT export.
-                if ((point.getTag() & CgConst.TAG_ROADBOOK) != 0) {
+                // Export every point that is visible in either roadbook view.
+                // The Resume/Roadbook view includes MARK points and points carrying
+                // a cutoff or rest time; the Mini Roadbook uses TAG_ROADBOOK.
+                // Always expose the last route point as a native finish point.
+                boolean finish = i == track.data.size() - 1;
+                boolean roadbookPoint = ((point.getTag() & CgConst.TAG_ROADBOOK) != 0)
+                        || ((point.getTag() & CgConst.TAG_MARK) != 0)
+                        || point.getTimeLimit() > 0
+                        || point.getStation() > 0
+                        || finish;
+
+                if (roadbookPoint) {
                     CoursePlannerCoursePointMesg coursePoint = new CoursePlannerCoursePointMesg();
                     coursePoint.setMessageIndex(Integer.valueOf(coursePointIndex++));
                     coursePoint.setTimestamp(timestamp);
@@ -133,8 +141,10 @@ public final class GarminCourseFitWriter {
 
                     // Preserve the exact roadbook name entered by the user.
                     String pointName = point.getName();
+                    if ((pointName == null || pointName.isEmpty()) && finish)
+                        pointName = "Finish";
                     coursePoint.setName(pointName == null ? "" : pointName);
-                    coursePoint.setType(coursePointType(point, i == track.data.size() - 1));
+                    coursePoint.setType(coursePointType(point, finish));
 
                     if (point.getTimeLimit() > 0)
                         coursePoint.setCutoffMilliseconds(secondsToMilliseconds(point.getTimeLimit()));
