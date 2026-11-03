@@ -71,6 +71,8 @@ public class CgResume {
 	/** Average speed km/h **/
 	;
 	private double AvgSpeed;
+	/** Average moving speed km/h, excluding aid-station time **/
+	private double AvgMovingSpeed;
 	/** Comment **/
 	private String Comment;
 
@@ -395,6 +397,42 @@ public class CgResume {
 
 	public void setTimeLimit(int timeLimit) {
 		TimeLimit = timeLimit;
+	}
+
+	public boolean isTimeLimitMissed() {
+		return TimeLimit > 0 && Time > TimeLimit;
+	}
+
+	public int getTimeLimitMargin() {
+		return TimeLimit > 0 ? TimeLimit - Time : 0;
+	}
+
+	public String getTimeLimitMarginString() {
+		if (TimeLimit <= 0)
+			return "";
+
+		int margin = getTimeLimitMargin();
+		String sign = margin >= 0 ? "+" : "-";
+		int abs = Math.abs(margin);
+		int hours = abs / 3600;
+		int minutes = (abs % 3600) / 60;
+		int seconds = abs % 60;
+
+		if (hours > 0)
+			return String.format("%s%d:%02d:%02d", sign, hours, minutes, seconds);
+		return String.format("%s%02d:%02d", sign, minutes, seconds);
+	}
+
+	public int getTimeLimitDelay() {
+		return isTimeLimitMissed() ? Time - TimeLimit : 0;
+	}
+
+	public String getTimeLimitDelayString() {
+		int delay = getTimeLimitDelay();
+		int nbh = delay / 3600;
+		int nbm = (delay % 3600) / 60;
+		int nbs = delay % 60;
+		return String.format("%02d:%02d:%02d", nbh, nbm, nbs);
 	}
 
 	public String getTimeLimitString() {
@@ -726,8 +764,30 @@ public class CgResume {
 		return Utils.FormatSpeed(AvgSpeed, unit, pace, withUnit);
 	}
 
+	public String getAvgPaceKmString() {
+		if (AvgSpeed <= 0.0 || Double.isNaN(AvgSpeed) || Double.isInfinite(AvgSpeed))
+			return "";
+
+		int totalSecondsPerKm = (int) Math.round(3600.0 / AvgSpeed);
+		int minutes = totalSecondsPerKm / 60;
+		int seconds = totalSecondsPerKm % 60;
+		return String.format("%d:%02d", minutes, seconds);
+	}
+
 	public void setAvgSpeed(double avgSpeed) {
 		AvgSpeed = avgSpeed;
+	}
+
+	public double getAvgMovingSpeed() {
+		return AvgMovingSpeed;
+	}
+
+	public void setAvgMovingSpeed(double avgMovingSpeed) {
+		AvgMovingSpeed = avgMovingSpeed;
+	}
+
+	public String getAvgMovingSpeedString(int unit, boolean withUnit) {
+		return Utils.FormatSpeed(AvgMovingSpeed, unit, false, withUnit);
 	}
 
 }

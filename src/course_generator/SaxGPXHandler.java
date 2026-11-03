@@ -20,6 +20,8 @@ package course_generator;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.TimeZone;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -83,6 +85,34 @@ public class SaxGPXHandler extends DefaultHandler {
 	private double dTime_f;
 	private int Cmpt = 0;
 
+	public static class GpxWaypoint {
+		public final double latitude;
+		public final double longitude;
+		public final String name;
+		public final String description;
+		public final String symbol;
+
+		public GpxWaypoint(double latitude, double longitude, String name, String description, String symbol) {
+			this.latitude = latitude;
+			this.longitude = longitude;
+			this.name = name == null ? "" : name.trim();
+			this.description = description == null ? "" : description.trim();
+			this.symbol = symbol == null ? "" : symbol.trim();
+		}
+	}
+
+	private final List<GpxWaypoint> waypoints = new ArrayList<GpxWaypoint>();
+	private boolean inWaypoint = false;
+	private double waypointLat = 0.0;
+	private double waypointLon = 0.0;
+	private String waypointName = "";
+	private String waypointDescription = "";
+	private String waypointSymbol = "";
+
+	public List<GpxWaypoint> getWaypoints() {
+		return new ArrayList<GpxWaypoint>(waypoints);
+	}
+
 	/**
 	 * Read the GPX file from disc
 	 * 
@@ -121,6 +151,13 @@ public class SaxGPXHandler extends DefaultHandler {
 		Time_s = 0;
 		Cmpt = 0;
 		dTime_f = 0.0;
+		waypoints.clear();
+		inWaypoint = false;
+		waypointLat = 0.0;
+		waypointLon = 0.0;
+		waypointName = "";
+		waypointDescription = "";
+		waypointSymbol = "";
 
 		// trkpt_name = "";
 		trkpt_time = new DateTime(1970, 1, 1, 0, 0, 0);
@@ -163,6 +200,21 @@ public class SaxGPXHandler extends DefaultHandler {
 
 	@Override
 	public void startElement(String uri, String localname, String qName, Attributes attributs) throws SAXException {
+		if (qName.equalsIgnoreCase("WPT")) {
+			inWaypoint = true;
+			waypointLat = 0.0;
+			waypointLon = 0.0;
+			waypointName = "";
+			waypointDescription = "";
+			waypointSymbol = "";
+			for (int index = 0; index < attributs.getLength(); index++) {
+				if (attributs.getLocalName(index).equalsIgnoreCase("LAT"))
+					waypointLat = Double.parseDouble(attributs.getValue(index));
+				else if (attributs.getLocalName(index).equalsIgnoreCase("LON"))
+					waypointLon = Double.parseDouble(attributs.getValue(index));
+			}
+			return;
+		}
 		if (qName.equalsIgnoreCase("GPX")) {
 			level++;
 			// Check all the attributes
@@ -215,6 +267,24 @@ public class SaxGPXHandler extends DefaultHandler {
 
 	@Override
 	public void endElement(String uri, String localname, String qName) throws SAXException {
+		if (inWaypoint && qName.equalsIgnoreCase("NAME")) {
+			waypointName = characters;
+			characters = "";
+			return;
+		} else if (inWaypoint && qName.equalsIgnoreCase("DESC")) {
+			waypointDescription = characters;
+			characters = "";
+			return;
+		} else if (inWaypoint && qName.equalsIgnoreCase("SYM")) {
+			waypointSymbol = characters;
+			characters = "";
+			return;
+		} else if (qName.equalsIgnoreCase("WPT")) {
+			waypoints.add(new GpxWaypoint(waypointLat, waypointLon, waypointName, waypointDescription, waypointSymbol));
+			inWaypoint = false;
+			characters = "";
+			return;
+		}
 		if (qName.equalsIgnoreCase("GPX")) {
 			level--;
 		} else if (qName.equalsIgnoreCase("TRK")) {

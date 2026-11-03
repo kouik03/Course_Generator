@@ -63,6 +63,7 @@ public class ResumeData {
 			s.append(bundle.getString("frmMain.ResumeHeaderHour.text") + ";");
 			s.append(bundle.getString("frmMain.ResumeHeaderDTTime.text") + ";");
 			s.append(bundle.getString("frmMain.ResumeHeaderTimeLimit.text") + ";");
+			s.append(bundle.getString("frmMain.ResumeHeaderTimeMargin.text") + ";");
 			s.append(bundle.getString("frmMain.ResumeHeaderStationTime.text") + ";");
 			s.append(bundle.getString("frmMain.ResumeHeaderDTDistance.text") + ";");
 			s.append(bundle.getString("frmMain.ResumeHeaderDTClimbP.text") + ";");
@@ -72,6 +73,8 @@ public class ResumeData {
 			s.append(bundle.getString("frmMain.ResumeHeaderAvgSlopeP.text") + ";");
 			s.append(bundle.getString("frmMain.ResumeHeaderAvgSlopeM.text") + ";");
 			s.append(bundle.getString("frmMain.ResumeHeaderAvgSpeed.text") + ";");
+			s.append(bundle.getString("frmMain.ResumeHeaderAvgMovingSpeed.text") + ";");
+			s.append(bundle.getString("frmMain.ResumeHeaderAvgPace.text") + ";");
 			s.append(bundle.getString("frmMain.ResumeHeaderComment.text") + ";");
 			writer.println(s);
 			s.setLength(0);
@@ -88,6 +91,7 @@ public class ResumeData {
 				s.append(d.getHourString() + ";");
 				s.append(d.getdTime_f_String() + ";");
 				s.append(d.getTimeLimitString() + ";");
+				s.append(d.getTimeLimitMarginString() + ";");
 				s.append(d.getStationTimeString() + ";");
 				s.append(d.getdDistString(unit, false) + ";");
 				s.append(d.getdClimbPString(unit, false) + ";");
@@ -97,6 +101,8 @@ public class ResumeData {
 				s.append(d.getAvgSlopePString() + ";");
 				s.append(d.getAvgSlopeMString() + ";");
 				s.append(d.getAvgSpeedString(unit, false, pace) + ";");
+				s.append(d.getAvgMovingSpeedString(unit, false) + ";");
+				s.append(d.getAvgPaceKmString() + ";");
 				s.append(d.getComment());
 				writer.println(s);
 				s.setLength(0);

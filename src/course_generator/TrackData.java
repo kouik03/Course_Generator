@@ -33,6 +33,7 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Locale;
+import java.util.List;
 
 import javax.swing.JOptionPane;
 import javax.xml.stream.XMLOutputFactory;
@@ -55,6 +56,12 @@ import course_generator.utils.Utils.CalcLineResult;
  * @author pierre.delore
  */
 public class TrackData {
+
+	private static final double GPX_WAYPOINT_MAX_DISTANCE_M = 200.0;
+
+
+	private static final double GLOBAL_SLOPE_WINDOW_M = 40.0;
+	private static final double MIN_CLIMB_RESAMPLE_STEP_M = 1.0;
 
 	private static TrackData instance;
 
@@ -317,19 +324,59 @@ public class TrackData {
 
 		CalcDist();
 
+		/*
+		 * Timed GPX activities are intentionally dense (often one point per second).
+		 * Those points are useful for speed/slope analysis and must not be removed.
+		 * Skip the destructive position-filter prompt when timestamps are usable on
+		 * most segments. Keep the legacy prompt for route GPX files without usable
+		 * timing information.
+		 */
+		if (isTimeLoaded && data.size() > 1) {
+			int timedSegments = 0;
+			for (int i = 1; i < data.size(); i++) {
+				if (data.get(i).getdTime_f() > 0.0)
+					timedSegments++;
+			}
+			double timedRatio = timedSegments * 100.0 / (data.size() - 1);
+			if (timedRatio >= 80.0) {
+				CgLog.info("Position filter skipped: timed GPX activity (" + timedRatio
+						+ "% of segments have usable timestamps).");
+				return false;
+			}
+		}
+
 		int nb = 0;
 		boolean ok = false;
+		ArrayList<Double> segmentDistances = new ArrayList<Double>();
 
-		// Scan the data
 		for (CgData r : data) {
-			if (r.getDist(CgConst.UNIT_METER) < 10.0)
+			double distance = r.getDist(CgConst.UNIT_METER);
+			if (distance > 0.0)
+				segmentDistances.add(distance);
+			if (distance > 0.0 && distance < 10.0)
 				nb += 1;
 		}
-		double p = nb * 100.0 / data.size();
-		CgLog.info("Point density calculation = " + p + "%");
 
-		// Question?
-		if (p >= PosFilterAskThreshold) {
+		double p = data.size() > 1 ? nb * 100.0 / (data.size() - 1) : 0.0;
+		double medianSpacing = 0.0;
+		if (!segmentDistances.isEmpty()) {
+			Collections.sort(segmentDistances);
+			int middle = segmentDistances.size() / 2;
+			if ((segmentDistances.size() % 2) == 0)
+				medianSpacing = (segmentDistances.get(middle - 1) + segmentDistances.get(middle)) / 2.0;
+			else
+				medianSpacing = segmentDistances.get(middle);
+		}
+
+		CgLog.info("Point density calculation = " + p + "% under 10m, median spacing = "
+				+ medianSpacing + "m");
+
+		/*
+		 * The old rule asked to filter as soon as 10% of segments were shorter than
+		 * 10 m, which flags normal route files with a few dense sections. Only ask
+		 * when the typical (median) spacing is itself below 10 m.
+		 */
+		if (p >= PosFilterAskThreshold && medianSpacing > 0.0 && medianSpacing < 10.0) {
 			if (JOptionPane.showConfirmDialog(null,
 					String.format(bundle.getString("TrackData.PositionFilterQuestion"), p), "",
 					JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
@@ -340,9 +387,200 @@ public class TrackData {
 		return ok;
 	}
 
+		public static class GarminFitImportResult {
+		public int matchedPoints = 0;
+		public int restPoints = 0;
+		public int cutoffPoints = 0;
+	}
+
+
+	private GarminFitImportResult ApplyGarminCoursePlannerPoints(
+			List<GarminCoursePlannerFitReader.CoursePlannerPoint> points) {
+		GarminFitImportResult result = new GarminFitImportResult();
+
+		for (GarminCoursePlannerFitReader.CoursePlannerPoint source : points) {
+			int line = -1;
+
+			if (!Double.isNaN(source.latitude) && !Double.isNaN(source.longitude)) {
+				SearchPointResult search = SearchPoint(source.latitude, source.longitude);
+				if (search.Point >= 0 && search.Distance <= GPX_WAYPOINT_MAX_DISTANCE_M)
+					line = search.Point;
+			}
+
+			if (line < 0 && !Double.isNaN(source.distanceMeters)) {
+				double best = Double.MAX_VALUE;
+				for (int i = 0; i < data.size(); i++) {
+					double delta = Math.abs(data.get(i).getTotal(CgConst.UNIT_METER) - source.distanceMeters);
+					if (delta < best) {
+						best = delta;
+						line = i;
+					}
+				}
+				if (best > GPX_WAYPOINT_MAX_DISTANCE_M)
+					line = -1;
+			}
+
+			if (line < 0)
+				continue;
+
+			CgData point = data.get(line);
+			point.setTag(point.getTag() | CgConst.TAG_MARK | CgConst.TAG_WATER_PT | CgConst.TAG_ROADBOOK);
+
+			// Preserve the fuller GPX waypoint name when it is already present.
+			if ((point.getName() == null || point.getName().trim().isEmpty())
+					&& source.name != null && !source.name.isEmpty())
+				point.setName(source.name);
+
+			if (source.restSeconds > 0) {
+				point.setStation(source.restSeconds);
+				result.restPoints++;
+			}
+
+			if (source.cutoffSeconds > 0) {
+				point.setTimeLimit(source.cutoffSeconds);
+				result.cutoffPoints++;
+			}
+
+			CgLog.info("FIT course point '" + source.name + "' -> line " + line
+					+ ", rest=" + source.restSeconds + "s, cutoff=" + source.cutoffSeconds + "s");
+			result.matchedPoints++;
+		}
+
+		if (result.matchedPoints > 0) {
+			isModified = true;
+			isCalculated = false;
+		}
+
+		return result;
+	}
+
+	public boolean OpenFIT(String filename) throws IOException {
+		GarminCoursePlannerFitReader.FitCourse course = GarminCoursePlannerFitReader.readCourse(filename);
+		if (course.routePoints.isEmpty())
+			return false;
+
+		data.clear();
+		isTimeLoaded = false;
+
+		int number = 1;
+		for (GarminCoursePlannerFitReader.RoutePoint source : course.routePoints) {
+			double elevation = Double.isNaN(source.elevationMeters) ? 0.0 : source.elevationMeters;
+
+			data.add(new CgData(number,
+					source.latitude,
+					source.longitude,
+					elevation,
+					elevation,
+					elevation,
+					elevation,
+					0,
+					0.0,
+					0.0,
+					100.0,
+					100.0,
+					0.0,
+					0.0,
+					0.0,
+					0.0,
+					0,
+					0.0,
+					0,
+					new DateTime(1970, 1, 1, 0, 0, 0),
+					0,
+					"",
+					"",
+					0.0,
+					0.0,
+					CgConst.DEFAULTMRBFORMAT,
+					CgConst.MRBOPT_SEL | CgConst.MRBOPT_LEFT | CgConst.MRBOPT_SHOWTAGS,
+					0,
+					"",
+					CgConst.DEFAULTMRBFONTSIZE));
+			number++;
+		}
+
+		if (course.name != null && !course.name.isEmpty())
+			CourseName = course.name;
+		Name = new File(filename).getName();
+		FullName = "";
+
+		isCalculated = false;
+		isModified = false;
+		isNewTrack = true;
+		StartTime = DateTime.now();
+		CalcMainData(true, false);
+
+		GarminFitImportResult imported = ApplyGarminCoursePlannerPoints(course.coursePoints);
+		CgLog.info("FIT course loaded: " + course.routePoints.size() + " route points, "
+				+ imported.matchedPoints + " course points, "
+				+ imported.restPoints + " rest times, "
+				+ imported.cutoffPoints + " cutoff times.");
+
+		return true;
+	}
+
+private void AskImportGPXWaypoints(List<SaxGPXHandler.GpxWaypoint> waypoints) {
+		if (waypoints == null || waypoints.isEmpty() || data.isEmpty())
+			return;
+
+		ArrayList<SaxGPXHandler.GpxWaypoint> matchedWaypoints = new ArrayList<SaxGPXHandler.GpxWaypoint>();
+		ArrayList<Integer> matchedLines = new ArrayList<Integer>();
+
+		for (SaxGPXHandler.GpxWaypoint waypoint : waypoints) {
+			int line = -1;
+			String lowerName = waypoint.name == null ? "" : waypoint.name.toLowerCase(Locale.ROOT);
+
+			if (lowerName.contains("arriv") || lowerName.contains("finish")) {
+				double distanceToFinish = Utils.CalcDistance(
+						data.get(data.size() - 1).getLatitude(), data.get(data.size() - 1).getLongitude(),
+						waypoint.latitude, waypoint.longitude);
+				if (distanceToFinish <= GPX_WAYPOINT_MAX_DISTANCE_M)
+					line = data.size() - 1;
+			}
+
+			if (line < 0) {
+				SearchPointResult result = SearchPoint(waypoint.latitude, waypoint.longitude);
+				if (result.Point >= 0 && result.Distance <= GPX_WAYPOINT_MAX_DISTANCE_M)
+					line = result.Point;
+			}
+
+			if (line >= 0 && !matchedLines.contains(line)) {
+				matchedWaypoints.add(waypoint);
+				matchedLines.add(line);
+			}
+		}
+
+		if (matchedWaypoints.isEmpty())
+			return;
+
+		java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("course_generator/Bundle");
+		String message = String.format(bundle.getString("TrackData.GPXWaypointImportQuestion"),
+				matchedWaypoints.size(), waypoints.size());
+
+		if (JOptionPane.showConfirmDialog(null, message,
+				bundle.getString("TrackData.GPXWaypointImportTitle"),
+				JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION)
+			return;
+
+		for (int i = 0; i < matchedWaypoints.size(); i++) {
+			SaxGPXHandler.GpxWaypoint waypoint = matchedWaypoints.get(i);
+			CgData point = data.get(matchedLines.get(i));
+
+			point.setTag(point.getTag() | CgConst.TAG_MARK | CgConst.TAG_WATER_PT | CgConst.TAG_ROADBOOK);
+
+			if (waypoint.name != null && !waypoint.name.isEmpty())
+				point.setName(waypoint.name);
+			if (waypoint.description != null && !waypoint.description.isEmpty())
+				point.setComment(waypoint.description);
+		}
+
+		isModified = true;
+		CgLog.info(matchedWaypoints.size() + " GPX waypoints imported as aid stations.");
+	}
+
 	/**
 	 * Read a GPX file and store the data in the array
-	 * 
+	 *
 	 * @param name Full name of the file
 	 * @param mode 0 = Replace the existing data by the new data 1 = Insert the new
 	 *             data at the beginning of the existing data 2 = Add the new data
@@ -350,6 +588,7 @@ public class TrackData {
 	 * @return Return true if time data have been loaded
 	 * @throws Exception
 	 */
+
 	public boolean OpenGPX(String name, int mode, double PosFilterAskThreshold) throws Exception {
 		SaxGPXHandler GPXhandler = new SaxGPXHandler();
 
@@ -381,7 +620,12 @@ public class TrackData {
 			isNewTrack = true;
 
 		// -- Calculate the main data of the track
-		CalcMainData(true, false);
+		// Recompute speed from cumulative GPX time when timestamps are present.
+		// This stays correct if the position filter removed intermediate points.
+		CalcMainData(true, isTimeLoaded);
+
+		if (mode == 0)
+			AskImportGPXWaypoints(GPXhandler.getWaypoints());
 
 		// StartTime = data.get(0).getHour().equals(new DateTime(1970, 1, 1, 0, 0, 0)) ?
 		// new DateTime(2010, 1, 1, 0, 0) : data.get(0).getHour();
@@ -1006,41 +1250,120 @@ public class TrackData {
 	 * Calculate slope
 	 */
 	public void CalcSlope() {
-		double delta = 0;
-		double dist = 0;
-		double mLat = 0;
-		double mLon = 0;
-		double mEle = 0;
-		double Lat = 0;
-		double Lon = 0;
-		double Ele = 0;
+		if (data.size() <= 0)
+			return;
 
-		boolean b = false;
-		for (CgData r : data) {
+		/*
+		 * Calculate grade on a centred physical window instead of between two
+		 * consecutive GPS points. This makes slope largely independent of point
+		 * density and one-metre elevation quantisation.
+		 */
+		double totalDistance = data.get(data.size() - 1).getTotal(CgConst.UNIT_METER);
+		double halfWindow = GLOBAL_SLOPE_WINDOW_M / 2.0;
+		double previousElevation = data.get(0).getElevation(CgConst.UNIT_METER);
 
-			r.setSlope(0.0);
-			Lat = (double) r.getLatitude();
-			Lon = (double) r.getLongitude();
-			Ele = (double) r.getElevation(CgConst.UNIT_METER);
+		for (int i = 0; i < data.size(); i++) {
+			CgData r = data.get(i);
+			double elevation = r.getElevation(CgConst.UNIT_METER);
 
-			if (b) {
-				dist = CalcDistance(mLat, mLon, Lat, Lon);
+			if (i == 0)
+				r.setdElevation(0.0);
+			else
+				r.setdElevation(elevation - previousElevation);
 
-				delta = Ele - mEle;
-				r.setdElevation(delta);
-				if (dist != 0) {
-					r.setSlope(delta / dist * 100);
-				} else {
-					r.setSlope(0);
-				}
+			double center = r.getTotal(CgConst.UNIT_METER);
+			double startDistance = Math.max(0.0, center - halfWindow);
+			double endDistance = Math.min(totalDistance, center + halfWindow);
+			double span = endDistance - startDistance;
+
+			if (span > 0.0) {
+				double startElevation = InterpolateElevationAtDistance(startDistance, CgConst.ELEV_NORM);
+				double endElevation = InterpolateElevationAtDistance(endDistance, CgConst.ELEV_NORM);
+				r.setSlope((endElevation - startElevation) / span * 100.0);
+			} else {
+				r.setSlope(0.0);
 			}
-			b = true;
 
-			mLat = Lat;
-			mLon = Lon;
-			mEle = Ele;
-		} // for i
-	} // Calcslope
+			previousElevation = elevation;
+		}
+	}
+
+	private double GetElevationForType(CgData point, int elevType) {
+		switch (elevType) {
+		case CgConst.ELEV_NOTSMOOTHED:
+			return point.getElevationNotSmoothed(CgConst.UNIT_METER);
+		case CgConst.ELEV_SMOOTHED:
+			return point.getElevationSmoothed(CgConst.UNIT_METER);
+		default:
+			return point.getElevation(CgConst.UNIT_METER);
+		}
+	}
+
+	private int FindFirstPointAfterDistance(double distance) {
+		int low = 0;
+		int high = data.size() - 1;
+		while (low < high) {
+			int mid = (low + high) >>> 1;
+			if (data.get(mid).getTotal(CgConst.UNIT_METER) <= distance)
+				low = mid + 1;
+			else
+				high = mid;
+		}
+		return low;
+	}
+
+	private double InterpolateElevationAtDistance(double targetDistance, int elevType) {
+		if (data.size() == 1)
+			return GetElevationForType(data.get(0), elevType);
+
+		if (targetDistance <= data.get(0).getTotal(CgConst.UNIT_METER))
+			return GetElevationForType(data.get(0), elevType);
+
+		int last = data.size() - 1;
+		double lastDistance = data.get(last).getTotal(CgConst.UNIT_METER);
+		if (targetDistance >= lastDistance)
+			return GetElevationForType(data.get(last), elevType);
+
+		int upper = FindFirstPointAfterDistance(targetDistance);
+		int lower = Math.max(0, upper - 1);
+		CgData a = data.get(lower);
+		CgData b = data.get(upper);
+		double da = a.getTotal(CgConst.UNIT_METER);
+		double db = b.getTotal(CgConst.UNIT_METER);
+
+		if (db <= da)
+			return GetElevationForType(b, elevType);
+
+		double ratio = (targetDistance - da) / (db - da);
+		return GetElevationForType(a, elevType)
+				+ ratio * (GetElevationForType(b, elevType) - GetElevationForType(a, elevType));
+	}
+
+	private int InterpolateTimeAtDistance(double targetDistance) {
+		if (data.size() == 1)
+			return data.get(0).getTime();
+
+		if (targetDistance <= data.get(0).getTotal(CgConst.UNIT_METER))
+			return data.get(0).getTime();
+
+		int last = data.size() - 1;
+		double lastDistance = data.get(last).getTotal(CgConst.UNIT_METER);
+		if (targetDistance >= lastDistance)
+			return data.get(last).getTime();
+
+		int upper = FindFirstPointAfterDistance(targetDistance);
+		int lower = Math.max(0, upper - 1);
+		CgData a = data.get(lower);
+		CgData b = data.get(upper);
+		double da = a.getTotal(CgConst.UNIT_METER);
+		double db = b.getTotal(CgConst.UNIT_METER);
+
+		if (db <= da)
+			return b.getTime();
+
+		double ratio = (targetDistance - da) / (db - da);
+		return (int) Math.round(a.getTime() + ratio * (b.getTime() - a.getTime()));
+	}
 
 	public static class CalcAvrSlopeResult {
 
@@ -1233,66 +1556,56 @@ public class TrackData {
 	// tp: cumul temps en montée (s)
 	// tm: cumul temps en descente (s)
 	public CalcClimbResult CalcClimb(int elevType, int StartLine, int EndLine, CalcClimbResult r) {
-		int i = 0;
-		int oldTime = 0;
-		int dt = 0;
-		double oldElev = 0.0;
-		double de = 0.0;
-		double elev = 0.0;
-		int time = 0;
-
 		r.cp = 0;
 		r.cm = 0;
 		r.tp = 0;
 		r.tm = 0;
 
-		if (data.size() > 0) {
-			switch (elevType) {
-			case CgConst.ELEV_NOTSMOOTHED:
-				oldElev = data.get(StartLine).getElevationNotSmoothed(CgConst.UNIT_METER);
-				break;
-			case CgConst.ELEV_SMOOTHED:
-				oldElev = data.get(StartLine).getElevationSmoothed(CgConst.UNIT_METER);
-				break;
-			default:
-				oldElev = data.get(StartLine).getElevation(CgConst.UNIT_METER);
+		if (data.size() <= 0 || StartLine < 0 || EndLine < StartLine || EndLine >= data.size())
+			return r;
+
+		/*
+		 * The historical algorithm used ClimbThresholdForCalculation as a vertical
+		 * dead-band. With the default value of 10 m it discards many real rolling
+		 * climbs. Use the value as a spatial resampling step instead. Sampling the
+		 * elevation profile every N metres makes D+/D- largely independent of GPX
+		 * point density while preserving genuine small climbs.
+		 */
+		double sampleStep = Math.max(MIN_CLIMB_RESAMPLE_STEP_M,
+				(double) Settings.ClimbThresholdForCalculation);
+		double startDistance = data.get(StartLine).getTotal(CgConst.UNIT_METER);
+		double endDistance = data.get(EndLine).getTotal(CgConst.UNIT_METER);
+
+		double previousDistance = startDistance;
+		double previousElevation = InterpolateElevationAtDistance(startDistance, elevType);
+		int previousTime = InterpolateTimeAtDistance(startDistance);
+
+		while (previousDistance < endDistance) {
+			double currentDistance = Math.min(previousDistance + sampleStep, endDistance);
+			double currentElevation = InterpolateElevationAtDistance(currentDistance, elevType);
+			int currentTime = InterpolateTimeAtDistance(currentDistance);
+
+			double de = currentElevation - previousElevation;
+			int dt = Math.max(0, currentTime - previousTime);
+
+			if (de > 0.0) {
+				r.cp += de;
+				r.tp += dt;
+			} else if (de < 0.0) {
+				r.cm -= de;
+				r.tm += dt;
 			}
 
-			oldTime = data.get(StartLine).getTime();
+			if (currentDistance >= endDistance)
+				break;
 
-			for (i = StartLine; i <= EndLine; i++) {
-				switch (elevType) {
-				case CgConst.ELEV_NOTSMOOTHED:
-					elev = data.get(i).getElevationNotSmoothed(CgConst.UNIT_METER);
-					break;
-				case CgConst.ELEV_SMOOTHED:
-					elev = data.get(i).getElevationSmoothed(CgConst.UNIT_METER);
-					break;
-				default:
-					elev = data.get(i).getElevation(CgConst.UNIT_METER);
-				}
+			previousDistance = currentDistance;
+			previousElevation = currentElevation;
+			previousTime = currentTime;
+		}
 
-				time = data.get(i).getTime();
-
-				de = (elev - oldElev);
-				dt = (time - oldTime);
-
-				if (Math.abs(de) > (double) Settings.ClimbThresholdForCalculation) {
-					if (de > 0) {
-						r.cp += de;
-						r.tp += dt;
-					}
-					if (de < 0) {
-						r.cm -= de;
-						r.tm += dt;
-					}
-					oldElev = elev;
-					oldTime = time;
-				}
-			} // for i
-		} // if
 		return r;
-	} // CalcClimb
+	}
 
 	/**
 	 * Class to store the result of Average speed calculation
@@ -1407,7 +1720,8 @@ public class TrackData {
 		for (CgData r : data) {
 			if ((r.getTimeLimit() != 0) && (r.getTime() > r.getTimeLimit())) {
 				isTimeLimit = true;
-				TimeLimit_Line = i;
+				if (TimeLimit_Line == -1)
+					TimeLimit_Line = i;
 			}
 			i++;
 		}
@@ -1417,32 +1731,47 @@ public class TrackData {
 	/**
 	 * Calculate the time for each position of the track
 	 */
+	private double GetCurveSpeedForSlope(double slope) {
+		if (param == null || param.data == null || param.data.isEmpty())
+			return 0.0;
+
+		if (slope <= param.data.get(0).getSlope())
+			return param.data.get(0).getSpeedNumber();
+
+		int last = param.data.size() - 1;
+		if (slope >= param.data.get(last).getSlope())
+			return param.data.get(last).getSpeedNumber();
+
+		for (int j = 1; j <= last; j++) {
+			double x2 = param.data.get(j).getSlope();
+			if (x2 >= slope) {
+				double x1 = param.data.get(j - 1).getSlope();
+				double y1 = param.data.get(j - 1).getSpeedNumber();
+				double y2 = param.data.get(j).getSpeedNumber();
+				if (x1 == x2)
+					return y2;
+				double ratio = (slope - x1) / (x2 - x1);
+				return y1 + ratio * (y2 - y1);
+			}
+		}
+
+		return param.data.get(last).getSpeedNumber();
+	}
+
 	public void Calculate() {
-		int j = 0;
-		int k = 0;
 		double ts = 0.0;
 		double x = 0.0;
-		double x1 = 0.0;
-		double y1 = 0.0;
-		double x2 = 0.0;
-		double y2 = 0.0;
 		double y = 0.0;
-		double tmp = 0.0;
 		double night = 0.0;
 		double dt = 0.0;
 		double ef = 1.0;
-		boolean ok;
 
-		if (param == null) {
+		if (param == null)
 			return;
-		}
 
 		isTimeLoaded = false;
 
-		// String sParamfile = Utils.GetHomeDir() + "/" + CgConst.CG_DIR + "/" +
-		// Paramfile + ".par";
-
-		// -- Search the curve in a special order (user>min_miles>km_h)
+		// Search the curve in a special order (user > min_miles > km_h)
 		int FolderType = Utils.searchCurveFolder(Paramfile);
 		String sParamfile = Utils.getSelectedCurveFolder(FolderType) + Paramfile + ".par";
 
@@ -1452,54 +1781,38 @@ public class TrackData {
 			return;
 		}
 
-		ef = 1;
+		if (param.data == null || param.data.isEmpty())
+			return;
 
-		dt = 0;
-		// -- Calculation loop --
+		/*
+		 * Rebuild geometry-derived values before using the speed/slope curve. This
+		 * guarantees that a loaded CGX and an edited track use the current 40 m
+		 * spatial slope calculation rather than stale historical slope values.
+		 */
+		CalcDist();
+		CalcSlope();
+
+		ef = 1.0;
+		dt = 0.0;
+
 		for (CgData r : data) {
 			x = r.getSlope();
-			if (x > CgConst.MAX_CLIMB) {
+			if (x > CgConst.MAX_CLIMB)
 				x = CgConst.MAX_CLIMB;
-			}
-			if (x < CgConst.MIN_CLIMB) {
+			if (x < CgConst.MIN_CLIMB)
 				x = CgConst.MIN_CLIMB;
-			}
-			ok = false;
-			for (j = 0; j <= param.data.size() - 1; j++) // -2
-			{
-				tmp = param.data.get(j).getSlope();
-				if (tmp >= x) {
-					k = j - 1;
-					if (j == 0) {
-						k = 0;
-					}
-					x1 = param.data.get(k).getSlope();
-					y1 = param.data.get(k).getSpeedNumber();
-					x2 = param.data.get(j).getSlope();
-					y2 = param.data.get(j).getSpeedNumber();
-					ok = true;
-					break;
-				}
-			} // for j
 
-			if (ok) {
-				// We give 2 points (slope/speed) and we get "a" and
-				// "b" from the line equation
-				if (x1 != x2) {
-					Utils.CalcLineResult res = new CalcLineResult();
-					res = Utils.CalcLine(x1, y1, x2, y2, res);
-					// We calculate the line equation. "Y"=speed in km/h
-					// and "X"=slope
-					y = res.a * x + res.b;
-				} else {
-					y = y1;
-				}
-			} else {
-				y = param.data.get(param.data.size() - 2).getSpeedNumber();
-			}
+			/*
+			 * Interpolate continuously between neighboring points of the selected
+			 * curve. If the route slope is outside the curve range, use the nearest
+			 * endpoint instead of the historical second-to-last-point fallback.
+			 */
+			y = GetCurveSpeedForSlope(x);
 
-			// --Night coeff --
-			DateTime t = r.getHour();
+			// Night coefficient. Use the time produced by this calculation, not the
+			// stale hour previously stored in the point (for example from an older
+			// curve calculation loaded from a CGX file).
+			DateTime t = StartTime.plusSeconds((int) Math.round(dt));
 			if (bNightCoeff
 					&& ((Utils.CompareHMS(t, StartNightTime) >= 0) || (Utils.CompareHMS(t, EndNightTime) <= 0))) {
 				if (r.getSlope() < -2.0) {
@@ -1510,52 +1823,40 @@ public class TrackData {
 					r.setNight(true);
 				}
 			} else {
-				night = 1;
+				night = 1.0;
 				r.setNight(false);
 			}
 
-			// --Elev effect --
-			if (bElevEffect && ((double) r.getElevation(CgConst.UNIT_METER) > 1500.0)) {
-				ef = 1.0 + (Math.round(((double) r.getElevation(CgConst.UNIT_METER) - 1500.0) / 100.0) / 100.0);
+			// Elevation effect
+			if (bElevEffect && r.getElevation(CgConst.UNIT_METER) > 1500.0) {
+				ef = 1.0 + (Math.round((r.getElevation(CgConst.UNIT_METER) - 1500.0) / 100.0) / 100.0);
 			} else {
 				ef = 1.0;
 			}
-			// --
+
 			double dist = r.getDist(CgConst.UNIT_METER);
-			double coeff = 100.0;
-			double diff = 100.0;
+			double coeff = r.getCoeff() > 0.0 ? 100.0 / r.getCoeff() : 1.0;
+			double diff = r.getDiff() > 0.0 ? 100.0 / r.getDiff() : 1.0;
+			double station = (double) r.getStation();
 
-			if (coeff != 0.0) {
-				coeff = 100.0 / r.getCoeff();
-			}
-			if (diff != 0) {
-				diff = 100.0 / r.getDiff();
-			}
-
-			double station = (double) (r.getStation());
-
-			if (y != 0.0) {
-				// Calculate the travel time in second in a part of the track
+			if (y != 0.0)
 				ts = (dist / (y / 3.6)) * coeff * diff * night * ef + station;
-			} else {
+			else
 				ts = 0.0;
-			}
-			dt = dt + ts;
 
+			dt += ts;
 			r.setdTime_f(ts);
 			r.setTime((int) Math.round(dt));
 
-			if (ts != 0.0) {
+			if (ts != 0.0)
 				r.setSpeed(dist * 3.6 / ts);
-			} else {
+			else
 				r.setSpeed(0.0);
-			}
-			r.setHour(StartTime.plusSeconds((int) (Math.round(dt))));
-		} // End of the calculation loop --
 
-		// -- Update the road distance for the track
+			r.setHour(StartTime.plusSeconds((int) Math.round(dt)));
+		}
+
 		DistRoad = CalcRoad(0, data.size() - 1);
-
 		TotalTime = (int) Math.round(dt);
 		isCalculated = true;
 		isModified = true;

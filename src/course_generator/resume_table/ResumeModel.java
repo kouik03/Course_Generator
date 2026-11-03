@@ -32,7 +32,7 @@ public class ResumeModel extends AbstractTableModel {
 	public ResumeModel(ResumeData data, CgSettings _settings) {
 		super();
 
-		header = new String[21];
+		header = new String[24];
 		SetTexts();
 		settings = _settings;
 		resume = data;
@@ -52,16 +52,19 @@ public class ResumeModel extends AbstractTableModel {
 		header[8] = bundle.getString("frmMain.ResumeHeaderHour.text");
 		header[9] = bundle.getString("frmMain.ResumeHeaderDTTime.text");
 		header[10] = bundle.getString("frmMain.ResumeHeaderTimeLimit.text");
-		header[11] = bundle.getString("frmMain.ResumeHeaderStationTime.text");
-		header[12] = bundle.getString("frmMain.ResumeHeaderDTDistance.text");
-		header[13] = bundle.getString("frmMain.ResumeHeaderDTClimbP.text");
-		header[14] = bundle.getString("frmMain.ResumeHeaderDTClimbM.text");
-		header[15] = bundle.getString("frmMain.ResumeHeaderSpeedP.text");
-		header[16] = bundle.getString("frmMain.ResumeHeaderSpeedM.text");
-		header[17] = bundle.getString("frmMain.ResumeHeaderAvgSlopeP.text");
-		header[18] = bundle.getString("frmMain.ResumeHeaderAvgSlopeM.text");
-		header[19] = bundle.getString("frmMain.ResumeHeaderAvgSpeed.text");
-		header[20] = bundle.getString("frmMain.ResumeHeaderComment.text");
+		header[11] = bundle.getString("frmMain.ResumeHeaderTimeMargin.text");
+		header[12] = bundle.getString("frmMain.ResumeHeaderStationTime.text");
+		header[13] = bundle.getString("frmMain.ResumeHeaderDTDistance.text");
+		header[14] = bundle.getString("frmMain.ResumeHeaderDTClimbP.text");
+		header[15] = bundle.getString("frmMain.ResumeHeaderDTClimbM.text");
+		header[16] = bundle.getString("frmMain.ResumeHeaderSpeedP.text");
+		header[17] = bundle.getString("frmMain.ResumeHeaderSpeedM.text");
+		header[18] = bundle.getString("frmMain.ResumeHeaderAvgSlopeP.text");
+		header[19] = bundle.getString("frmMain.ResumeHeaderAvgSlopeM.text");
+		header[20] = bundle.getString("frmMain.ResumeHeaderAvgSpeed.text");
+		header[21] = bundle.getString("frmMain.ResumeHeaderAvgMovingSpeed.text");
+		header[22] = bundle.getString("frmMain.ResumeHeaderAvgPace.text");
+		header[23] = bundle.getString("frmMain.ResumeHeaderComment.text");
 	}
 
 	public CgSettings getSettings() {

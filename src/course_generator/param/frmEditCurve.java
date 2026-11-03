@@ -109,6 +109,7 @@ public class frmEditCurve extends javax.swing.JDialog {
 	private JToggleButton btKM_H;
 	private JToggleButton btMin_Miles;
 	private JToggleButton btUser_Def;
+	private Runnable curveAppliedListener;
 
 	/**
 	 * Creates new form frmSettings
@@ -127,6 +128,10 @@ public class frmEditCurve extends javax.swing.JDialog {
 		tablemodel = new ParamPointsModel(param);
 		initComponents();
 		setModal(true);
+	}
+
+	public void setCurveAppliedListener(Runnable listener) {
+		curveAppliedListener = listener;
 	}
 
 	/**
@@ -224,6 +229,10 @@ public class frmEditCurve extends javax.swing.JDialog {
 		});
 
 		model.clear();
+
+		// A missing/unreadable curve directory should not prevent the dialog opening.
+		if (files == null)
+			return;
 
 		for (int i = 0; i < files.length; i++) {
 			if (files[i].isFile()) {
@@ -430,6 +439,13 @@ public class frmEditCurve extends javax.swing.JDialog {
 					+ ".par", settings.SelectedCurveFolder);
 			bEditMode = false;
 			RefreshView();
+
+			// Selecting/loading a curve applies it immediately to the active track.
+			if (track != null) {
+				track.Paramfile = Paramfile;
+				if (curveAppliedListener != null)
+					curveAppliedListener.run();
+			}
 		}
 	}
 
@@ -515,6 +531,8 @@ public class frmEditCurve extends javax.swing.JDialog {
 					ChangeEditStatus();
 					RefreshView();
 					RefreshCurveList(Utils.getSelectedCurveFolder(settings.SelectedCurveFolder));
+					if (track != null && Paramfile.equals(track.Paramfile) && curveAppliedListener != null)
+						curveAppliedListener.run();
 				}
 			}
 		});

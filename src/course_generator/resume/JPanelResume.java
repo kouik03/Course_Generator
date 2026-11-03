@@ -279,7 +279,7 @@ public class JPanelResume extends JPanel {
 		OldData = Track.data.get(0);
 
 		for (CgData src : Track.data) {
-			if ((src.getTag() & 32) != 0) {
+			if (((src.getTag() & CgConst.TAG_MARK) != 0) || (src.getTimeLimit() > 0) || (src.getStation() > 0)) {
 				k++;
 				CgResume dst = new CgResume();
 				// ResGrid.Rows.Add();
@@ -318,6 +318,12 @@ public class JPanelResume extends JPanel {
 				dst.setAvgSlopeM(casr.AvrSlopeM);
 
 				dst.setAvgSpeed(Double.valueOf(speedResult.getAvrspeed()));
+
+				int movingTime = dst.getdTime_f() - src.getStation();
+				if (movingTime > 0)
+					dst.setAvgMovingSpeed(dst.getdDist() * 3600.0 / movingTime);
+				else
+					dst.setAvgMovingSpeed(0.0);
 
 				dst.setComment(src.getComment());
 

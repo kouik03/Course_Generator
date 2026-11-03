@@ -126,6 +126,8 @@ import course_generator.dialogs.FrmElevationFilter;
 import course_generator.dialogs.FrmExportWaypoints;
 import course_generator.dialogs.FrmImportChoice;
 import course_generator.dialogs.frmEditPosition;
+import course_generator.dialogs.frmCoeffCurve;
+import course_generator.dialogs.frmCoeffCurve.CoeffCurveResult;
 import course_generator.dialogs.frmExportPoints;
 import course_generator.dialogs.frmFillCoeff;
 import course_generator.dialogs.frmFillCoeff.EditCoeffResult;
@@ -256,6 +258,7 @@ public class frmMain extends javax.swing.JFrame {
 	private JLabel LbModifiedVal;
 	private static JButton btFillDiff;
 	private static JButton btFillCoeff;
+	private static JButton btCoeffCurve;
 	private JLabel LbTimeLimit;
 	private JComponent sepTimeLimit;
 	private static JButton btMiniRoadbook;
@@ -572,8 +575,10 @@ public class frmMain extends javax.swing.JFrame {
 		RefreshStatusbar(Track);
 
 		panelTrackData.refresh();
+		panelProfil.RefreshProfilChart();
 		PanelResume.refresh();
 		panelStatistics.refresh();
+		jPanelTimeDist.Refresh(Track, Settings);
 		jPanelSpeed.Refresh(Track, Settings);
 		jPanelSpeedSlope.Refresh(Track, Settings);
 
@@ -2406,13 +2411,7 @@ public class frmMain extends javax.swing.JFrame {
 
 					Track.isCalculated = false;
 					Track.isModified = true;
-					panelTrackData.refresh();
-					panelProfil.RefreshProfilChart();
-					jPanelTimeDist.Refresh(Track, Settings);
-					jPanelSpeed.Refresh(Track, Settings);
-					jPanelSpeedSlope.Refresh(Track, Settings);
-					panelMap.RefreshTrack(Track, false);
-					RefreshStatusbar(Track);
+					CalcTrackTime();
 				}
 			}
 		});
@@ -2472,16 +2471,62 @@ public class frmMain extends javax.swing.JFrame {
 
 					Track.isCalculated = false;
 					Track.isModified = true;
-					panelTrackData.refresh();
-					panelProfil.RefreshProfilChart();
-					jPanelTimeDist.Refresh(Track, Settings);
-					jPanelSpeed.Refresh(Track, Settings);
-					jPanelSpeedSlope.Refresh(Track, Settings);
-					RefreshStatusbar(Track);
+					CalcTrackTime();
 				}
 			}
 		});
 		ToolBarMain.add(btFillCoeff);
+
+		// -- Coefficient curve by aid stations
+		// ----------------------------------------------------
+		btCoeffCurve = new javax.swing.JButton();
+		btCoeffCurve.setIcon(Utils.getIcon(this, "chart_curve.png", Settings.ToolbarIconSize));
+		btCoeffCurve.setFocusable(false);
+		btCoeffCurve.setEnabled(false);
+		btCoeffCurve.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				if (Track.data.size() <= 0)
+					return;
+
+				frmCoeffCurve frm = new frmCoeffCurve();
+				CoeffCurveResult res = frm.showDialog(Track);
+				if (!res.Valid || res.Lines == null || res.Lines.length < 2)
+					return;
+
+				BackupInCGX();
+
+				for (int segment = 0; segment < res.Lines.length - 1; segment++) {
+					int startLine = res.Lines[segment];
+					int endLine = res.Lines[segment + 1];
+					double startDistance = Track.data.get(startLine).getTotal(CgConst.UNIT_METER);
+					double endDistance = Track.data.get(endLine).getTotal(CgConst.UNIT_METER);
+					double startCoeff = res.Coeffs[segment];
+					double endCoeff = res.Coeffs[segment + 1];
+					double span = endDistance - startDistance;
+
+					for (int i = startLine; i <= endLine; i++) {
+						double coeff;
+						if (span <= 0.0) {
+							coeff = endCoeff;
+						} else {
+							double ratio = (Track.data.get(i).getTotal(CgConst.UNIT_METER) - startDistance) / span;
+							coeff = startCoeff + ratio * (endCoeff - startCoeff);
+						}
+
+						if (coeff > CgConst.MAX_COEFF)
+							coeff = CgConst.MAX_COEFF;
+						if (coeff < 0.0)
+							coeff = 0.0;
+						Track.data.get(i).setCoeff(coeff);
+					}
+				}
+
+				Track.isCalculated = false;
+				Track.isModified = true;
+				CalcTrackTime();
+			}
+		});
+		ToolBarMain.add(btCoeffCurve);
 
 		// -- Separator
 		// ---------------------------------------------------------
@@ -2517,6 +2562,7 @@ public class frmMain extends javax.swing.JFrame {
 		btTrackSettings.setToolTipText(bundle.getString("frmMain.btTrackSettings.toolTipText"));
 		btFillDiff.setToolTipText(bundle.getString("frmMain.btFillDiff.toolTipText"));
 		btFillCoeff.setToolTipText(bundle.getString("frmMain.btFillCoeff.toolTipText"));
+		btCoeffCurve.setToolTipText(bundle.getString("frmMain.btCoeffCurve.toolTipText"));
 		btCalculateTrackTime.setToolTipText(bundle.getString("frmMain.btCalculateTrackTime.toolTipText"));
 	}
 
@@ -2537,15 +2583,10 @@ public class frmMain extends javax.swing.JFrame {
 
 		frmTrackSettings frm = new frmTrackSettings(Settings);
 		if (frm.showDialog(Track)) {
-			panelTrackData.refresh();
-			panelProfil.RefreshProfilChart();
-			jPanelTimeDist.Refresh(Track, Settings);
-			jPanelSpeed.Refresh(Track, Settings);
-			jPanelSpeedSlope.Refresh(Track, Settings);
-			RefreshTitle();
-			RefreshStatusbar(Track);
 			Track.isModified = true;
 			Track.isCalculated = false;
+			RefreshTitle();
+			CalcTrackTime();
 		}
 	}
 
@@ -2555,8 +2596,15 @@ public class frmMain extends javax.swing.JFrame {
 	private void EditSSCurves() {
 		if (!Track.ReadOnly) {
 			frmEditCurve frm = new frmEditCurve(Settings);
+			frm.setCurveAppliedListener(new Runnable() {
+				@Override
+				public void run() {
+					Track.isModified = true;
+					Track.isCalculated = false;
+					CalcTrackTime();
+				}
+			});
 			frm.showDialog(Track);
-
 			RefreshStatusbar(Track);
 		}
 	}
@@ -2790,11 +2838,8 @@ public class frmMain extends javax.swing.JFrame {
 				frmEditPosition frm = new frmEditPosition(Settings);
 				if (frm.showDialog(Settings, Track, panelTrackData.getSelectedRow())) {
 					Track.isModified = true;
-					panelTrackData.refresh();
-					panelProfil.RefreshProfilChart();
-					Track.CheckTimeLimit();
-					panelMap.RefreshTrack(Track, false);
-					RefreshStatusbar(Track);
+					Track.isCalculated = false;
+					CalcTrackTime();
 				}
 			}
 
@@ -2885,11 +2930,8 @@ public class frmMain extends javax.swing.JFrame {
 				frmEditPosition frm = new frmEditPosition(Settings);
 				if (frm.showDialog(Settings, Track, PanelResume.getDataTrackLine())) {
 					Track.isModified = true;
-					panelTrackData.refresh();
-					panelProfil.RefreshProfilChart();
-					Track.CheckTimeLimit();
-					panelMap.RefreshTrack(Track, false);
-					RefreshStatusbar(Track);
+					Track.isCalculated = false;
+					CalcTrackTime();
 				}
 			}
 
@@ -3188,17 +3230,106 @@ public class frmMain extends javax.swing.JFrame {
 		fileChooser.setCurrentDirectory(new File(Settings.previousGPXDirectory)); // System.getProperty("user.home")));
 		fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 
-		FileFilter gpxFilter = new FileTypeFilter(".gpx", bundle.getString("frmMain.GPXFile")); // "GPX
-																								// file");
-		fileChooser.addChoosableFileFilter(gpxFilter);
-		fileChooser.setFileFilter(gpxFilter);
+		FileFilter routeFilter = new FileFilter() {
+			@Override
+			public boolean accept(File file) {
+				if (file.isDirectory())
+					return true;
+				String name = file.getName().toLowerCase();
+				return name.endsWith(".gpx") || name.endsWith(".fit");
+			}
+
+			@Override
+			public String getDescription() {
+				return bundle.getString("frmMain.RouteFile") + " (*.gpx, *.fit)";
+			}
+		};
+		fileChooser.addChoosableFileFilter(routeFilter);
+		fileChooser.setFileFilter(routeFilter);
 
 		int result = fileChooser.showOpenDialog(this);
 		if (result == JFileChooser.APPROVE_OPTION) {
 			File selectedFile = fileChooser.getSelectedFile();
-			LoadGPX(selectedFile.getAbsolutePath());
+			LoadRoute(selectedFile.getAbsolutePath());
 			Settings.previousGPXDirectory = Utils.GetDirFromFilename(selectedFile.getAbsolutePath());
 		}
+	}
+
+	private void LoadRoute(String filename) {
+		String lower = filename.toLowerCase();
+		if (lower.endsWith(".fit"))
+			LoadFIT(filename);
+		else if (lower.endsWith(".gpx"))
+			LoadGPX(filename);
+		else
+			JOptionPane.showMessageDialog(this, bundle.getString("frmMain.FileError"), "Course Generator",
+					JOptionPane.ERROR_MESSAGE);
+	}
+
+	private void LoadFIT(String filename) {
+		if (!Utils.FileExist(filename)) {
+			JOptionPane.showMessageDialog(this, bundle.getString("frmMain.FileError"), "Course Generator",
+					JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+
+		File file = new File(filename);
+		if (file.length() == 0) {
+			JOptionPane.showMessageDialog(this, bundle.getString("frmMain.FITInvalidFile"), "Course Generator",
+					JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+
+		setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+		try {
+			if (!Track.OpenFIT(filename)) {
+				setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+				JOptionPane.showMessageDialog(this, bundle.getString("frmMain.FITNoRouteData"),
+						bundle.getString("frmMain.FITFile"), JOptionPane.WARNING_MESSAGE);
+				return;
+			}
+
+			AddMruGPX(filename);
+
+			panelMap.setTrack(Track);
+			RefreshStatusbar(Track);
+
+			panelTrackData.setSelectedRow(0);
+			panelTrackData.setTrack(Track);
+			panelTrackData.setSelectedRow(0);
+
+			PanelResume.setTrack(Track);
+			panelStatistics.setTrack(Track);
+
+			RefreshMruGPX();
+			panelProfil.setTrack(Track);
+			panelProfil.setSettings(Settings);
+			panelProfil.RefreshProfilChart();
+
+			jPanelTimeDist.Refresh(Track, Settings);
+			jPanelSpeed.Refresh(Track, Settings);
+			jPanelSpeedSlope.Refresh(Track, Settings);
+
+			RefreshTitle();
+			RefreshMainToolbar();
+			RefreshMainMenu();
+			panelMap.RefreshTrack(Track, true);
+
+			CalcTrackTime();
+
+			bNoBackup = true;
+
+			if (Track.data.size() > 0)
+				panelMap.RefreshCurrentPosMarker(Track.data.get(0).getLatitude(), Track.data.get(0).getLongitude());
+		} catch (Exception e) {
+			CgLog.error("LoadFIT : Unable to load Garmin FIT course");
+			e.printStackTrace();
+			JOptionPane.showMessageDialog(this, bundle.getString("frmMain.FITInvalidFile"), "Course Generator",
+					JOptionPane.ERROR_MESSAGE);
+		}
+
+		setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 	}
 
 	/**
@@ -3262,6 +3393,8 @@ public class frmMain extends javax.swing.JFrame {
 			RefreshMainMenu();
 			// Refresh map
 			panelMap.RefreshTrack(Track, true);
+
+			CalcTrackTime();
 
 			bNoBackup = true;
 
@@ -3694,8 +3827,8 @@ public class frmMain extends javax.swing.JFrame {
 						}
 					}
 				}
-				if (fileExtension.equals("gpx")) {
-					for (int i = 0; i < Settings.mruCGX.length; ++i) {
+				if (fileExtension.equals("gpx") || fileExtension.equals("fit")) {
+					for (int i = 0; i < Settings.mruGPX.length; ++i) {
 						if (Settings.mruGPX[i].equals(filePath)) {
 							Settings.mruGPX[i] = "";
 							RefreshMruGPX();
@@ -3708,8 +3841,8 @@ public class frmMain extends javax.swing.JFrame {
 			if (fileExtension.equals("cgx")) {
 				LoadCGX(filePath);
 			}
-			if (fileExtension.equals("gpx")) {
-				LoadGPX(filePath);
+			if (fileExtension.equals("gpx") || fileExtension.equals("fit")) {
+				LoadRoute(filePath);
 			}
 		}
 	}
@@ -3730,6 +3863,7 @@ public class frmMain extends javax.swing.JFrame {
 		btGotoNextMark.setEnabled(isLoaded);
 		btTrackSettings.setEnabled(isLoaded);
 		btFillCoeff.setEnabled(isLoaded);
+		btCoeffCurve.setEnabled(isLoaded);
 		btFillDiff.setEnabled(isLoaded);
 		btCalculateTrackTime.setEnabled(isLoaded);
 		btMiniRoadbook.setEnabled(isLoaded);

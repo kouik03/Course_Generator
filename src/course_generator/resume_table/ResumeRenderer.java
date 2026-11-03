@@ -48,6 +48,20 @@ public class ResumeRenderer extends DefaultTableCellRenderer {
 		if (data == null)
 			return this;
 
+		boolean missedTimeLimit = data.isTimeLimitMissed();
+		Color normalBackground = row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE;
+		if (isSelected)
+			setBackground(CgConst.CL_LINE_SELECTION);
+		else if (missedTimeLimit)
+			setBackground(new Color(255, 205, 205));
+		else
+			setBackground(normalBackground);
+
+		setForeground(missedTimeLimit ? new Color(170, 0, 0) : Color.BLACK);
+		setToolTipText(missedTimeLimit
+				? "Time limit exceeded by " + data.getTimeLimitDelayString()
+				: null);
+
 		// Depending of the column number return the rendered label
 		switch (column) {
 		case 0: // N°
@@ -56,12 +70,6 @@ public class ResumeRenderer extends DefaultTableCellRenderer {
 			// -- Display the value
 			setText(String.format("%1.0f ", val));
 			setHorizontalAlignment(CENTER);
-
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
 
 			return this;
 
@@ -72,12 +80,6 @@ public class ResumeRenderer extends DefaultTableCellRenderer {
 			setText(str);
 			setHorizontalAlignment(LEFT);
 
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
-
 			return this;
 
 		case 2: // Line
@@ -87,23 +89,11 @@ public class ResumeRenderer extends DefaultTableCellRenderer {
 			setText(String.format("%1.0f ", val));
 			setHorizontalAlignment(CENTER);
 
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
-
 			return this;
 
 		case 3: // Elevation
 			setText(data.getElevationString(settings.Unit, false));
 			setHorizontalAlignment(CENTER);
-
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
 
 			return this;
 
@@ -111,23 +101,11 @@ public class ResumeRenderer extends DefaultTableCellRenderer {
 			setText(data.getClimbPString(settings.Unit, false));
 			setHorizontalAlignment(CENTER);
 
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
-
 			return this;
 
 		case 5: // Negative climb
 			setText(data.getClimbMString(settings.Unit, false));
 			setHorizontalAlignment(CENTER);
-
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
 
 			return this;
 
@@ -135,23 +113,11 @@ public class ResumeRenderer extends DefaultTableCellRenderer {
 			setText(data.getDistString(settings.Unit, false));
 			setHorizontalAlignment(CENTER);
 
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
-
 			return this;
 
 		case 7: // Time
 			setText(data.getTimeString());
 			setHorizontalAlignment(CENTER);
-
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
 
 			return this;
 
@@ -159,23 +125,11 @@ public class ResumeRenderer extends DefaultTableCellRenderer {
 			setText(data.getHourString());
 			setHorizontalAlignment(CENTER);
 
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
-
 			return this;
 
 		case 9: // dt Time
 			setText(data.getdTime_f_String());
 			setHorizontalAlignment(CENTER);
-
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
 
 			return this;
 
@@ -183,134 +137,92 @@ public class ResumeRenderer extends DefaultTableCellRenderer {
 			setText(data.getTimeLimitString());
 			setHorizontalAlignment(CENTER);
 
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
+			return this;
+
+		case 11: // Time limit margin
+			setText(data.getTimeLimitMarginString());
+			setHorizontalAlignment(CENTER);
+			if (data.getTimeLimit() > 0) {
+				if (data.getTimeLimitMargin() < 0)
+					setForeground(new Color(170, 0, 0));
+				else
+					setForeground(new Color(0, 120, 0));
+			}
 
 			return this;
 
-		case 11: // Station Time
+		case 12: // Station Time
 			setText(data.getStationTimeString());
 			setHorizontalAlignment(CENTER);
 
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
-
 			return this;
 
-		case 12: // dt Distance
+		case 13: // dt Distance
 			setText(data.getdDistString(settings.Unit, false));
 			setHorizontalAlignment(CENTER);
 
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
-
 			return this;
 
-		case 13: // dt positive climb
+		case 14: // dt positive climb
 			setText(data.getdClimbPString(settings.Unit, false));
 			setHorizontalAlignment(CENTER);
 
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
-
 			return this;
 
-		case 14: // dt negative climb
+		case 15: // dt negative climb
 			setText(data.getdClimbMString(settings.Unit, false));
 			setHorizontalAlignment(CENTER);
 
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
-
 			return this;
 
-		case 15: // Ascend speed
+		case 16: // Ascend speed
 			setText(data.getSpeedPString(settings.Unit, false));
 			setHorizontalAlignment(CENTER);
 
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
-
 			return this;
 
-		case 16: // Descend speed
+		case 17: // Descend speed
 			setText(data.getSpeedMString(settings.Unit, false));
 			setHorizontalAlignment(CENTER);
 
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
-
 			return this;
 
-		case 17: // Average ascend slope
+		case 18: // Average ascend slope
 			setText(data.getAvgSlopePString());
 			setHorizontalAlignment(CENTER);
 
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
-
 			return this;
 
-		case 18: // Average descend slope
+		case 19: // Average descend slope
 			setText(data.getAvgSlopeMString());
 			setHorizontalAlignment(CENTER);
 
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
-
 			return this;
 
-		case 19: // Average speed
+		case 20: // Average speed (including station time)
 			setText(data.getAvgSpeedString(settings.Unit, false, settings.isPace));
 			setHorizontalAlignment(CENTER);
 
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
+			return this;
+
+		case 21: // Average moving speed (excluding station time)
+			setText(data.getAvgMovingSpeedString(settings.Unit, false));
+			setHorizontalAlignment(CENTER);
 
 			return this;
 
-		case 20: // Comment
+		case 22: // Average pace (min/km)
+			setText(data.getAvgPaceKmString());
+			setHorizontalAlignment(CENTER);
+
+			return this;
+
+		case 23: // Comment
 			str = data.getComment();
 
 			// -- Display the value
 			setText(str); // TODO Delete /n
 			setHorizontalAlignment(LEFT);
-
-			// -- Set the background
-			if (isSelected)
-				setBackground(CgConst.CL_LINE_SELECTION);
-			else
-				setBackground(row % 2 == 0 ? CgConst.CL_RESUME_ALTERNATE_LINE : Color.WHITE);
 
 			return this;
 		} // switch

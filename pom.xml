@@ -43,6 +43,11 @@ mvn versions:display-dependency-updates -->
 			<version>2.10.2</version>
 		</dependency>
 		<dependency>
+			<groupId>com.garmin</groupId>
+			<artifactId>fit</artifactId>
+			<version>21.218.0</version>
+		</dependency>
+		<dependency>
 			<groupId>org.jfree</groupId>
 			<artifactId>jcommon</artifactId>
 			<version>1.0.24</version>

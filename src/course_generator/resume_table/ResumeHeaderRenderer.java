@@ -34,7 +34,7 @@ public class ResumeHeaderRenderer implements TableCellRenderer {
 		}
 
 		java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("course_generator/Bundle");
-		tooltips = new String[21];
+		tooltips = new String[24];
 		tooltips[0] = bundle.getString("frmMain.ResumeHeaderNum.tooltips");
 		tooltips[1] = bundle.getString("frmMain.ResumeHeaderName.tooltips");
 		tooltips[2] = bundle.getString("frmMain.ResumeHeaderLine.tooltips");
@@ -46,16 +46,19 @@ public class ResumeHeaderRenderer implements TableCellRenderer {
 		tooltips[8] = bundle.getString("frmMain.ResumeHeaderHour.tooltips");
 		tooltips[9] = bundle.getString("frmMain.ResumeHeaderDTTime.tooltips");
 		tooltips[10] = bundle.getString("frmMain.ResumeHeaderTimeLimit.tooltips");
-		tooltips[11] = bundle.getString("frmMain.ResumeHeaderStationTime.tooltips");
-		tooltips[12] = bundle.getString("frmMain.ResumeHeaderDTDistance.tooltips");
-		tooltips[13] = bundle.getString("frmMain.ResumeHeaderDTClimbP.tooltips");
-		tooltips[14] = bundle.getString("frmMain.ResumeHeaderDTClimbM.tooltips");
-		tooltips[15] = bundle.getString("frmMain.ResumeHeaderSpeedP.tooltips");
-		tooltips[16] = bundle.getString("frmMain.ResumeHeaderSpeedM.tooltips");
-		tooltips[17] = bundle.getString("frmMain.ResumeHeaderAvgSlopeP.tooltips");
-		tooltips[18] = bundle.getString("frmMain.ResumeHeaderAvgSlopeM.tooltips");
-		tooltips[19] = bundle.getString("frmMain.ResumeHeaderAvgSpeed.tooltips");
-		tooltips[20] = bundle.getString("frmMain.ResumeHeaderComment.tooltips");
+		tooltips[11] = bundle.getString("frmMain.ResumeHeaderTimeMargin.tooltips");
+		tooltips[12] = bundle.getString("frmMain.ResumeHeaderStationTime.tooltips");
+		tooltips[13] = bundle.getString("frmMain.ResumeHeaderDTDistance.tooltips");
+		tooltips[14] = bundle.getString("frmMain.ResumeHeaderDTClimbP.tooltips");
+		tooltips[15] = bundle.getString("frmMain.ResumeHeaderDTClimbM.tooltips");
+		tooltips[16] = bundle.getString("frmMain.ResumeHeaderSpeedP.tooltips");
+		tooltips[17] = bundle.getString("frmMain.ResumeHeaderSpeedM.tooltips");
+		tooltips[18] = bundle.getString("frmMain.ResumeHeaderAvgSlopeP.tooltips");
+		tooltips[19] = bundle.getString("frmMain.ResumeHeaderAvgSlopeM.tooltips");
+		tooltips[20] = bundle.getString("frmMain.ResumeHeaderAvgSpeed.tooltips");
+		tooltips[21] = bundle.getString("frmMain.ResumeHeaderAvgMovingSpeed.tooltips");
+		tooltips[22] = bundle.getString("frmMain.ResumeHeaderAvgPace.tooltips");
+		tooltips[23] = bundle.getString("frmMain.ResumeHeaderComment.tooltips");
 
 		this.wrappedRenderer = wrappedRenderer;
 		this.lbl = (JLabel) wrappedRenderer;
