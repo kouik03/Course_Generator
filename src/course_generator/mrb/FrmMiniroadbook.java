@@ -154,6 +154,7 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 						r.getdElevation(CgConst.UNIT_METER), r.getTime(), r.getdTime_f(), r.getTimeLimit(), r.getHour(),
 						r.getStation(), r.getName(), r.getComment(), 0, 0, r.FmtLbMiniRoadbook, r.OptionMiniRoadbook,
 						r.VPosMiniRoadbook, r.CommentMiniRoadbook, r.FontSizeMiniRoadbook, 0, 0, resClimb);
+				d.setTimeLimitAfterStation(r.isTimeLimitAfterStation());
 				datalist.data.add(d);
 			}
 		}

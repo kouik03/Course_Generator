@@ -1125,7 +1125,9 @@ public class Utils {
 		 * hour %C :Comment %c :Comment from the main data %L :Carriage return %R
 		 * :Station time (hh:mm) %Rs:Station time (hh:mm) %Rl:Station time (Duration)
 		 * (hh:mm:ss) %+ :Ascend from start %- :Descend from start %+d :Ascend from the
-		 * previous location %-d :Descend from the previous location
+		 * previous location %-d :Descend from the previous location %M :Cut-off margin
+		 * (+ ahead / - late) %P :Average moving pace from previous roadbook point
+		 * (or start) to this point, excluding this point's aid-station pause
 		 */
 		int i = 0;
 		int step = 0;
@@ -1233,6 +1235,48 @@ public class Utils {
 						sr = sr + "\n";
 						step = 0;
 						break;
+
+					// %M: Cut-off margin (+ ahead / - late)
+					case 'M': {
+						if (r.getTimeLimit() <= 0) {
+							sr = sr + "-";
+						} else {
+							int margin = r.getTimeLimit() - r.getTimeForTimeLimitCheck();
+							String sign = margin >= 0 ? "+" : "-";
+							int absMargin = Math.abs(margin);
+							int hours = absMargin / 3600;
+							int minutes = (absMargin % 3600) / 60;
+							sr = sr + String.format("%s%02d:%02d", sign, hours, minutes);
+						}
+						step = 0;
+						break;
+					}
+
+					// %P: Average moving pace since previous roadbook point (or start)
+					case 'P': {
+						int currentIndex = Math.max(0, (int) r.getNum() - 1);
+						int previousIndex = 0;
+						for (int j = currentIndex - 1; j >= 0; j--) {
+							if ((cd.data.get(j).getTag() & CgConst.TAG_ROADBOOK) != 0) {
+								previousIndex = j;
+								break;
+							}
+						}
+
+						double movingDistance = r.getTotal(CgConst.UNIT_METER)
+								- cd.data.get(previousIndex).getTotal(CgConst.UNIT_METER);
+						double movingSeconds = r.getTime() - cd.data.get(previousIndex).getTime() - r.getStation();
+
+						if (movingDistance > 0.0 && movingSeconds > 0.0) {
+							double secondsPerKm = movingSeconds * 1000.0 / movingDistance;
+							long rounded = Math.round(secondsPerKm);
+							sr = sr + String.format("%d:%02d min/km", rounded / 60, rounded % 60);
+						} else {
+							sr = sr + "-";
+						}
+						step = 0;
+						break;
+					}
 
 					default:
 						sr = sr + s.charAt(i);

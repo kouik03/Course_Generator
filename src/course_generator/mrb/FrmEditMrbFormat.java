@@ -64,6 +64,8 @@ public class FrmEditMrbFormat extends javax.swing.JDialog {
 	private JButton btPreviousAscend;
 	private JButton btPreviousDescend;
 	private JButton btTimeDelta;
+	private JButton btTimeLimitMargin;
+	private JButton btMovingPace;
 
 	/**
 	 * Creates new form frmSettings
@@ -430,6 +432,26 @@ public class FrmEditMrbFormat extends javax.swing.JDialog {
 
 		// -- Line 9
 
+		btTimeLimitMargin = new JButton(bundle.getString("FrmEditMrbFormat.btTimeLimitMargin.text"));
+		btTimeLimitMargin.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				tfLabelFormat.setText(tfLabelFormat.getText() + "%M");
+				Refresh();
+			}
+		});
+		Utils.addComponent(paneGlobal, btTimeLimitMargin, 0, line, 1, 1, 0, 0, 0, 10, 0, 0,
+				GridBagConstraints.BASELINE_LEADING, GridBagConstraints.HORIZONTAL);
+
+		btMovingPace = new JButton(bundle.getString("FrmEditMrbFormat.btMovingPace.text"));
+		btMovingPace.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				tfLabelFormat.setText(tfLabelFormat.getText() + "%P");
+				Refresh();
+			}
+		});
+		Utils.addComponent(paneGlobal, btMovingPace, 1, line, 1, 1, 0, 0, 0, 0, 0, 0,
+				GridBagConstraints.BASELINE_LEADING, GridBagConstraints.HORIZONTAL);
+
 		btNewLine = new JButton(bundle.getString("FrmEditMrbFormat.btNewLine.text"));
 		btNewLine.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -437,7 +459,7 @@ public class FrmEditMrbFormat extends javax.swing.JDialog {
 				Refresh();
 			}
 		});
-		Utils.addComponent(paneGlobal, btNewLine, 0, line++, 1, 1, 0, 0, 0, 10, 0, 0,
+		Utils.addComponent(paneGlobal, btNewLine, 2, line++, 1, 1, 0, 0, 0, 0, 0, 0,
 				GridBagConstraints.BASELINE_LEADING, GridBagConstraints.HORIZONTAL);
 
 		// ...
