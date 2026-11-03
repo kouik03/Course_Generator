@@ -427,7 +427,7 @@ public class TrackDataRenderer extends DefaultTableCellRenderer {
 				return this;
 
 			int timelimit = data.getTimeLimit();
-			int time1 = data.getTime();
+			int time1 = data.getTimeForTimeLimitCheck();
 
 			// -- Set the value
 			setText(data.getTimeLimitString(true));

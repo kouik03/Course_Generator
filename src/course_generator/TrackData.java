@@ -1718,7 +1718,7 @@ private void AskImportGPXWaypoints(List<SaxGPXHandler.GpxWaypoint> waypoints) {
 		isTimeLimit = false;
 		TimeLimit_Line = -1;
 		for (CgData r : data) {
-			if ((r.getTimeLimit() != 0) && (r.getTime() > r.getTimeLimit())) {
+			if ((r.getTimeLimit() != 0) && (r.getTimeForTimeLimitCheck() > r.getTimeLimit())) {
 				isTimeLimit = true;
 				if (TimeLimit_Line == -1)
 					TimeLimit_Line = i;
@@ -2313,6 +2313,7 @@ private void AskImportGPXWaypoints(List<SaxGPXHandler.GpxWaypoint> waypoints) {
 				Utils.WriteIntToXML(writer, "TIMESECONDE", r.getTime());
 				Utils.WriteIntToXML(writer, "EATTIME", r.getStation());
 				Utils.WriteIntToXML(writer, "TIMELIMIT", r.getTimeLimit());
+				Utils.WriteStringToXML(writer, "TIMELIMITAFTERSTATION", r.isTimeLimitAfterStation() ? "1" : "0");
 				Utils.WriteStringToXML(writer, "COMMENT", r.getComment());
 				Utils.WriteStringToXML(writer, "NAME", r.getName());
 				Utils.WriteIntToXML(writer, "TAG", r.getTag());

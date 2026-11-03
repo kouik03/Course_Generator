@@ -298,6 +298,7 @@ public class JPanelResume extends JPanel {
 				dst.setHour(src.getHour());
 
 				dst.setTimeLimit(src.getTimeLimit());
+				dst.setTimeLimitAfterStation(src.isTimeLimitAfterStation());
 				dst.setStationTime(src.getStation());
 
 				dst.setdTime_f(src.getTime() - OldData.getTime());

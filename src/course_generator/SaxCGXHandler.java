@@ -89,6 +89,7 @@ public class SaxCGXHandler extends DefaultHandler {
 	private int trkpt_timesecond = 0;
 	private int trkpt_eattime = 0;
 	private int trkpt_timelimit = 0;
+	private boolean trkpt_timeLimitAfterStation = true;
 	// private double trkpt_dtime = 0.0;
 	private int trkpt_optmrb = 0;
 	private int trkpt_vposmrb = 0;
@@ -234,6 +235,7 @@ public class SaxCGXHandler extends DefaultHandler {
 			// trk_nb++;
 			trkpt_SmoothedData = false; // Reset the flag to detect smoothed data
 			trkpt_NotSmoothedData = false;
+			trkpt_timeLimitAfterStation = true; // Backward-compatible default
 			level++;
 		}
 	}
@@ -495,6 +497,8 @@ public class SaxCGXHandler extends DefaultHandler {
 				// TODO used?
 			} else if (qName.equalsIgnoreCase("TIMELIMIT")) {
 				trkpt_timelimit = ManageInt(0, ERR_READ_INT);
+			} else if (qName.equalsIgnoreCase("TIMELIMITAFTERSTATION")) {
+				trkpt_timeLimitAfterStation = ManageBoolean(true, ERR_READ_BOOL);
 			} else if (qName.equalsIgnoreCase("EATTIME")) {
 				trkpt_eattime = ManageInt(0, ERR_READ_INT);
 			} else if (qName.equalsIgnoreCase("COMMENT")) {
@@ -557,6 +561,7 @@ public class SaxCGXHandler extends DefaultHandler {
 							trkpt_commentmrb, // String CommentMiniRoadbook
 							trkpt_FontSizemrb // int FontSizeMiniRoadbook
 					));
+					trkdata.data.get(trkdata.data.size() - 1).setTimeLimitAfterStation(trkpt_timeLimitAfterStation);
 				} else {
 					// Add data at the beginning of the array
 					trkdata.data.add(Cmpt, new CgData(Cmpt, // double Num
@@ -590,6 +595,7 @@ public class SaxCGXHandler extends DefaultHandler {
 							trkpt_commentmrb, // String CommentMiniRoadbook
 							trkpt_FontSizemrb // int FontSizeMiniRoadbook
 					));
+					trkdata.data.get(Cmpt).setTimeLimitAfterStation(trkpt_timeLimitAfterStation);
 					Cmpt++;
 				} // else
 

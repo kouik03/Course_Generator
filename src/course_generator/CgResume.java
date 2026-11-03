@@ -52,6 +52,8 @@ public class CgResume {
 	private double Total;
 	/** Time limit at this position **/
 	private int TimeLimit;
+	/** True when the cut-off is checked after the aid-station pause. **/
+	private boolean TimeLimitAfterStation = true;
 	/** Time to stay at this position **/
 	private int StationTime;
 	/** Distance from the previous position **/
@@ -399,12 +401,25 @@ public class CgResume {
 		TimeLimit = timeLimit;
 	}
 
+	public boolean isTimeLimitAfterStation() {
+		return TimeLimitAfterStation;
+	}
+
+	public void setTimeLimitAfterStation(boolean timeLimitAfterStation) {
+		TimeLimitAfterStation = timeLimitAfterStation;
+	}
+
+	private int getTimeForTimeLimitCheck() {
+		int time = TimeLimitAfterStation ? Time : Time - StationTime;
+		return Math.max(0, time);
+	}
+
 	public boolean isTimeLimitMissed() {
-		return TimeLimit > 0 && Time > TimeLimit;
+		return TimeLimit > 0 && getTimeForTimeLimitCheck() > TimeLimit;
 	}
 
 	public int getTimeLimitMargin() {
-		return TimeLimit > 0 ? TimeLimit - Time : 0;
+		return TimeLimit > 0 ? TimeLimit - getTimeForTimeLimitCheck() : 0;
 	}
 
 	public String getTimeLimitMarginString() {
@@ -424,7 +439,7 @@ public class CgResume {
 	}
 
 	public int getTimeLimitDelay() {
-		return isTimeLimitMissed() ? Time - TimeLimit : 0;
+		return isTimeLimitMissed() ? getTimeForTimeLimitCheck() - TimeLimit : 0;
 	}
 
 	public String getTimeLimitDelayString() {

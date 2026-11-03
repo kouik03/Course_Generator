@@ -4,6 +4,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 
 import javax.swing.JButton;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 public class JTimeSetting extends JPanel {
@@ -28,12 +29,18 @@ public class JTimeSetting extends JPanel {
 		spinHour = new CgSpinner(0, 0, nbhour, 1);
 		Utils.addComponent(this, spinHour, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, GridBagConstraints.BASELINE_LEADING,
 				GridBagConstraints.BOTH);
+		Utils.addComponent(this, new JLabel("H"), 1, 0, 1, 1, 0, 0, 0, 3, 0, 3, GridBagConstraints.CENTER,
+				GridBagConstraints.NONE);
 		spinMinute = new CgSpinner(0, 0, 59, 1);
-		Utils.addComponent(this, spinMinute, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, GridBagConstraints.BASELINE_LEADING,
+		Utils.addComponent(this, spinMinute, 2, 0, 1, 1, 0, 0, 0, 0, 0, 0, GridBagConstraints.BASELINE_LEADING,
 				GridBagConstraints.BOTH);
+		Utils.addComponent(this, new JLabel("M"), 3, 0, 1, 1, 0, 0, 0, 3, 0, 3, GridBagConstraints.CENTER,
+				GridBagConstraints.NONE);
 		spinSecond = new CgSpinner(0, 0, 59, 1);
-		Utils.addComponent(this, spinSecond, 2, 0, 1, 1, 0, 0, 0, 0, 0, 0, GridBagConstraints.BASELINE_LEADING,
+		Utils.addComponent(this, spinSecond, 4, 0, 1, 1, 0, 0, 0, 0, 0, 0, GridBagConstraints.BASELINE_LEADING,
 				GridBagConstraints.BOTH);
+		Utils.addComponent(this, new JLabel("S"), 5, 0, 1, 1, 0, 0, 0, 3, 0, 3, GridBagConstraints.CENTER,
+				GridBagConstraints.NONE);
 		btCancel = new JButton("0");
 		btCancel.setToolTipText("0h00m00s");
 		btCancel.addActionListener(new java.awt.event.ActionListener() {
@@ -44,7 +51,7 @@ public class JTimeSetting extends JPanel {
 				Refresh();
 			}
 		});
-		Utils.addComponent(this, btCancel, 3, 0, 1, 1, 1, 0, 0, 0, 0, 0, GridBagConstraints.BASELINE_LEADING,
+		Utils.addComponent(this, btCancel, 6, 0, 1, 1, 1, 0, 0, 0, 0, 0, GridBagConstraints.BASELINE_LEADING,
 				GridBagConstraints.NONE);
 	}
 

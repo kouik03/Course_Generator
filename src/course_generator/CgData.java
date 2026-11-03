@@ -69,6 +69,8 @@ public class CgData {
 	private double dTime_f;
 	/** Time limit at this position. in second from the start. 0=none **/
 	private int TimeLimit;
+	/** True when the cut-off is checked after the aid-station pause. **/
+	private boolean TimeLimitAfterStation;
 	/** Hour at this position **/
 	private DateTime Hour;
 	/** Time stayed at this position. Rest, eat, drink... (in s) **/
@@ -123,6 +125,7 @@ public class CgData {
 		this.Time = Time; // Total time in second
 		this.dTime_f = dTime_f; // partial time in second (with digit)
 		this.TimeLimit = TimeLimit; // Time limit
+		this.TimeLimitAfterStation = true;
 		this.Hour = Hour; // Date and time at this position
 		this.Station = Station;
 		this.Name = Name;
@@ -161,6 +164,7 @@ public class CgData {
 		this.Time = 0;
 		this.dTime_f = 0;
 		this.TimeLimit = 0;
+		this.TimeLimitAfterStation = true;
 		this.Hour = new DateTime();
 		this.Station = 0;
 		this.Name = "";
@@ -606,6 +610,20 @@ public class CgData {
 		TimeLimit = timeLimit;
 	}
 
+	public boolean isTimeLimitAfterStation() {
+		return TimeLimitAfterStation;
+	}
+
+	public void setTimeLimitAfterStation(boolean timeLimitAfterStation) {
+		TimeLimitAfterStation = timeLimitAfterStation;
+	}
+
+	/** Return the elapsed time that must be compared with the cut-off. */
+	public int getTimeForTimeLimitCheck() {
+		int time = TimeLimitAfterStation ? Time : Time - Station;
+		return Math.max(0, time);
+	}
+
 	// -------------------------------
 	public DateTime getHour() {
 		return Hour;
@@ -699,6 +717,7 @@ public class CgData {
 		d.Time = Time;
 		d.dTime_f = dTime_f;
 		d.TimeLimit = TimeLimit;
+		d.TimeLimitAfterStation = TimeLimitAfterStation;
 		d.Hour = Hour;
 		d.Station = Station;
 		d.Name = Name;
