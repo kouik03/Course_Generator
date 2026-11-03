@@ -565,7 +565,7 @@ private static boolean isFinishPointName(String name) {
 		return CgConst.TAG_WATER_PT;
 	}
 
-private void AskImportGPXWaypoints(List<SaxGPXHandler.GpxWaypoint> waypoints) {
+	private void AskImportGPXWaypoints(List<SaxGPXHandler.GpxWaypoint> waypoints) {
 		if (waypoints == null || waypoints.isEmpty() || data.isEmpty())
 			return;
 
