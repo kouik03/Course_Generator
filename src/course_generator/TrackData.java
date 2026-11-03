@@ -424,7 +424,8 @@ public class TrackData {
 				continue;
 
 			CgData point = data.get(line);
-			point.setTag(point.getTag() | CgConst.TAG_MARK | CgConst.TAG_WATER_PT | CgConst.TAG_ROADBOOK);
+			int aidTags = garminCoursePointAidTags(source);
+			point.setTag(point.getTag() | CgConst.TAG_MARK | aidTags | CgConst.TAG_ROADBOOK);
 
 			// Preserve the fuller GPX waypoint name when it is already present.
 			if ((point.getName() == null || point.getName().trim().isEmpty())
@@ -519,7 +520,52 @@ public class TrackData {
 		return true;
 	}
 
-private void AskImportGPXWaypoints(List<SaxGPXHandler.GpxWaypoint> waypoints) {
+private static boolean isFinishPointName(String name) {
+		if (name == null)
+			return false;
+		String lower = name.trim().toLowerCase(Locale.ROOT);
+		return lower.contains("arriv") || lower.contains("finish");
+	}
+
+	private static int gpxWaypointAidTags(SaxGPXHandler.GpxWaypoint waypoint) {
+		String symbol = waypoint == null || waypoint.symbol == null
+				? ""
+				: waypoint.symbol.trim().toLowerCase(Locale.ROOT);
+
+		/*
+		 * OpenRunner uses symbol 3 for full aid stations and symbol 104 for the
+		 * liquid-only station in the official Veni Vici GPX. Food implies drink,
+		 * so FOOD points deliberately carry both Course Generator tags.
+		 */
+		if (symbol.equals("3")
+				|| symbol.contains("restaurant")
+				|| symbol.equals("food")
+				|| symbol.contains("refreshment"))
+			return CgConst.TAG_EAT_PT | CgConst.TAG_WATER_PT;
+
+		if (symbol.equals("104")
+				|| symbol.contains("water")
+				|| symbol.contains("drink")
+				|| symbol.equals("bar"))
+			return CgConst.TAG_WATER_PT;
+
+		// Preserve historical behaviour for GPX symbols we do not recognise.
+		return CgConst.TAG_WATER_PT;
+	}
+
+	private static int garminCoursePointAidTags(GarminCoursePlannerFitReader.CoursePlannerPoint point) {
+		if (point != null && point.type == com.garmin.fit.CoursePoint.FOOD)
+			return CgConst.TAG_EAT_PT | CgConst.TAG_WATER_PT;
+		if (point != null && point.type == com.garmin.fit.CoursePoint.WATER)
+			return CgConst.TAG_WATER_PT;
+		if (point != null && isFinishPointName(point.name))
+			return 0;
+
+		// Older Course Planner files commonly use GENERIC for aid points.
+		return CgConst.TAG_WATER_PT;
+	}
+
+	private void AskImportGPXWaypoints(List<SaxGPXHandler.GpxWaypoint> waypoints) {
 		if (waypoints == null || waypoints.isEmpty() || data.isEmpty())
 			return;
 
@@ -528,9 +574,7 @@ private void AskImportGPXWaypoints(List<SaxGPXHandler.GpxWaypoint> waypoints) {
 
 		for (SaxGPXHandler.GpxWaypoint waypoint : waypoints) {
 			int line = -1;
-			String lowerName = waypoint.name == null ? "" : waypoint.name.toLowerCase(Locale.ROOT);
-
-			if (lowerName.contains("arriv") || lowerName.contains("finish")) {
+			if (isFinishPointName(waypoint.name)) {
 				double distanceToFinish = Utils.CalcDistance(
 						data.get(data.size() - 1).getLatitude(), data.get(data.size() - 1).getLongitude(),
 						waypoint.latitude, waypoint.longitude);
@@ -565,8 +609,8 @@ private void AskImportGPXWaypoints(List<SaxGPXHandler.GpxWaypoint> waypoints) {
 		for (int i = 0; i < matchedWaypoints.size(); i++) {
 			SaxGPXHandler.GpxWaypoint waypoint = matchedWaypoints.get(i);
 			CgData point = data.get(matchedLines.get(i));
-
-			point.setTag(point.getTag() | CgConst.TAG_MARK | CgConst.TAG_WATER_PT | CgConst.TAG_ROADBOOK);
+			int aidTags = gpxWaypointAidTags(waypoint);
+			point.setTag(point.getTag() | CgConst.TAG_MARK | aidTags | CgConst.TAG_ROADBOOK);
 
 			if (waypoint.name != null && !waypoint.name.isEmpty())
 				point.setName(waypoint.name);
@@ -1032,7 +1076,7 @@ private void AskImportGPXWaypoints(List<SaxGPXHandler.GpxWaypoint> waypoints) {
 		p = -1;
 
 		if (data.size() >= 0) {
-			for (int i = 0; i < data.size() - 1; i++) {
+			for (int i = 0; i < data.size(); i++) {
 				cdata = data.get(i);
 				d = Math.abs(Utils.CalcDistance(cdata.getLatitude(), cdata.getLongitude(), lat, lon));
 				if (d < best) {

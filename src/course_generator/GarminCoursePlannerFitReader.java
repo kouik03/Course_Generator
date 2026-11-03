@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.garmin.fit.CourseMesg;
+import com.garmin.fit.CoursePoint;
 import com.garmin.fit.CoursePointMesg;
 import com.garmin.fit.Decode;
 import com.garmin.fit.Mesg;
@@ -40,6 +41,7 @@ public final class GarminCoursePlannerFitReader {
 		public double latitude = Double.NaN;
 		public double longitude = Double.NaN;
 		public double distanceMeters = Double.NaN;
+		public CoursePoint type = CoursePoint.GENERIC;
 		public int cutoffSeconds = 0;
 		public int restSeconds = 0;
 	}
@@ -114,6 +116,10 @@ public final class GarminCoursePlannerFitReader {
 				Float distance = cp.getDistance();
 				if (distance != null)
 					point.distanceMeters = distance.doubleValue();
+
+				CoursePoint type = cp.getType();
+				if (type != null)
+					point.type = type;
 
 				point.cutoffSeconds = millisecondsFieldToSeconds(mesg, COURSE_POINT_CUTOFF_MS_FIELD);
 				point.restSeconds = millisecondsFieldToSeconds(mesg, COURSE_POINT_REST_MS_FIELD);
