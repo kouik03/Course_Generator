@@ -321,9 +321,131 @@ public class JPanelStatistics extends JPanel {
 			sb = Utils.sbReplace(sb, "@904", "9842 feet");
 		}
 
+		// -- Per-kilometer running pace (aid-station stops excluded)
+		AppendKilometerPaceSection(sb);
+
 		// -- Refresh the view and set the cursor position
 		editorStat.setText(sb.toString());
 		editorStat.setCaretPosition(0);
+	}
+
+	/**
+	 * Append the average running pace for each kilometer. Aid-station stop times
+	 * are excluded so that the displayed pace represents actual moving time.
+	 */
+	private void AppendKilometerPaceSection(StringBuilder sb) {
+		if (track == null || track.data.size() < 2)
+			return;
+
+		double totalDistance = track.data.get(track.data.size() - 1).getTotal(CgConst.UNIT_METER);
+		if (totalDistance <= 0.0)
+			return;
+
+		double[] cumulativeMovingTime = new double[track.data.size()];
+		double movingTime = 0.0;
+		for (int i = 0; i < track.data.size(); i++) {
+			double segmentTime = track.data.get(i).getdTime_f();
+
+			// Calculate() stores the aid-station stop on the point in dTime_f.
+			// Remove it here: this table must show running/moving pace only.
+			if (track.isCalculated)
+				segmentTime -= track.data.get(i).getStation();
+
+			if (segmentTime < 0.0)
+				segmentTime = 0.0;
+
+			movingTime += segmentTime;
+			cumulativeMovingTime[i] = movingTime;
+		}
+
+		if (movingTime <= 0.0)
+			return;
+
+		StringBuilder section = new StringBuilder();
+		section.append("<BR><H2>").append(bundle.getString("JPanelStastistics.kmPace.title")).append("</H2>");
+		section.append("<table cellSpacing=\"8\" cellPadding=\"0\" border=\"0\"><tbody>");
+		section.append("<TR><TD><SPAN class=\"header\">")
+				.append(bundle.getString("JPanelStastistics.kmPace.segment"))
+				.append("</SPAN></TD><TD><SPAN class=\"header\">")
+				.append(bundle.getString("JPanelStastistics.kmPace.pace"))
+				.append("</SPAN></TD></TR>");
+
+		for (double startDistance = 0.0; startDistance < totalDistance - 0.01; startDistance += 1000.0) {
+			double endDistance = Math.min(startDistance + 1000.0, totalDistance);
+			double segmentDistance = endDistance - startDistance;
+			double startTime = InterpolateMovingTimeAtDistance(startDistance, cumulativeMovingTime);
+			double endTime = InterpolateMovingTimeAtDistance(endDistance, cumulativeMovingTime);
+			double segmentTime = Math.max(0.0, endTime - startTime);
+
+			String distanceLabel;
+			if (Math.abs(segmentDistance - 1000.0) < 0.5) {
+				distanceLabel = String.format("%d-%d km", (int) Math.round(startDistance / 1000.0),
+						(int) Math.round(endDistance / 1000.0));
+			} else {
+				distanceLabel = String.format(Locale.getDefault(), "%.1f-%.1f km", startDistance / 1000.0,
+						endDistance / 1000.0);
+			}
+
+			String pace = "-";
+			if (segmentDistance > 0.0 && segmentTime > 0.0)
+				pace = FormatKilometerPace(segmentTime * 1000.0 / segmentDistance);
+
+			section.append("<TR><TD><SPAN class=\"item\">").append(distanceLabel)
+					.append("</SPAN></TD><TD><SPAN class=\"value\">").append(pace)
+					.append("</SPAN></TD></TR>");
+		}
+
+		section.append("</tbody></table><P>")
+				.append(bundle.getString("JPanelStastistics.kmPace.note"))
+				.append("</P>");
+
+		int bodyEnd = sb.lastIndexOf("</body>");
+		if (bodyEnd >= 0)
+			sb.insert(bodyEnd, section.toString());
+		else
+			sb.append(section);
+	}
+
+	private double InterpolateMovingTimeAtDistance(double targetDistance, double[] cumulativeMovingTime) {
+		if (targetDistance <= track.data.get(0).getTotal(CgConst.UNIT_METER))
+			return cumulativeMovingTime[0];
+
+		int last = track.data.size() - 1;
+		if (targetDistance >= track.data.get(last).getTotal(CgConst.UNIT_METER))
+			return cumulativeMovingTime[last];
+
+		int low = 0;
+		int high = last;
+		while (low < high) {
+			int mid = (low + high) >>> 1;
+			if (track.data.get(mid).getTotal(CgConst.UNIT_METER) < targetDistance)
+				low = mid + 1;
+			else
+				high = mid;
+		}
+
+		int upper = low;
+		int lower = Math.max(0, upper - 1);
+		double lowerDistance = track.data.get(lower).getTotal(CgConst.UNIT_METER);
+		double upperDistance = track.data.get(upper).getTotal(CgConst.UNIT_METER);
+
+		if (upperDistance <= lowerDistance)
+			return cumulativeMovingTime[upper];
+
+		double ratio = (targetDistance - lowerDistance) / (upperDistance - lowerDistance);
+		return cumulativeMovingTime[lower]
+				+ ratio * (cumulativeMovingTime[upper] - cumulativeMovingTime[lower]);
+	}
+
+	private String FormatKilometerPace(double secondsPerKilometer) {
+		if (Double.isNaN(secondsPerKilometer) || Double.isInfinite(secondsPerKilometer)
+				|| secondsPerKilometer <= 0.0)
+			return "-";
+
+		long totalSeconds = Math.round(secondsPerKilometer);
+		long minutes = totalSeconds / 60;
+		long seconds = totalSeconds % 60;
+		return String.format("%d:%02d min/km", minutes, seconds);
 	}
 
 	/**
