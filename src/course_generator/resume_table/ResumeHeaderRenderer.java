@@ -34,7 +34,7 @@ public class ResumeHeaderRenderer implements TableCellRenderer {
 		}
 
 		java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("course_generator/Bundle");
-		tooltips = new String[24];
+		tooltips = new String[25];
 		tooltips[0] = bundle.getString("frmMain.ResumeHeaderNum.tooltips");
 		tooltips[1] = bundle.getString("frmMain.ResumeHeaderName.tooltips");
 		tooltips[2] = bundle.getString("frmMain.ResumeHeaderLine.tooltips");
@@ -58,7 +58,8 @@ public class ResumeHeaderRenderer implements TableCellRenderer {
 		tooltips[20] = bundle.getString("frmMain.ResumeHeaderAvgSpeed.tooltips");
 		tooltips[21] = bundle.getString("frmMain.ResumeHeaderAvgMovingSpeed.tooltips");
 		tooltips[22] = bundle.getString("frmMain.ResumeHeaderAvgPace.tooltips");
-		tooltips[23] = bundle.getString("frmMain.ResumeHeaderComment.tooltips");
+		tooltips[23] = bundle.getString("frmMain.ResumeHeaderAvgMovingPace.tooltips");
+		tooltips[24] = bundle.getString("frmMain.ResumeHeaderComment.tooltips");
 
 		this.wrappedRenderer = wrappedRenderer;
 		this.lbl = (JLabel) wrappedRenderer;

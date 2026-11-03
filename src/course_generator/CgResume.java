@@ -805,4 +805,14 @@ public class CgResume {
 		return Utils.FormatSpeed(AvgMovingSpeed, unit, false, withUnit);
 	}
 
+	public String getAvgMovingPaceKmString() {
+		if (AvgMovingSpeed <= 0.0 || Double.isNaN(AvgMovingSpeed) || Double.isInfinite(AvgMovingSpeed))
+			return "";
+
+		int totalSecondsPerKm = (int) Math.round(3600.0 / AvgMovingSpeed);
+		int minutes = totalSecondsPerKm / 60;
+		int seconds = totalSecondsPerKm % 60;
+		return String.format("%d:%02d", minutes, seconds);
+	}
+
 }

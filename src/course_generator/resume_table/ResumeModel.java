@@ -32,7 +32,7 @@ public class ResumeModel extends AbstractTableModel {
 	public ResumeModel(ResumeData data, CgSettings _settings) {
 		super();
 
-		header = new String[24];
+		header = new String[25];
 		SetTexts();
 		settings = _settings;
 		resume = data;
@@ -64,7 +64,8 @@ public class ResumeModel extends AbstractTableModel {
 		header[20] = bundle.getString("frmMain.ResumeHeaderAvgSpeed.text");
 		header[21] = bundle.getString("frmMain.ResumeHeaderAvgMovingSpeed.text");
 		header[22] = bundle.getString("frmMain.ResumeHeaderAvgPace.text");
-		header[23] = bundle.getString("frmMain.ResumeHeaderComment.text");
+		header[23] = bundle.getString("frmMain.ResumeHeaderAvgMovingPace.text");
+		header[24] = bundle.getString("frmMain.ResumeHeaderComment.text");
 	}
 
 	public CgSettings getSettings() {

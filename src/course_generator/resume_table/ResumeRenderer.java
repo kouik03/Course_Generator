@@ -217,7 +217,13 @@ public class ResumeRenderer extends DefaultTableCellRenderer {
 
 			return this;
 
-		case 23: // Comment
+		case 23: // Average moving pace (min/km, excluding station time)
+			setText(data.getAvgMovingPaceKmString());
+			setHorizontalAlignment(CENTER);
+
+			return this;
+
+		case 24: // Comment
 			str = data.getComment();
 
 			// -- Display the value

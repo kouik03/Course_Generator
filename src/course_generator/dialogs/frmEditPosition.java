@@ -33,14 +33,12 @@ import java.util.ResourceBundle;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.BorderFactory;
-import javax.swing.ButtonGroup;
 import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JRadioButton;
 import javax.swing.JRootPane;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
@@ -120,10 +118,8 @@ public class frmEditPosition extends javax.swing.JDialog {
 	// private JHourSetting hsStation;
 	private JTimeSetting hsStation;
 	private JTimeSetting hsTimelimit;
-	private JLabel lbTimelimitPosition;
-	private JRadioButton rbTimelimitAfterStation;
-	private JRadioButton rbTimelimitBeforeStation;
-	private ButtonGroup bgTimelimitPosition;
+	private JLabel lbTimelimitBeforeStation;
+	private JCheckBox chkTimelimitBeforeStation;
 	private JPanel panelLeft;
 	private JPanel panelRight;
 	private JLabel lbElevationHelp;
@@ -257,7 +253,7 @@ public class frmEditPosition extends javax.swing.JDialog {
 
 			track.data.get(line).setTimeLimit(hsTimelimit.getHMSinSecond());
 			track.data.get(line).setStation(hsStation.getHMSinSecond());
-			track.data.get(line).setTimeLimitAfterStation(rbTimelimitAfterStation.isSelected());
+			track.data.get(line).setTimeLimitAfterStation(!chkTimelimitBeforeStation.isSelected());
 
 			track.data.get(line).setComment(tfComment.getText());
 		}
@@ -755,26 +751,18 @@ public class frmEditPosition extends javax.swing.JDialog {
 		Utils.addComponent(panelRight, lbTimelimitHelp, 4, line++, 1, 1, 0, 0, 5, 0, 0, 5,
 				GridBagConstraints.BASELINE_LEADING, GridBagConstraints.BOTH);
 
-		// -- Cut-off position relative to aid-station pause
-		lbTimelimitPosition = new javax.swing.JLabel();
-		lbTimelimitPosition.setFont(font);
-		lbTimelimitPosition.setText(bundle.getString("frmEditPosition.lbTimelimitPosition.Text"));
-		Utils.addComponent(panelRight, lbTimelimitPosition, 0, line, 1, 1, 0, 0, 5, 0, 0, 5,
-				GridBagConstraints.WEST, GridBagConstraints.BOTH);
+		// -- Optional cut-off check before the aid-station pause
+		lbTimelimitBeforeStation = new javax.swing.JLabel(
+				bundle.getString("frmEditPosition.lbTimelimitBeforeStation.Text"));
+		lbTimelimitBeforeStation.setFont(font);
+		Utils.addComponent(panelRight, lbTimelimitBeforeStation, 1, line, 1, 1, 0, 0, 5, 0, 0, 0,
+				GridBagConstraints.BASELINE_LEADING, GridBagConstraints.BOTH);
 
-		JPanel cutoffPositionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-		rbTimelimitAfterStation = new JRadioButton(bundle.getString("frmEditPosition.rbTimelimitAfterStation.Text"));
-		rbTimelimitAfterStation.setToolTipText(bundle.getString("frmEditPosition.rbTimelimitAfterStation.toolTipText"));
-		rbTimelimitBeforeStation = new JRadioButton(bundle.getString("frmEditPosition.rbTimelimitBeforeStation.Text"));
-		rbTimelimitBeforeStation.setToolTipText(bundle.getString("frmEditPosition.rbTimelimitBeforeStation.toolTipText"));
-		bgTimelimitPosition = new ButtonGroup();
-		bgTimelimitPosition.add(rbTimelimitAfterStation);
-		bgTimelimitPosition.add(rbTimelimitBeforeStation);
-		rbTimelimitAfterStation.setSelected(true);
-		cutoffPositionPanel.add(rbTimelimitAfterStation);
-		cutoffPositionPanel.add(rbTimelimitBeforeStation);
-		Utils.addComponent(panelRight, cutoffPositionPanel, 1, line++, 4, 1, 1, 0, 5, 0, 0, 10,
-				GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL);
+		chkTimelimitBeforeStation = new javax.swing.JCheckBox();
+		chkTimelimitBeforeStation.setToolTipText(
+				bundle.getString("frmEditPosition.chkTimelimitBeforeStation.toolTipText"));
+		Utils.addComponent(panelRight, chkTimelimitBeforeStation, 2, line++, 1, 1, 0, 0, 5, 5, 0, 0,
+				GridBagConstraints.BASELINE_LEADING, GridBagConstraints.BOTH);
 
 		// -- Station
 		lbStation = new javax.swing.JLabel();
@@ -857,7 +845,6 @@ public class frmEditPosition extends javax.swing.JDialog {
 
 		hsStation.setHMSinSecond(data.getStation());
 		hsTimelimit.setHMSinSecond(data.getTimeLimit());
-		rbTimelimitAfterStation.setSelected(data.isTimeLimitAfterStation());
-		rbTimelimitBeforeStation.setSelected(!data.isTimeLimitAfterStation());
+		chkTimelimitBeforeStation.setSelected(!data.isTimeLimitAfterStation());
 	}
 }

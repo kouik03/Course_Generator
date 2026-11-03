@@ -75,6 +75,7 @@ public class ResumeData {
 			s.append(bundle.getString("frmMain.ResumeHeaderAvgSpeed.text") + ";");
 			s.append(bundle.getString("frmMain.ResumeHeaderAvgMovingSpeed.text") + ";");
 			s.append(bundle.getString("frmMain.ResumeHeaderAvgPace.text") + ";");
+			s.append(bundle.getString("frmMain.ResumeHeaderAvgMovingPace.text") + ";");
 			s.append(bundle.getString("frmMain.ResumeHeaderComment.text") + ";");
 			writer.println(s);
 			s.setLength(0);
@@ -103,6 +104,7 @@ public class ResumeData {
 				s.append(d.getAvgSpeedString(unit, false, pace) + ";");
 				s.append(d.getAvgMovingSpeedString(unit, false) + ";");
 				s.append(d.getAvgPaceKmString() + ";");
+				s.append(d.getAvgMovingPaceKmString() + ";");
 				s.append(d.getComment());
 				writer.println(s);
 				s.setLength(0);
