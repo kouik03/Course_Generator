@@ -99,6 +99,7 @@ public final class GarminCourseFitWriter {
 
             long previousElapsed = 0L;
             int coursePointIndex = 0;
+            int finishCoursePointIndex = findFinishCoursePointIndex(track);
 
             for (int i = 0; i < track.data.size(); i++) {
                 CgData point = track.data.get(i);
@@ -123,8 +124,12 @@ public final class GarminCourseFitWriter {
                 // Export every point that is visible in either roadbook view.
                 // The Resume/Roadbook view includes MARK points and points carrying
                 // a cutoff or rest time; the Mini Roadbook uses TAG_ROADBOOK.
-                // Always expose the last route point as a native finish point.
-                boolean finish = i == track.data.size() - 1;
+                //
+                // If an explicit arrival point exists slightly before the final GPX
+                // record, export that course point at the true route endpoint. Garmin
+                // Course Planner derives its native finish/trophy from the route end,
+                // not from CoursePoint.SEGMENT_END.
+                boolean finish = i == finishCoursePointIndex;
                 boolean roadbookPoint = ((point.getTag() & CgConst.TAG_ROADBOOK) != 0)
                         || ((point.getTag() & CgConst.TAG_MARK) != 0)
                         || point.getTimeLimit() > 0
@@ -132,12 +137,18 @@ public final class GarminCourseFitWriter {
                         || finish;
 
                 if (roadbookPoint) {
+                    CgData coursePointLocation = finish ? last : point;
+                    DateTime coursePointTimestamp = finish ? endTime : timestamp;
+                    int coursePointLatitude = degreesToSemicircles(coursePointLocation.getLatitude());
+                    int coursePointLongitude = degreesToSemicircles(coursePointLocation.getLongitude());
+                    float coursePointDistance = (float) coursePointLocation.getTotal(CgConst.UNIT_METER);
+
                     CoursePlannerCoursePointMesg coursePoint = new CoursePlannerCoursePointMesg();
                     coursePoint.setMessageIndex(Integer.valueOf(coursePointIndex++));
-                    coursePoint.setTimestamp(timestamp);
-                    coursePoint.setPositionLat(Integer.valueOf(latitude));
-                    coursePoint.setPositionLong(Integer.valueOf(longitude));
-                    coursePoint.setDistance(Float.valueOf(distance));
+                    coursePoint.setTimestamp(coursePointTimestamp);
+                    coursePoint.setPositionLat(Integer.valueOf(coursePointLatitude));
+                    coursePoint.setPositionLong(Integer.valueOf(coursePointLongitude));
+                    coursePoint.setDistance(Float.valueOf(coursePointDistance));
 
                     // Preserve the exact roadbook name entered by the user.
                     String pointName = point.getName();
@@ -152,6 +163,9 @@ public final class GarminCourseFitWriter {
                         coursePoint.setRestMilliseconds(secondsToMilliseconds(point.getStation()));
 
                     encoder.write(coursePoint);
+                    CgLog.info("FIT course point '" + coursePoint.getName() + "' type="
+                            + coursePoint.getType() + ", distance=" + coursePointDistance
+                            + "m, finish=" + finish);
                 }
             }
 
@@ -186,7 +200,7 @@ public final class GarminCourseFitWriter {
 
     private static CoursePoint coursePointType(CgData point, boolean finish) {
         if (finish)
-            return CoursePoint.SEGMENT_END;
+            return CoursePoint.GENERIC;
 
         // FOOD deliberately wins over WATER: a food station is expected to
         // provide drink as well, and the food icon carries more information.
@@ -195,6 +209,41 @@ public final class GarminCourseFitWriter {
         if ((point.getTag() & CgConst.TAG_WATER_PT) != 0)
             return CoursePoint.WATER;
         return CoursePoint.GENERIC;
+    }
+
+    private static int findFinishCoursePointIndex(TrackData track) {
+        int lastIndex = track.data.size() - 1;
+        CgData last = track.data.get(lastIndex);
+
+        // Prefer an explicit roadbook name such as "Ravito 7 (arrivée)".
+        for (int i = lastIndex; i >= 0; i--) {
+            String name = track.data.get(i).getName();
+            if (isFinishPointName(name))
+                return i;
+        }
+
+        // If the arrival was created manually without a name, accept the last
+        // timed roadbook point only when it is very close to the true endpoint.
+        double totalDistance = last.getTotal(CgConst.UNIT_METER);
+        for (int i = lastIndex; i >= 0; i--) {
+            CgData point = track.data.get(i);
+            double remaining = totalDistance - point.getTotal(CgConst.UNIT_METER);
+            if (remaining > 250.0)
+                break;
+            if (point.getTimeLimit() > 0
+                    && (((point.getTag() & CgConst.TAG_ROADBOOK) != 0)
+                            || ((point.getTag() & CgConst.TAG_MARK) != 0)))
+                return i;
+        }
+
+        return lastIndex;
+    }
+
+    private static boolean isFinishPointName(String name) {
+        if (name == null)
+            return false;
+        String lower = name.trim().toLowerCase(java.util.Locale.ROOT);
+        return lower.contains("arriv") || lower.contains("finish");
     }
 
     private static String courseName(TrackData track) {
