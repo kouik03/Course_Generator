@@ -206,9 +206,38 @@ public final class GarminCourseFitWriter {
         // provide drink as well, and the food icon carries more information.
         if ((point.getTag() & CgConst.TAG_EAT_PT) != 0)
             return CoursePoint.FOOD;
-        if ((point.getTag() & CgConst.TAG_WATER_PT) != 0)
+        if ((point.getTag() & CgConst.TAG_WATER_PT) != 0) {
+            /*
+             * Compatibility for CGX files saved before GPX waypoint symbols were
+             * preserved: those imports marked every aid station as WATER. Recover
+             * obvious full "Ravito" stations from their names while keeping
+             * explicitly liquid/water-only points as WATER.
+             */
+            if (looksLikeLegacyFoodStation(point.getName()))
+                return CoursePoint.FOOD;
             return CoursePoint.WATER;
+        }
         return CoursePoint.GENERIC;
+    }
+
+    private static boolean looksLikeLegacyFoodStation(String name) {
+        if (name == null)
+            return false;
+
+        String lower = name.trim().toLowerCase(java.util.Locale.ROOT);
+        boolean aidStation = lower.contains("ravito")
+                || lower.contains("aid station")
+                || lower.contains("refreshment");
+        if (!aidStation)
+            return false;
+
+        boolean waterOnly = lower.contains("liquide")
+                || lower.contains("liquid")
+                || lower.contains("water")
+                || lower.contains("eau")
+                || lower.contains("drink")
+                || lower.contains("hydrat");
+        return !waterOnly;
     }
 
     private static int findFinishCoursePointIndex(TrackData track) {
