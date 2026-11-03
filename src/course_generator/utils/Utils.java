@@ -159,7 +159,15 @@ public class Utils {
 		if (ProgDir.endsWith("/."))
 			ProgDir = ProgDir.substring(0, ProgDir.length() - 2);
 
-		if (inEclipse)
+		/*
+		 * Development/source-tree runs (Eclipse or Maven exec:java) keep the
+		 * standard curves under build/curves, while packaged releases keep them
+		 * directly under the program directory. Detect both layouts so dialogs
+		 * such as the speed/slope curve editor work when launched from the repo.
+		 */
+		File buildCurves = new File(ProgDir + "/build/curves");
+		File directCurves = new File(ProgDir + "/curves");
+		if (inEclipse || (!directCurves.isDirectory() && buildCurves.isDirectory()))
 			ProgDir = ProgDir + "/build";
 	}
 

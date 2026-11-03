@@ -225,6 +225,10 @@ public class frmEditCurve extends javax.swing.JDialog {
 
 		model.clear();
 
+		// A missing/unreadable curve directory should not prevent the dialog opening.
+		if (files == null)
+			return;
+
 		for (int i = 0; i < files.length; i++) {
 			if (files[i].isFile()) {
 				model.addElement(Utils.getFileNameWithoutExtension(files[i].getName()));

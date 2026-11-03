@@ -25,6 +25,8 @@ import java.awt.GridBagLayout;
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
@@ -83,6 +85,19 @@ public class JPanelAnalysisSpeedSlope extends JPanel {
 	private CgSettings settings = null;
 	private JButton btSpeedSlopeCorr;
 	private JButton btSpeedSlopeFilter;
+	private JButton btSpeedSlopeUpperPercentile;
+
+	private static final double UPPER_PERCENTILE = 0.80;
+	private static final double ANALYSIS_SLOPE_WINDOW_M = 40.0;
+	private static final double SPEED_FILTER_WINDOW_M = 30.0;
+	private static final double MIN_BUCKET_DISTANCE_M = 50.0;
+	private static final int MIN_BUCKET_SAMPLES = 3;
+	private static final double LOCAL_PERCENTILE_HALF_WIDTH = 3.0;
+	private static final double LOCAL_PERCENTILE_SIGMA = 1.5;
+	private static final double MIN_LOCAL_PERCENTILE_DISTANCE_M = 200.0;
+	private static final int MIN_LOCAL_PERCENTILE_SAMPLES = 8;
+	private static final double MIN_ANALYSIS_SLOPE = -50.0;
+	private static final double MAX_ANALYSIS_SLOPE = 50.0;
 
 	private double lastX = 0.0;
 	private double lastY = 0.0;
@@ -234,6 +249,23 @@ public class JPanelAnalysisSpeedSlope extends JPanel {
 		});
 		toolBar.add(btSpeedSlopeFilter);
 
+		btSpeedSlopeUpperPercentile = new javax.swing.JButton();
+		btSpeedSlopeUpperPercentile.setIcon(Utils.getIcon(this, "chart_curve.png", settings.ToolbarIconSize));
+		btSpeedSlopeUpperPercentile
+				.setToolTipText(bundle.getString("JPanelAnalysisSpeedSlope.btSpeedSlopeUpperPercentile.toolTipText"));
+		btSpeedSlopeUpperPercentile.setFocusable(false);
+		btSpeedSlopeUpperPercentile.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				btSpeedSlopeUpperPercentile.setSelected(!btSpeedSlopeUpperPercentile.isSelected());
+				// Q80 needs a spatially stable speed signal. Raw point-to-point speed
+				// produces extreme upper-tail artefacts, so enable the 30 m filter.
+				if (btSpeedSlopeUpperPercentile.isSelected())
+					btSpeedSlopeFilter.setSelected(true);
+				Refresh(track, settings);
+			}
+		});
+		toolBar.add(btSpeedSlopeUpperPercentile);
+
 		SetText_Toolbar();
 	}
 
@@ -241,6 +273,8 @@ public class JPanelAnalysisSpeedSlope extends JPanel {
 		btSpeedSlopeSave.setToolTipText(bundle.getString("JPanelAnalysisSpeedSlope.btSpeedSlopeSave.toolTipText"));
 		btSpeedSlopeCorr.setToolTipText(bundle.getString("JPanelAnalysisSpeedSlope.btSpeedSlopeCorr.toolTipText"));
 		btSpeedSlopeFilter.setToolTipText(bundle.getString("JPanelAnalysisSpeedSlope.btSpeedSlopeFilter.toolTipText"));
+		btSpeedSlopeUpperPercentile
+				.setToolTipText(bundle.getString("JPanelAnalysisSpeedSlope.btSpeedSlopeUpperPercentile.toolTipText"));
 	}
 
 	/**
@@ -359,16 +393,12 @@ public class JPanelAnalysisSpeedSlope extends JPanel {
 	 * Update the Slope/Speed chart
 	 */
 	public void Refresh(TrackData track, CgSettings settings) {
-		if (track == null)
-			return;
-
-		if (track.data.isEmpty())
+		if (track == null || track.data.isEmpty())
 			return;
 
 		this.track = track;
 		this.settings = settings;
 
-		// -- Clear all series
 		if (datasetSpeedSlopePoint.getSeriesCount() > 0)
 			datasetSpeedSlopePoint.removeAllSeries();
 		if (datasetSpeedSlopeLine.getSeriesCount() > 0)
@@ -377,211 +407,315 @@ public class JPanelAnalysisSpeedSlope extends JPanel {
 		XYPlot plot = chart.getXYPlot();
 		plot.clearDomainMarkers();
 
-		// -- Populate the series
 		XYSeries serie1 = new XYSeries("Speed/Slope (points)");
 		XYSeries serie2 = new XYSeries("Speed/Slope (line)");
 
-		int[] nb;
+		/*
+		 * Analysis-only slope: calculate grade on a 40 m centred spatial window.
+		 * This avoids the strong altitude-quantisation artefact produced by the
+		 * historical point-to-point slope calculation. The value is stored in tmp2
+		 * so the track's normal slope remains untouched.
+		 */
+		CalculateAnalysisSlope();
 
-		int j = 0;
-		double fCurveSpeedSlope[] = new double[101];
-		double fCurveSpeedSlope2[] = new double[101];
-
-		Double[] Average = new Double[101];
-		Double[] Variance = new Double[101];
-		Double[] StandardDeviation = new Double[101];
-
-		nb = new int[101];
-
-		// -- init calc
-		for (j = 0; j < 101; j++) {
-			fCurveSpeedSlope[j] = 0;
-			fCurveSpeedSlope2[j] = 0;
-			nb[j] = 0;
-		}
-
-		// -- Execute the speed filtering calculation
+		/*
+		 * Analysis-only speed filter. The button now enables a centred 30 m spatial
+		 * filter instead of a moving average over five GPS points.
+		 */
 		SpeedFilter();
 
+		final int bucketCount = 101;
+		double[] weightedSum = new double[bucketCount];
+		double[] weightedSquareSum = new double[bucketCount];
+		double[] firstPassWeight = new double[bucketCount];
+		int[] firstPassSamples = new int[bucketCount];
+		double[] average = new double[bucketCount];
+		double[] standardDeviation = new double[bucketCount];
+
+		List<Double> percentileValues = null;
+		List<Double> percentileSlopes = null;
+		List<Double> percentileDistances = null;
+
+		if (btSpeedSlopeUpperPercentile.isSelected()) {
+			percentileValues = new ArrayList<Double>();
+			percentileSlopes = new ArrayList<Double>();
+			percentileDistances = new ArrayList<Double>();
+		}
+
 		/*
-		 * -- Pass 1 We calculate the average, variance and standard deviation of each
-		 * area (1% per area)
+		 * Pass 1: distance-weighted statistics per 1% grade bucket.
 		 */
-		int n = 0;
-		double s = 0.0;
-		double coeff = 0.0;
-		double diff = 0.0;
 		for (CgData r : track.data) {
-			// if (r.getSpeed(settings.Unit)>maxspeed)
-			// maxspeed=r.getSpeed(settings.Unit);
+			int bucket = GetSlopeBucket(r.tmp2);
+			double speed = GetCorrectedAnalysisSpeed(r);
+			double weight = r.getDist(CgConst.UNIT_METER);
 
-			if (btSpeedSlopeFilter.isSelected())
-				s = r.tmp1;
-			else
-				s = r.getSpeed();
+			if (bucket < 0 || Double.isNaN(speed) || weight <= 0.0)
+				continue;
 
-			if (btSpeedSlopeCorr.isSelected()) {
-				coeff = r.getCoeff() / 100.0;
-				diff = r.getDiff() / 100.0;
+			weightedSum[bucket] += speed * weight;
+			weightedSquareSum[bucket] += speed * speed * weight;
+			firstPassWeight[bucket] += weight;
+			firstPassSamples[bucket]++;
+
+			if (btSpeedSlopeUpperPercentile.isSelected()) {
+				percentileValues.add(speed);
+				percentileSlopes.add(r.tmp2);
+				percentileDistances.add(weight);
+			}
+		}
+
+		for (int i = 0; i < bucketCount; i++) {
+			if (firstPassWeight[i] > 0.0) {
+				average[i] = weightedSum[i] / firstPassWeight[i];
+				double variance = weightedSquareSum[i] / firstPassWeight[i] - average[i] * average[i];
+				standardDeviation[i] = Math.sqrt(Math.max(0.0, variance));
 			} else {
-				coeff = 1.00;
-				diff = 1.00;
-			}
-
-			if (s > 1.5) {
-				if (r.getSlope() < -49) {
-					fCurveSpeedSlope[0] = fCurveSpeedSlope[0] + (s / coeff / diff);
-					fCurveSpeedSlope2[0] = fCurveSpeedSlope2[0] + Math.pow((s / coeff / diff), 2);
-					nb[0]++;
-				} else if (r.getSlope() > 49) {
-					fCurveSpeedSlope[100] = fCurveSpeedSlope[100] + (s / coeff / diff);
-					fCurveSpeedSlope2[100] = fCurveSpeedSlope2[100] + Math.pow((s / coeff / diff), 2);
-					nb[100]++;
-				} else {
-					n = (int) Math.floor(r.getSlope());
-					fCurveSpeedSlope[n + 50] = fCurveSpeedSlope[n + 50] + (s / coeff / diff);
-					fCurveSpeedSlope2[n + 50] = fCurveSpeedSlope2[n + 50] + Math.pow((s / coeff / diff), 2);
-					nb[n + 50]++;
-				}
-			}
-		}
-
-		for (j = 0; j < 101; j++) {
-			if ((nb[j] > 0)) {
-				Average[j] = fCurveSpeedSlope[j] / nb[j];
-				Variance[j] = fCurveSpeedSlope2[j] / nb[j] - Average[j] * Average[j];
-				StandardDeviation[j] = Math.sqrt(Variance[j]);
+				average[i] = Double.NaN;
+				standardDeviation[i] = Double.NaN;
 			}
 		}
 
 		/*
-		 * -- Pass 2 We filter the same data at +-100% of the standard deviation around
-		 * the average
+		 * Pass 2 for the historical mean curve: keep values inside mean +/- 1 sigma.
+		 * The comparison now uses the same difficulty/fatigue-corrected speed as the
+		 * statistics, and the final mean is distance weighted.
 		 */
+		double[] filteredWeightedSum = new double[bucketCount];
+		double[] filteredWeight = new double[bucketCount];
+		int[] filteredSamples = new int[bucketCount];
 
-		// -- Init calc
-		for (j = 0; j < 101; j++) {
-			fCurveSpeedSlope[j] = 0;
-			fCurveSpeedSlope2[j] = 0;
-			nb[j] = 0;
-		}
+		if (!btSpeedSlopeUpperPercentile.isSelected()) {
+			for (CgData r : track.data) {
+				int bucket = GetSlopeBucket(r.tmp2);
+				double speed = GetCorrectedAnalysisSpeed(r);
+				double weight = r.getDist(CgConst.UNIT_METER);
 
-		n = 0;
-		s = 0.0;
-		coeff = 0.0;
-		diff = 0.0;
-		for (CgData r : track.data) {
-			{
-				if (btSpeedSlopeFilter.isSelected())
-					s = r.tmp1;
-				else
-					s = r.getSpeed();
+				if (bucket < 0 || Double.isNaN(speed) || weight <= 0.0 || Double.isNaN(average[bucket]))
+					continue;
 
-				if (btSpeedSlopeCorr.isSelected()) {
-					coeff = r.getCoeff() / 100.0;
-					diff = r.getDiff() / 100.0;
-				} else {
-					coeff = 1.00;
-					diff = 1.00;
-				}
-
-				if (s > 1.5) {
-					if (r.getSlope() < -49) {
-						if ((s <= Average[0] + StandardDeviation[0]) || (s >= Average[0] - StandardDeviation[0])) {
-							fCurveSpeedSlope[0] = fCurveSpeedSlope[0] + (s / coeff / diff);
-							fCurveSpeedSlope2[0] = fCurveSpeedSlope2[0] + Math.pow((s / coeff / diff), 2);
-							nb[0]++;
-						}
-					} else if (r.getSlope() > 49) {
-						if ((s <= Average[100] + StandardDeviation[100])
-								|| (s >= Average[100] - StandardDeviation[100])) {
-							fCurveSpeedSlope[100] = fCurveSpeedSlope[100] + (s / coeff / diff);
-							fCurveSpeedSlope2[100] = fCurveSpeedSlope2[100] + Math.pow((s / coeff / diff), 2);
-							nb[100]++;
-						}
-					} else {
-						n = (int) Math.floor(r.getSlope());
-						if ((s <= Average[n + 50] + StandardDeviation[n + 50])
-								|| (s >= Average[n + 50] - StandardDeviation[n + 50])) {
-							fCurveSpeedSlope[n + 50] = fCurveSpeedSlope[n + 50] + (s / coeff / diff);
-							fCurveSpeedSlope2[n + 50] = fCurveSpeedSlope2[n + 50] + Math.pow((s / coeff / diff), 2);
-							nb[n + 50]++;
-						}
-					}
+				if (speed <= average[bucket] + standardDeviation[bucket]
+						&& speed >= average[bucket] - standardDeviation[bucket]) {
+					filteredWeightedSum[bucket] += speed * weight;
+					filteredWeight[bucket] += weight;
+					filteredSamples[bucket]++;
 				}
 			}
 		}
 
 		double maxspeed = 0.0;
 
-		// -- Populate the first serie
+		// Scatter plot: use the same spatial grade used by the curve.
 		for (CgData r : track.data) {
-			if (btSpeedSlopeFilter.isSelected())
-				s = r.tmp1;
-			else
-				s = r.getSpeed(settings.Unit);
+			int bucket = GetSlopeBucket(r.tmp2);
+			if (bucket < 0)
+				continue;
 
-			if (s > maxspeed)
-				maxspeed = s;
-
-			serie1.add(r.getSlope(), s);
+			double displayedSpeed = btSpeedSlopeFilter.isSelected() ? r.tmp1 : r.getSpeed();
+			if (displayedSpeed > maxspeed)
+				maxspeed = displayedSpeed;
+			serie1.add(r.tmp2, displayedSpeed);
 		}
 		datasetSpeedSlopePoint.addSeries(serie1);
 
-		// -- Populate the second serie
-		double m = 0.0;
-		for (j = 0; j < 101; j++) {
-			if ((nb[j] > 0)) {
-				m = fCurveSpeedSlope[j] / nb[j];
+		/*
+		 * Result curve. Sparse buckets are intentionally omitted instead of being
+		 * extrapolated from a handful of GPS points. A bucket needs at least 50 m of
+		 * supporting distance and at least three observations.
+		 */
+		for (int i = 0; i < bucketCount; i++) {
+			double value = Double.NaN;
 
-				if (m > maxspeed)
-					maxspeed = m;
+			if (btSpeedSlopeUpperPercentile.isSelected()) {
+				value = SpeedSlopeCurveEstimator.localWeightedPercentile(
+						percentileValues, percentileSlopes, percentileDistances,
+						i - 50, LOCAL_PERCENTILE_HALF_WIDTH, LOCAL_PERCENTILE_SIGMA,
+						UPPER_PERCENTILE, MIN_LOCAL_PERCENTILE_DISTANCE_M,
+						MIN_LOCAL_PERCENTILE_SAMPLES);
+			} else if (filteredWeight[i] >= MIN_BUCKET_DISTANCE_M
+					&& filteredSamples[i] >= MIN_BUCKET_SAMPLES) {
+				value = filteredWeightedSum[i] / filteredWeight[i];
+			}
 
-				serie2.add(j - 50, m);
+			if (!Double.isNaN(value)) {
+				if (value > maxspeed)
+					maxspeed = value;
+				serie2.add(i - 50, value);
 			}
 		}
-		// -- If there is no speed the exit (not already calculated)
-		if (maxspeed == 0)
+
+		if (maxspeed == 0.0)
 			return;
 
-		datasetSpeedSlopeLine.addSeries(serie2);
+		if (serie2.getItemCount() > 0)
+			datasetSpeedSlopeLine.addSeries(serie2);
 
-		// -- Set the range of the X axis
 		ValueAxis axisX = plot.getDomainAxis();
-		axisX.setRange(-50.0, 50.0);
+		axisX.setRange(MIN_ANALYSIS_SLOPE, MAX_ANALYSIS_SLOPE);
 
 		ValueAxis axisY = plot.getRangeAxis(0);
 		axisY.setRange(0, Math.ceil(maxspeed / 5.0) * 5.0);
 
 		axisY = plot.getRangeAxis(1);
 		axisY.setRange(1, Math.ceil(maxspeed / 5.0) * 5.0);
-
 	}
 
 	/**
-	 * Sliding average speed over 5 points
+	 * Return the corrected activity speed used to build the personal curve.
+	 * Values <= 1.5 km/h are kept out of the analysis as in the historical code.
+	 */
+	private double GetCorrectedAnalysisSpeed(CgData r) {
+		double speed = btSpeedSlopeFilter.isSelected() ? r.tmp1 : r.getSpeed();
+		if (speed <= 1.5)
+			return Double.NaN;
+
+		double coeff = 1.0;
+		double diff = 1.0;
+		if (btSpeedSlopeCorr.isSelected()) {
+			coeff = r.getCoeff() / 100.0;
+			diff = r.getDiff() / 100.0;
+		}
+
+		if (coeff <= 0.0 || diff <= 0.0)
+			return Double.NaN;
+
+		return speed / coeff / diff;
+	}
+
+	/**
+	 * Calculate analysis grade on a centred spatial window. The historical
+	 * point-to-point slope remains untouched in CgData.Slope.
+	 */
+	private void CalculateAnalysisSlope() {
+		double totalDistance = track.data.get(track.data.size() - 1).getTotal(CgConst.UNIT_METER);
+		double halfWindow = ANALYSIS_SLOPE_WINDOW_M / 2.0;
+
+		for (CgData r : track.data) {
+			double center = r.getTotal(CgConst.UNIT_METER);
+			double startDistance = Math.max(0.0, center - halfWindow);
+			double endDistance = Math.min(totalDistance, center + halfWindow);
+			double span = endDistance - startDistance;
+
+			if (span < ANALYSIS_SLOPE_WINDOW_M / 2.0) {
+				r.tmp2 = Double.NaN;
+				continue;
+			}
+
+			double startElevation = InterpolateElevationAtDistance(startDistance);
+			double endElevation = InterpolateElevationAtDistance(endDistance);
+			r.tmp2 = (endElevation - startElevation) / span * 100.0;
+		}
+	}
+
+	/**
+	 * Linear interpolation of the active elevation profile at a cumulative distance.
+	 */
+	private double InterpolateElevationAtDistance(double targetDistance) {
+		if (targetDistance <= 0.0)
+			return track.data.get(0).getElevation(CgConst.UNIT_METER);
+
+		int last = track.data.size() - 1;
+		double lastDistance = track.data.get(last).getTotal(CgConst.UNIT_METER);
+		if (targetDistance >= lastDistance)
+			return track.data.get(last).getElevation(CgConst.UNIT_METER);
+
+		int upper = FindFirstPointAfterDistance(targetDistance);
+		int lower = Math.max(0, upper - 1);
+
+		CgData a = track.data.get(lower);
+		CgData b = track.data.get(upper);
+		double da = a.getTotal(CgConst.UNIT_METER);
+		double db = b.getTotal(CgConst.UNIT_METER);
+
+		if (db <= da)
+			return b.getElevation(CgConst.UNIT_METER);
+
+		double ratio = (targetDistance - da) / (db - da);
+		return a.getElevation(CgConst.UNIT_METER)
+				+ ratio * (b.getElevation(CgConst.UNIT_METER) - a.getElevation(CgConst.UNIT_METER));
+	}
+
+	/**
+	 * Find the first point whose cumulative distance is strictly greater than the
+	 * requested distance.
+	 */
+	private int FindFirstPointAfterDistance(double distance) {
+		int low = 0;
+		int high = track.data.size() - 1;
+
+		while (low < high) {
+			int mid = (low + high) >>> 1;
+			if (track.data.get(mid).getTotal(CgConst.UNIT_METER) <= distance)
+				low = mid + 1;
+			else
+				high = mid;
+		}
+		return low;
+	}
+
+	/**
+	 * Convert an analysis slope to the 1% bucket (-50..+50). Values outside that
+	 * range are ignored rather than collapsed into the +/-50% bins.
+	 */
+	private int GetSlopeBucket(double slope) {
+		if (Double.isNaN(slope) || slope < MIN_ANALYSIS_SLOPE || slope > MAX_ANALYSIS_SLOPE)
+			return -1;
+		if (slope == MAX_ANALYSIS_SLOPE)
+			return 100;
+		return (int) Math.floor(slope) + 50;
+	}
+
+	/**
+	 * Centred 30 m spatial speed filter. It calculates the effective speed over the
+	 * window from travelled distance and segment times, rather than averaging a
+	 * fixed number of GPS samples.
 	 */
 	private void SpeedFilter() {
-		int i = 0;
-		double avr = 0.0;
+		double totalDistance = track.data.get(track.data.size() - 1).getTotal(CgConst.UNIT_METER);
+		double halfWindow = SPEED_FILTER_WINDOW_M / 2.0;
 
-		for (i = 0; i < track.data.size(); i++) {
-			if (i == 0)
-				avr = track.data.get(0).getSpeed(settings.Unit);
-			else if (i == 1)
-				avr = (track.data.get(1).getSpeed(settings.Unit) + track.data.get(0).getSpeed(settings.Unit)) / 2;
-			else if (i == 2)
-				avr = (track.data.get(2).getSpeed(settings.Unit) + track.data.get(1).getSpeed(settings.Unit)
-						+ track.data.get(0).getSpeed(settings.Unit)) / 3;
-			else if (i == 3)
-				avr = (track.data.get(3).getSpeed(settings.Unit) + track.data.get(2).getSpeed(settings.Unit)
-						+ track.data.get(1).getSpeed(settings.Unit) + track.data.get(0).getSpeed(settings.Unit)) / 4;
+		for (int i = 0; i < track.data.size(); i++) {
+			CgData current = track.data.get(i);
+			double center = current.getTotal(CgConst.UNIT_METER);
+			double startDistance = Math.max(0.0, center - halfWindow);
+			double endDistance = Math.min(totalDistance, center + halfWindow);
+
+			int firstSegmentEnd = FindFirstPointAfterDistance(startDistance);
+			if (firstSegmentEnd < 1)
+				firstSegmentEnd = 1;
+
+			double windowDistance = 0.0;
+			double windowTime = 0.0;
+
+			for (int j = firstSegmentEnd; j < track.data.size(); j++) {
+				CgData previous = track.data.get(j - 1);
+				CgData segmentEnd = track.data.get(j);
+
+				double segmentStartDistance = previous.getTotal(CgConst.UNIT_METER);
+				double segmentEndDistance = segmentEnd.getTotal(CgConst.UNIT_METER);
+
+				if (segmentStartDistance >= endDistance)
+					break;
+
+				double overlapStart = Math.max(startDistance, segmentStartDistance);
+				double overlapEnd = Math.min(endDistance, segmentEndDistance);
+				double overlapDistance = overlapEnd - overlapStart;
+
+				if (overlapDistance <= 0.0)
+					continue;
+
+				double segmentSpeed = segmentEnd.getSpeed();
+				if (segmentSpeed <= 0.0)
+					continue;
+
+				windowDistance += overlapDistance;
+				windowTime += overlapDistance / (segmentSpeed / 3.6);
+			}
+
+			if (windowTime > 0.0)
+				current.tmp1 = windowDistance / windowTime * 3.6;
 			else
-				avr = (track.data.get(i).getSpeed(settings.Unit) + track.data.get(i - 1).getSpeed(settings.Unit)
-						+ track.data.get(i - 2).getSpeed(settings.Unit) + track.data.get(i - 3).getSpeed(settings.Unit)
-						+ track.data.get(i - 4).getSpeed(settings.Unit)) / 5;
-
-			track.data.get(i).tmp1 = avr;
+				current.tmp1 = current.getSpeed();
 		}
 	}
 
