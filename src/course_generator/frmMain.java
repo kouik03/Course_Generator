@@ -197,6 +197,7 @@ public class frmMain extends javax.swing.JFrame {
 	DefaultTableModel model;
 	private static JMenuItem mnuSaveCGX;
 	private static JMenuItem mnuSaveGPX;
+	private static JMenuItem mnuSaveFIT;
 	private static JMenuItem mnuSaveCSV;
 	private static JMenuItem mnuSavePartCGX;
 	private static JMenuItem mnuSavePartGPX;
@@ -826,6 +827,17 @@ public class frmMain extends javax.swing.JFrame {
 			}
 		});
 		mnuExport.add(mnuSaveGPX);
+
+		// -- Save Garmin FIT Course
+		mnuSaveFIT = new javax.swing.JMenuItem();
+		mnuSaveFIT.setIcon(Utils.getIcon(this, "export.png", Settings.MenuIconSize));
+		mnuSaveFIT.setEnabled(false);
+		mnuSaveFIT.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				SaveAsFIT();
+			}
+		});
+		mnuExport.add(mnuSaveFIT);
 
 		// -- Save a part of the track in CGX
 		mnuSavePartCGX = new javax.swing.JMenuItem();
@@ -1558,6 +1570,7 @@ public class frmMain extends javax.swing.JFrame {
 		mnuSaveCGX.setText(bundle.getString("frmMain.mnuSaveCGX.text"));
 		mnuSaveAsCGX.setText(bundle.getString("frmMain.mnuSaveAsCGX.text"));
 		mnuSaveGPX.setText(bundle.getString("frmMain.mnuSaveGPX.text"));
+		mnuSaveFIT.setText(bundle.getString("frmMain.mnuSaveFIT.text"));
 		mnuSaveCSV.setText(bundle.getString("frmMain.mnuSaveCSV.text"));
 		mnuImportGPX.setText(bundle.getString("frmMain.mnuImportGPX.text"));
 		mnuImportCGX.setText(bundle.getString("frmMain.mnuImportCGX.text"));
@@ -3443,6 +3456,32 @@ public class frmMain extends javax.swing.JFrame {
 	}
 
 	/**
+	 * Save the current track as a Garmin FIT Course.
+	 */
+	private void SaveAsFIT() {
+		if (Track.data.isEmpty())
+			return;
+
+		String s = Utils.SaveDialog(this, Settings.previousGPXDirectory, "", ".fit",
+				bundle.getString("frmMain.FITFile"), true, bundle.getString("frmMain.FileExist"));
+
+		if (!s.isEmpty()) {
+			setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+			try {
+				GarminCourseFitWriter.write(Track, s);
+				Settings.previousGPXDirectory = Utils.GetDirFromFilename(s);
+			} catch (Exception e) {
+				CgLog.error("SaveAsFIT : Unable to export Garmin FIT course");
+				e.printStackTrace();
+				JOptionPane.showMessageDialog(this, bundle.getString("frmMain.FileError"), "Course Generator",
+						JOptionPane.ERROR_MESSAGE);
+			} finally {
+				setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+			}
+		}
+	}
+
+	/**
 	 * Display a dialog box to open a CGX file
 	 */
 	private void OpenCGXDialog() {
@@ -3881,6 +3920,7 @@ public class frmMain extends javax.swing.JFrame {
 		mnuSaveCGX.setEnabled(isLoaded);
 		mnuSaveAsCGX.setEnabled(isLoaded);
 		mnuSaveGPX.setEnabled(isLoaded);
+		mnuSaveFIT.setEnabled(isLoaded);
 		mnuSaveCSV.setEnabled(isLoaded);
 		mnuSavePartCGX.setEnabled(isLoaded);
 		mnuSavePartGPX.setEnabled(isLoaded);
