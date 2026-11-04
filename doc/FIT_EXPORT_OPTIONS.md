@@ -9,6 +9,8 @@ Course Generator **File > Export > Export Garmin FIT course** now opens one conf
 | Custom Garmin symbols | Enabled | Maps FOOD / WATER roadbook tags to FIT course point types; disabling uses GENERIC points, retaining names/locations |
 | Barrier Virtual Partner | **Disabled** | Rewrites the FIT Course Record timestamps and adds a **variable** Record.speed matching the terrain-sensitive moving-time model, adjusted between consecutive cutoffs, with **no station stops** |
 
+For Virtual Partner exports, the **FIT-internal `CourseMesg.name`** is suffixed with ` VP` (for example `Venvici 2026 VP`). Normal FIT exports retain the exact project course name. This allows the watch to distinguish the two routes even when the filenames differ. The CGX project name is never renamed.
+
 The original `GarminCourseFitWriter.write(track, file)` overload still uses the historical defaults. The regular export has the same timeline and no speed fields as before.
 
 ## Virtual Partner timeline
