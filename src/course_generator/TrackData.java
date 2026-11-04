@@ -710,6 +710,25 @@ private static boolean isFinishPointName(String name) {
 		// Food deliberately wins over water, matching FIT export/import behaviour.
 		if ((point.getTag() & CgConst.TAG_EAT_PT) != 0)
 			return "Restaurant";
+
+		/*
+		 * Compatibility for CGX files created before GPX symbol import was fixed:
+		 * those files may have every ravito stored as WATER. Recover obvious full
+		 * aid stations from their name while keeping liquid-only stations as WATER.
+		 */
+		String name = point.getName() == null ? "" : point.getName().trim().toLowerCase(Locale.ROOT);
+		boolean namedAidStation = name.contains("ravito")
+				|| name.contains("aid station")
+				|| name.contains("refreshment");
+		boolean waterOnly = name.contains("liquide")
+				|| name.contains("liquid")
+				|| name.contains("water")
+				|| name.contains("eau")
+				|| name.contains("drink")
+				|| name.contains("hydrat");
+		if (namedAidStation && !waterOnly)
+			return "Restaurant";
+
 		return "Bar";
 	}
 
@@ -899,7 +918,8 @@ private static boolean isFinishPointName(String name) {
 			writer.close();
 			bufferedOutputStream.close();
 
-			isModified = false;
+			// Exporting a GPX does not decide whether the editable project is saved.
+			// Full/partial callers manage isModified explicitly.
 			// Name = new File(name).getName();
 
 			CgLog.info("TrackData.SaveGPX : '" + name + "' saved");
