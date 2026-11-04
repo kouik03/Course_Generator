@@ -76,6 +76,11 @@ public final class GpxWaypointRoundtripSmoke {
                 throw new AssertionError("Partial GPX export cleared CGX modified flag");
 
             track.SaveCGX(cgx.toString(), 0, 1, false);
+            // The CGX reader prompts for a missing, unrelated .par curve file.
+            // Remove this optional setting so the metadata test is headless.
+            String cgxXML = new String(Files.readAllBytes(cgx), StandardCharsets.UTF_8);
+            cgxXML = cgxXML.replaceAll("(?s)<CURVE>.*?</CURVE>", "");
+            Files.write(cgx, cgxXML.getBytes(StandardCharsets.UTF_8));
             TrackData reopened = new TrackData(new CgSettings());
             int error = new SaxCGXHandler().readDataFromCGX(null, cgx.toString(), reopened, 0);
             if (error != 0 || reopened.data.size() != 2)
