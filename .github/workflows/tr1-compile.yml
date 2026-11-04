@@ -20,3 +20,5 @@ jobs:
         run: node tools/test_trailrace_tr1.js
       - name: Maven package
         run: mvn -B -DskipTests package
+      - name: GraalJS runtime smoke
+        run: java -cp "target/classes:target/lib/*" course_generator.tests.TrailRaceTr1EngineSmoke
