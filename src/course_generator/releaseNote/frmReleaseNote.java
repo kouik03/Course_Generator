@@ -41,6 +41,12 @@ import javax.swing.JEditorPane;
 import javax.swing.JPanel;
 import javax.swing.JRootPane;
 import javax.swing.JScrollPane;
+import javax.swing.JOptionPane;
+
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
+import course_generator.utils.CgConst;
 import javax.swing.KeyStroke;
 
 import course_generator.settings.CgSettings;
@@ -96,7 +102,7 @@ public class frmReleaseNote extends javax.swing.JDialog {
 		@SuppressWarnings("serial")
 		Action actionListener = new AbstractAction() {
 			public void actionPerformed(ActionEvent actionEvent) {
-				setVisible(false);
+				closeDialog();
 			}
 		};
 
@@ -109,7 +115,14 @@ public class frmReleaseNote extends javax.swing.JDialog {
 
 	private void initComponents() {
 
-		setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+		// Every close path must persist the checkbox, not only the Close button.
+		setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
+		addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent event) {
+				closeDialog();
+			}
+		});
 		setTitle(bundle.getString("frmReleaseNote.title")); // Release notes
 		setAlwaysOnTop(true);
 
@@ -121,7 +134,7 @@ public class frmReleaseNote extends javax.swing.JDialog {
 		editorStat = new JEditorPane();
 		editorStat.setContentType("text/html");
 		editorStat.setEditable(false);
-		editorStat.setPreferredSize(new Dimension(600, 400));
+		editorStat.setPreferredSize(new Dimension(740, 480));
 		scrollPaneStat = new JScrollPane(editorStat);
 
 		Utils.addComponent(paneGlobal, scrollPaneStat, 0, 0, 1, 1, 1, 1, 10, 10, 0, 10,
@@ -143,12 +156,7 @@ public class frmReleaseNote extends javax.swing.JDialog {
 		btClose.setText(bundle.getString("frmReleaseNote.btClose.text")); // Close
 		btClose.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				// -- Is the checkbox checked? Yes, set ReleaseNote to version in order to avoid
-				// the display of the dialog at the next start
-				if (chkDisable.isSelected()) {
-					settings.ReleaseVersion = version;
-				}
-				setVisible(false);
+				closeDialog();
 			}
 		});
 
@@ -160,8 +168,24 @@ public class frmReleaseNote extends javax.swing.JDialog {
 		setLocationRelativeTo(null);
 	}
 
+	/**
+	 * Persist the preference immediately, even if Maven later stops the process
+	 * without triggering frmMain.formWindowClosing/SaveConfig.
+	 */
+	private void closeDialog() {
+		try {
+			ReleaseNotePreference.saveOnClose(settings, version, chkDisable.isSelected(),
+					Utils.GetHomeDir() + "/" + CgConst.CG_DIR);
+		} catch (RuntimeException ex) {
+			CgLog.error("Release notes preference could not be saved: " + ex.getMessage());
+			JOptionPane.showMessageDialog(this, ex.getMessage(),
+					bundle.getString("frmReleaseNote.title"), JOptionPane.WARNING_MESSAGE);
+		}
+		dispose();
+	}
+
 	public void refresh() {
-		// --
+		chkDisable.setSelected(!ReleaseNotePreference.shouldShowAtStartup(settings, version));
 		StringBuilder sb = new StringBuilder();
 
 		// -- Get current language
