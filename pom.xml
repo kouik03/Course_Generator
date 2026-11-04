@@ -45,6 +45,17 @@ mvn versions:display-dependency-updates -->
 		</plugins>
 	</build>
 	<dependencies>
+		<!-- Generate offline, full-payload QR codes for TrailRace TR1 fields. -->
+		<dependency>
+			<groupId>com.google.zxing</groupId>
+			<artifactId>core</artifactId>
+			<version>3.5.3</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.zxing</groupId>
+			<artifactId>javase</artifactId>
+			<version>3.5.3</version>
+		</dependency>
 		<!-- JavaScript TR1 encoder: embedded ECMAScript runtime, no Node.js needed. 
 		     Running the TrailRace export requires Java 21 (the user's target). -->
 		<dependency>

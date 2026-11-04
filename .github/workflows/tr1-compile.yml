@@ -28,3 +28,5 @@ jobs:
         run: java -cp "target/classes:target/lib/*" course_generator.tests.TrailRaceTr1EngineSmoke
       - name: GPX XML and waypoint regression smoke
         run: java -cp "target/classes:target/lib/*" course_generator.tests.GpxWaypointRoundtripSmoke
+      - name: QR payload and PNG round-trip smoke
+        run: java -cp "target/classes:target/lib/*" course_generator.tests.TrailRaceQrSmoke
