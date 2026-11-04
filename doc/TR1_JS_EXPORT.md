@@ -12,6 +12,12 @@ Click **Generate the 3 blocks**. Each block is at most 2000 characters and has a
 
 The **Import JS** button installs a compatible local JavaScript. **Download JS from site** is a separate, manual action: it connects only to `https://petrrezek.net`, looks for a `routecode` script or compatible inline `RouteCode` definition, validates the `encode/decode` API, prompts before replacing the author's local copy, shows a SHA-256 hash, and backs up the old file. If the site layout or API changes, automatic discovery may fail: the user can still import a file directly.
 
+## Scanning the TR1 fields with QR codes
+
+Each generated TR1 block now has an **Afficher le QR code** button. A large reader window can show the previous/next QR, switch from fitted preview to 1200-pixel native resolution, and save the original as a PNG. All QR generation runs **locally**, using ZXing. The QR payload is the **exact raw block text**, with no label, number, URL or extra separator added; the current block number is shown *outside* the QR image. The encoder uses QR error correction **M**, a standard four-module quiet zone and verifies every bitmap by reading the QR back before presenting it. At 2000 characters this is a dense QR: use full-size preview or the saved PNG if a phone struggles to scan the fitted preview.
+
+No QR or GPX export changes CGX's modified/saved state.
+
 The embedded JS engine is GraalJS 24.2.2; it does not require Node.js on the end-user machine. The JavaScript context denies Java host class access and I/O, but **only import code from trusted sources**. Downloading is never done automatically. The JavaScript engine requires a compatible JDK 17+; Course Generator users running Java 21/25 are supported.
 
 ## Source data / TR1 model
