@@ -198,6 +198,7 @@ public class frmMain extends javax.swing.JFrame {
 	private static JMenuItem mnuSaveCGX;
 	private static JMenuItem mnuSaveGPX;
 	private static JMenuItem mnuSaveFIT;
+	private static JMenuItem mnuSaveTR1;
 	private static JMenuItem mnuSaveCSV;
 	private static JMenuItem mnuSavePartCGX;
 	private static JMenuItem mnuSavePartGPX;
@@ -838,6 +839,13 @@ public class frmMain extends javax.swing.JFrame {
 			}
 		});
 		mnuExport.add(mnuSaveFIT);
+
+		// -- TrailRace+ PRO TR1 codes (three fields, adaptive JS script)
+		mnuSaveTR1 = new javax.swing.JMenuItem();
+		mnuSaveTR1.setIcon(Utils.getIcon(this, "export.png", Settings.MenuIconSize));
+		mnuSaveTR1.setEnabled(false);
+		mnuSaveTR1.addActionListener(evt -> TrailRaceTr1Dialog.showDialog(this, Track));
+		mnuExport.add(mnuSaveTR1);
 
 		// -- Save a part of the track in CGX
 		mnuSavePartCGX = new javax.swing.JMenuItem();
@@ -1571,6 +1579,7 @@ public class frmMain extends javax.swing.JFrame {
 		mnuSaveAsCGX.setText(bundle.getString("frmMain.mnuSaveAsCGX.text"));
 		mnuSaveGPX.setText(bundle.getString("frmMain.mnuSaveGPX.text"));
 		mnuSaveFIT.setText(bundle.getString("frmMain.mnuSaveFIT.text"));
+		mnuSaveTR1.setText(bundle.getString("frmMain.mnuSaveTR1.text"));
 		mnuSaveCSV.setText(bundle.getString("frmMain.mnuSaveCSV.text"));
 		mnuImportGPX.setText(bundle.getString("frmMain.mnuImportGPX.text"));
 		mnuImportCGX.setText(bundle.getString("frmMain.mnuImportCGX.text"));
@@ -3923,6 +3932,7 @@ public class frmMain extends javax.swing.JFrame {
 		mnuSaveAsCGX.setEnabled(isLoaded);
 		mnuSaveGPX.setEnabled(isLoaded);
 		mnuSaveFIT.setEnabled(isLoaded);
+		mnuSaveTR1.setEnabled(isLoaded);
 		mnuSaveCSV.setEnabled(isLoaded);
 		mnuSavePartCGX.setEnabled(isLoaded);
 		mnuSavePartGPX.setEnabled(isLoaded);

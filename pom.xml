@@ -16,6 +16,24 @@ mvn versions:display-dependency-updates -->
 			</resource>
 		</resources>
 		<plugins>
+			<!-- Keep GraalJS and other runtime JARs beside the application. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<version>3.6.1</version>
+				<executions>
+					<execution>
+						<id>copy-runtime-dependencies</id>
+						<phase>package</phase>
+						<goals><goal>copy-dependencies</goal></goals>
+						<configuration>
+							<includeScope>runtime</includeScope>
+							<outputDirectory>${project.build.directory}/lib</outputDirectory>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.8.0</version>
@@ -27,6 +45,19 @@ mvn versions:display-dependency-updates -->
 		</plugins>
 	</build>
 	<dependencies>
+		<!-- JavaScript TR1 encoder: embedded ECMAScript runtime, no Node.js needed. 
+		     Running the TrailRace export requires Java 21 (the user's target). -->
+		<dependency>
+			<groupId>org.graalvm.polyglot</groupId>
+			<artifactId>polyglot</artifactId>
+			<version>24.2.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.graalvm.polyglot</groupId>
+			<artifactId>js-community</artifactId>
+			<version>24.2.2</version>
+			<type>pom</type>
+		</dependency>
 		<dependency>
 			<groupId>org.shredzone.commons</groupId>
 			<artifactId>commons-suncalc</artifactId>

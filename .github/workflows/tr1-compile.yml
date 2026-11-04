@@ -1,0 +1,30 @@
+name: TrailRace TR1 Java and JS validation
+on:
+  push:
+    branches:
+      - feature/tr1-js-runtime-and-gpx-fidelity
+      - experiment/terrain-debiased-curve-v1
+  pull_request:
+    branches:
+      - experiment/terrain-debiased-curve-v1
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check JavaScript TR1
+        run: node tools/test_trailrace_tr1.js
+      - name: Maven package
+        run: mvn -B -DskipTests package
+      - name: GraalJS runtime smoke
+        run: java -cp "target/classes:target/lib/*" course_generator.tests.TrailRaceTr1EngineSmoke
+      - name: GPX XML and waypoint regression smoke
+        run: java -cp "target/classes:target/lib/*" course_generator.tests.GpxWaypointRoundtripSmoke
