@@ -358,12 +358,19 @@ public final class TrailRaceTr1Dialog extends JDialog {
     }
 
     private static Context newSandbox() {
-        return Context.newBuilder("js")
+        Context context = Context.newBuilder("js")
                 .allowHostAccess(HostAccess.NONE)
                 .allowHostClassLookup(s -> false)
                 .allowIO(false)
                 .allowCreateThread(false)
                 .build();
+        try {
+            context.eval("js", readResource("/course_generator/tr1/base64-shim.js"));
+            return context;
+        } catch (IOException ex) {
+            context.close();
+            throw new IllegalStateException("Cannot load browser-compatible Base64 functions", ex);
+        }
     }
 
     private static Value getRouteCode(Context context, String script) {
