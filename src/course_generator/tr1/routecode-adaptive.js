@@ -541,6 +541,16 @@
     options=options||{};
     if(!Array.isArray(track)||track.length<2)throw new Error('TR1 needs at least two route points');
     if((plan||[]).length>255)throw new Error('TR1 allows at most 255 checkpoints');
+    // Small courses cannot meet the fixed adaptive candidate minimum.
+    // Fall back to the reference encoder and still enforce the output limit.
+    if(track.length<16){
+      var shortResult=encode(track,name,plan);
+      if(shortResult.code.length>(options.maxCharacters||PART*MAX_FIELDS) || !decode(shortResult.code))
+        throw new Error('TR1 short course does not fit the available fields');
+      shortResult.parts=split(shortResult.code);
+      shortResult.candidatesChecked=0;
+      return shortResult;
+    }
     var lat0=rnd(track[0][0]*1e6)/1e6,lon0=rnd(track[0][1]*1e6)/1e6,
         cf=Math.cos(lat0*Math.PI/180),xy=track.map(function(p){
           return [(p[1]-lon0)*R_LAT*cf,(p[0]-lat0)*R_LAT];
@@ -589,7 +599,14 @@
         if(!best||score<best.score)best=r;
       }
     }
-    if(!best)throw new Error('TR1 adaptive cannot fit this track in '+maxCode+' characters');
+    if(!best){
+      var fallback=encode(track,name,plan);
+      if(fallback.code.length>maxCode || !decode(fallback.code))
+        throw new Error('TR1 adaptive/reference cannot fit this track in '+maxCode+' characters');
+      fallback.parts=split(fallback.code);
+      fallback.candidatesChecked=attempts.length;
+      return fallback;
+    }
     best.parts=split(best.code);
     best.candidatesChecked=attempts.length;
     return best;
