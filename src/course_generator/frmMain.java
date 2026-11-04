@@ -3447,8 +3447,8 @@ public class frmMain extends javax.swing.JFrame {
 			AddMruGPX(s);
 			RefreshMruGPX();
 
-			// -- Reset the track modified flag
-			Track.isModified = false;
+			// Exporting GPX does not save the editable CGX project.
+			// Keep Track.isModified unchanged.
 			// -- Refresh info panel
 			RefreshStatusbar(Track);
 			RefreshTitle();
