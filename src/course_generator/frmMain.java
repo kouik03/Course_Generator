@@ -1894,6 +1894,12 @@ public class frmMain extends javax.swing.JFrame {
 		if (Track.data.isEmpty())
 			return;
 
+		int start = panelTrackData.getSelectedRow();
+		int selectedRowCount = panelTrackData.getSelectedRowCount();
+		if (start < 0 || selectedRowCount <= 0)
+			return;
+		int end = start + selectedRowCount - 1;
+
 		s = Utils.SaveDialog(this, Settings.previousGPXDirectory, "", ".gpx", bundle.getString("frmMain.GPXFile"), true,
 				bundle.getString("frmMain.FileExist"));
 
@@ -1901,9 +1907,6 @@ public class frmMain extends javax.swing.JFrame {
 			setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 
 			// -- Save track
-			int start = panelTrackData.getSelectedRow();
-			int end = start + panelTrackData.getSelectedRowCount() - 1;
-
 			Track.ExportGPX(s, start, end);
 			// -- Store the directory
 			Settings.previousGPXDirectory = Utils.GetDirFromFilename(s);
@@ -1914,7 +1917,6 @@ public class frmMain extends javax.swing.JFrame {
 
 			// -- We don't reset the track modified flag because we save only a
 			// part of the track!
-			Track.isModified = false;
 
 			// -- Refresh info panel
 			RefreshStatusbar(Track);
