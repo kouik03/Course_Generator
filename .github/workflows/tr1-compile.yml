@@ -32,3 +32,6 @@ jobs:
         run: java -cp "target/classes:target/lib/*" course_generator.tests.TrailRaceQrSmoke
       - name: FIT export options and barrier-pace Virtual Partner smoke
         run: java -cp "target/classes:target/lib/*" course_generator.tests.GarminFitBarrierVirtualPartnerSmoke
+
+      - name: V5 release notes and opt-out preference persistence smoke
+        run: java -cp "target/classes:target/lib/*" course_generator.tests.ReleaseNotesV5Smoke

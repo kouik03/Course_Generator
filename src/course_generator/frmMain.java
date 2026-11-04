@@ -146,6 +146,7 @@ import course_generator.param.frmEditCurve;
 import course_generator.profil.JPanelProfil;
 import course_generator.profil.JPanelProfilListener;
 import course_generator.releaseNote.frmReleaseNote;
+import course_generator.releaseNote.ReleaseNotePreference;
 //import course_generator.resume.JPanelListener;
 import course_generator.resume.JPanelResume;
 import course_generator.resume.JPanelResumeListener;
@@ -170,7 +171,7 @@ import course_generator.utils.Utils.CalcLineResult;
 public class frmMain extends javax.swing.JFrame {
 	private static final long serialVersionUID = 6484405417503538528L;
 
-	private final static String Version = "4.6.0";
+	private final static String Version = "5.0.0";
 
 	public static boolean inEclipse = false;
 	public static CgLog log = null;
@@ -531,7 +532,7 @@ public class frmMain extends javax.swing.JFrame {
 		showDialogAbout(this, true, false, Version);
 
 		// -- Check if we need to display the release notes
-		if (!Settings.ReleaseVersion.equalsIgnoreCase(Version)) {
+		if (ReleaseNotePreference.shouldShowAtStartup(Settings, Version)) {
 			cmptRelease = 3; // Delay the display of the release notes dialog box by x seconds
 		}
 
