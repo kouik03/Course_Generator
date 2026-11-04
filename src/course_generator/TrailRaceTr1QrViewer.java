@@ -85,7 +85,7 @@ public final class TrailRaceTr1QrViewer extends JDialog {
                 index + 1, images.length, parts[index].length()));
         previous.setEnabled(index > 0);
         next.setEnabled(index < images.length - 1);
-        zoom.setText(actualSize ? "Adapter à la fenêtre" : "Taille réelle (1200 px)");
+        zoom.setText(actualSize ? "Adapter à la fenêtre" : "Taille réelle (" + TrailRaceTr1Qr.IMAGE_SIZE + " px)");
         BufferedImage image = images[index];
         if (actualSize || image.getWidth() <= previewSide) {
             imageView.setIcon(new ImageIcon(image));
