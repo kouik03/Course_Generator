@@ -40,6 +40,8 @@ The original raw GPX waypoint location is now separate from the nearest trackpoi
 node tools/test_trailrace_tr1.js
 node tools/test_trailrace_tr1.js /path/to/venivicigpx.gpx
 mvn clean package
+# On macOS/Linux, to launch with all Maven runtime dependencies:
+java -cp "target/classes:target/lib/*" course_generator.frmMain
 ```
 
 The Node smoke test can run without Maven. Maven requires the external GraalJS dependencies and cannot be completed in an environment without Maven Central access. Confirm UI behavior and TrailRace+ decoder on your Mac.
