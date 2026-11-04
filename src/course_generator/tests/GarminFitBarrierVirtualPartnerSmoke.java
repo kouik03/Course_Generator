@@ -91,6 +91,13 @@ public final class GarminFitBarrierVirtualPartnerSmoke {
         Path file = Files.createTempFile("fit-vp-barriers-", ".fit");
         try {
             GarminCourseFitWriter.write(track, file.toString(), options);
+            String expectedName = expectVirtual ? track.CourseName + " VP" : track.CourseName;
+            String actualName = GarminCoursePlannerFitReader.readCourse(file.toString()).name;
+            check(expectedName.equals(actualName),
+                    "FIT internal Course.name mismatch: expected '" + expectedName
+                            + "', got '" + actualName + "'");
+            check("FIT options / VP smoke".equals(track.CourseName),
+                    "Export unexpectedly modified the CGX project course name");
             Capture capture = readAll(file);
             check(capture.records.size() == 5, "Incorrect FIT Record count");
             check(capture.laps.size() == 1, "Incorrect FIT Lap count");
