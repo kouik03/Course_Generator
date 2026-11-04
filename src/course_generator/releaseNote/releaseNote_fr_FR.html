@@ -1,87 +1,67 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<!DOCTYPE html>
 <html>
-	<head>
-	      <STYLE TYPE="text/css">
-		H1
-		{
-			FONT-WEIGHT: bold;
-			FONT-SIZE: 24pt;
-			COLOR: black;
-			FONT-FAMILY: Arial;
-			TEXT-ALIGN: left;
-            PADDING-LEFT: 0px;
-		}
-		H2
-		{
-			FONT-WEIGHT: bold;
-			FONT-SIZE: 16pt;
-			COLOR: black;
-			FONT-FAMILY: Arial;
-			TEXT-ALIGN: left;
-            PADDING-LEFT: 0px;
-		}
-		H3
-		{
-			FONT-WEIGHT: bold;
-			FONT-SIZE: 14pt;
-			COLOR: black;
-			FONT-FAMILY: Arial;
-			TEXT-ALIGN: left;
-            PADDING: 0px 0px 0px 0px;
-		}
-		table {
-			PADDING-LEFT: 10px;
-		}
-		span.header
-		{
-			FONT-WEIGHT: bold;
-			FONT-SIZE: 15pt;
-			FONT-FAMILY: Arial;
-			BACKGROUND-COLOR: #ffffff;
-			text-align: left;
-		}
-		span.item
-		{
-			FONT-WEIGHT: bold;
-			FONT-SIZE: 14pt;
-			FONT-FAMILY: Arial;
-			BACKGROUND-COLOR: #ffffff;
-			text-align: left;
-		}
-		span.value
-		{
-			FONT-WEIGHT: normal;
-			FONT-SIZE: 14pt;
-			FONT-FAMILY: Arial;
-			BACKGROUND-COLOR: #ffffff;
-			TEXT-ALIGN: left;
-		}
-		span.separator
-		{
-			FONT-WEIGHT: normal;
-			FONT-SIZE: 14pt;
-			FONT-FAMILY: Arial;
-			BACKGROUND-COLOR: #ffffff;
-			TEXT-ALIGN: left;
-		}
-		P
-		{
-			FONT-SIZE: 14pt;
-			COLOR: black;
-			FONT-FAMILY: Arial;
-			TEXT-DECORATION: none
-            PADDING-LEFT: 30px;
-		}
+<head>
+<meta charset="UTF-8">
+<title>Course Generator 5.0.0 - Notes de version</title>
+<style type="text/css">
+  body { font-family: sans-serif; font-size: 11pt; color: #24313f; margin: 12px; }
+  h1 { font-size: 21pt; color: #174a70; margin-bottom: 4px; }
+  h2 { font-size: 14pt; color: #175c80; margin-top: 14px; margin-bottom: 5px; }
+  p { margin-top: 5px; margin-bottom: 8px; }
+  li { margin-bottom: 5px; }
+  .hint { color: #555555; }
+</style>
+</head>
+<body>
+<h1>Course Generator 5.0.0</h1>
+<p><b>Une nouvelle version centrée sur la préparation des trails et ultras :</b>
+des calculs de parcours plus robustes, un roadbook plus complet, des barrières horaires
+mieux gérées et de nouveaux exports pour Garmin et TrailRace+ PRO.</p>
 
-        </STYLE>
-   	    <title>Notes de version</title>
-	</head>
+<h2>Parcours, pente et dénivelé</h2>
+<ul>
+<li>Analyse de la pente basée sur une fenêtre spatiale pour atténuer les irrégularités liées à l'espacement des points GPS.</li>
+<li>Calcul des vitesses par interpolation continue sur la courbe Vitesse/Pente, y compris dans les montées et descentes marquées.</li>
+<li>Amélioration du traitement des altitudes et du calcul du dénivelé.</li>
+<li>Nouvelles statistiques par kilomètre : allure de déplacement, dénivelé positif et négatif.</li>
+</ul>
 
-	<body>
-<H1>Notes sur la version 4.6.0</H1>
-<p>- Mini Roadbook : Ajout balise %-D : Delta dénivelé -<br>
-- Mini Roadbook : Ajout balise %+D : Delta dénivelé +<br>
-- Mini Roadbook : Ajout balise %Td : Delta temps<br>
-- Correctif: Gestion des fichiers avec une taille de 0</p>
-	</body>
+<h2>Roadbook et barrières horaires</h2>
+<ul>
+<li>Possibilité d'appliquer une barrière horaire <b>à l'arrivée au ravitaillement</b> ou <b>après sa pause</b>.</li>
+<li>Calcul de la marge disponible par rapport aux barrières et de l'allure de déplacement nécessaire.</li>
+<li>Mini-roadbook enrichi : distance depuis le point de roadbook précédent, dénivelé du tronçon, temps prévus, heure limite, marge, heure de départ du ravito et durée de pause.</li>
+<li>Éditeur du mini-roadbook complété avec les nouveaux champs de mise en forme.</li>
+</ul>
+
+<h2>Import et export GPX / FIT</h2>
+<ul>
+<li>Import plus complet des parcours GPX et des parcours Garmin FIT, avec reconnaissance des points de ravitaillement, de l'eau et des données de planification disponibles.</li>
+<li>Export GPX plus compact, sans noms numériques inutiles sur tous les points GPS.</li>
+<li>Conservation de la <b>position originale des waypoints</b> distincte de leur rattachement à la trace : correction d'un décalage possible du point d'arrivée.</li>
+<li>Les ravitaillements sont exportés comme waypoints, même lors d'un export de sélection (uniquement ceux de la sélection).</li>
+<li>Un export GPX ne marque plus le projet CGX comme sauvegardé.</li>
+<li>Export de parcours Garmin FIT avec noms, points du roadbook et icônes nourriture/eau.</li>
+<li>Nouvelle boîte d'options FIT : barrières, pauses et icônes activées par défaut ; <b>Virtual Partner</b> désactivé par défaut.</li>
+<li><b>Virtual Partner « barrières » expérimental :</b> concurrent sans pauses, à vitesse variable selon le terrain et recalé sur les heures limites. Son nom de parcours reçoit le suffixe « VP ».</li>
+</ul>
+
+<h2>TrailRace+ PRO et QR codes</h2>
+<ul>
+<li>Génération directe des codes TR1 depuis le parcours et le roadbook, découpés en <b>trois blocs de 2 000 caractères maximum</b>.</li>
+<li>Encodeur adaptatif visant à mieux préserver la distance, le profil altimétrique et les ravitaillements.</li>
+<li>Choix entre encodeur intégré, JavaScript local modifiable sans recompilation et copie locale du script de l'auteur ; mise à jour manuelle possible.</li>
+<li>Un <b>QR code scannable pour chaque bloc</b>, avec affichage agrandi et enregistrement PNG.</li>
+</ul>
+
+<h2>Confort et correctifs</h2>
+<ul>
+<li>Version 5.0.0 affichée dans l'application ; nouvelles notes de version consultables dans <b>Aide &gt; Notes sur cette version</b>.</li>
+<li>La case <b>« Ne plus afficher cette fenêtre »</b> est désormais enregistrée dès la fermeture de la fenêtre, même si l'application est ensuite interrompue.</li>
+<li>Renforcement des tests d'export et de relecture des données de parcours.</li>
+</ul>
+<p class="hint"><b>À noter :</b> l'exploitation d'une courbe de vitesse Virtual Partner depuis un fichier FIT Course
+et l'affichage du dénivelé TrailRace+ PRO restent à vérifier sur les appareils concernés.
+Les sauvegardes de projet demeurent au format CGX.</p>
+</body>
 </html>
