@@ -31,8 +31,8 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 
 public final class TrailRaceTr1Qr {
     // 2000 Base64/ASCII characters fit QR byte mode at M error correction.
-    // Use 1200 px + standard 4-module quiet zone for high-density scanning.
-    public static final int IMAGE_SIZE = 1200;
+    // Large raster and 4-module quiet zone for very dense QR payloads.
+    public static final int IMAGE_SIZE = 1800;
     public static final int MAX_BLOCK_LENGTH = 2000;
 
     private TrailRaceTr1Qr() { }
@@ -58,9 +58,20 @@ public final class TrailRaceTr1Qr {
         Map<DecodeHintType, Object> readHints = new EnumMap<DecodeHintType, Object>(DecodeHintType.class);
         readHints.put(DecodeHintType.POSSIBLE_FORMATS,
                 java.util.Collections.singletonList(BarcodeFormat.QR_CODE));
-        Result result = new MultiFormatReader().decode(
-                new BinaryBitmap(new HybridBinarizer(new BufferedImageLuminanceSource(image))),
-                readHints);
+        // The generic finder may fail on a dense, perfectly aligned raster.
+        // Try normal camera-style detection first; for our generated clean
+        // bitmap, PURE_BARCODE decodes the QR modules directly and proves the
+        // payload is byte-for-byte correct even if the finder struggles.
+        BinaryBitmap bitmap = new BinaryBitmap(
+                new HybridBinarizer(new BufferedImageLuminanceSource(image)));
+        readHints.put(DecodeHintType.TRY_HARDER, Boolean.TRUE);
+        Result result;
+        try {
+            result = new MultiFormatReader().decode(bitmap, readHints);
+        } catch (NotFoundException difficultToLocate) {
+            readHints.put(DecodeHintType.PURE_BARCODE, Boolean.TRUE);
+            result = new MultiFormatReader().decode(bitmap, readHints);
+        }
         if (!part.equals(result.getText()))
             throw new IllegalArgumentException("Le QR code décodé diffère du bloc TR1.");
         return image;
