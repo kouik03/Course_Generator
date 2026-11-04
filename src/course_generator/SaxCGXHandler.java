@@ -75,6 +75,8 @@ public class SaxCGXHandler extends DefaultHandler {
 
 	private double trkpt_lat = 0.0;
 	private double trkpt_lon = 0.0;
+	private double trkpt_waypoint_lat = Double.NaN;
+	private double trkpt_waypoint_lon = Double.NaN;
 	private double trkpt_ele = 0.0;
 	private double trkpt_eleNotSmoothed = 0.0;
 	private double trkpt_eleSmoothed = 0.0;
@@ -236,6 +238,8 @@ public class SaxCGXHandler extends DefaultHandler {
 			trkpt_SmoothedData = false; // Reset the flag to detect smoothed data
 			trkpt_NotSmoothedData = false;
 			trkpt_timeLimitAfterStation = true; // Backward-compatible default
+			trkpt_waypoint_lat = Double.NaN;
+			trkpt_waypoint_lon = Double.NaN;
 			level++;
 		}
 	}
@@ -459,6 +463,10 @@ public class SaxCGXHandler extends DefaultHandler {
 				trkpt_lat = ManageDouble(0.0, ERR_READ_DOUBLE);
 			} else if (qName.equalsIgnoreCase("LONGITUDEDEGREES")) {
 				trkpt_lon = ManageDouble(0.0, ERR_READ_DOUBLE);
+			} else if (qName.equalsIgnoreCase("WAYPOINTLATITUDEDEGREES")) {
+				trkpt_waypoint_lat = ManageDouble(Double.NaN, ERR_READ_DOUBLE);
+			} else if (qName.equalsIgnoreCase("WAYPOINTLONGITUDEDEGREES")) {
+				trkpt_waypoint_lon = ManageDouble(Double.NaN, ERR_READ_DOUBLE);
 			} else if (qName.equalsIgnoreCase("ALTITUDEMETERS")) {
 				trkpt_ele = ManageDouble(0.0, ERR_READ_DOUBLE);
 			} else if (qName.equalsIgnoreCase("ALTITUDEMETERSNOTSMOOTHED")) {
@@ -562,6 +570,9 @@ public class SaxCGXHandler extends DefaultHandler {
 							trkpt_FontSizemrb // int FontSizeMiniRoadbook
 					));
 					trkdata.data.get(trkdata.data.size() - 1).setTimeLimitAfterStation(trkpt_timeLimitAfterStation);
+					if (!Double.isNaN(trkpt_waypoint_lat) && !Double.isNaN(trkpt_waypoint_lon))
+						trkdata.data.get(trkdata.data.size() - 1).setOriginalWaypointPosition(
+								trkpt_waypoint_lat, trkpt_waypoint_lon);
 				} else {
 					// Add data at the beginning of the array
 					trkdata.data.add(Cmpt, new CgData(Cmpt, // double Num
@@ -596,6 +607,9 @@ public class SaxCGXHandler extends DefaultHandler {
 							trkpt_FontSizemrb // int FontSizeMiniRoadbook
 					));
 					trkdata.data.get(Cmpt).setTimeLimitAfterStation(trkpt_timeLimitAfterStation);
+					if (!Double.isNaN(trkpt_waypoint_lat) && !Double.isNaN(trkpt_waypoint_lon))
+						trkdata.data.get(Cmpt).setOriginalWaypointPosition(
+								trkpt_waypoint_lat, trkpt_waypoint_lon);
 					Cmpt++;
 				} // else
 
