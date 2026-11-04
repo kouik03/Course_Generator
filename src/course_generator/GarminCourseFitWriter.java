@@ -44,8 +44,20 @@ public final class GarminCourseFitWriter {
     }
 
     public static void write(TrackData track, String filename) {
+        write(track, filename, GarminFitExportOptions.defaults());
+    }
+
+    /** Export an ordinary or barrier-paced Garmin FIT Course. */
+    public static void write(TrackData track, String filename, GarminFitExportOptions options) {
         if (track == null || track.data == null || track.data.isEmpty())
             throw new IllegalArgumentException("Cannot export an empty track");
+        if (options == null)
+            throw new IllegalArgumentException("Missing FIT export options");
+
+        // Compute/validate the optional timeline before opening the output,
+        // so a malformed barrier schedule cannot delete an existing FIT.
+        GarminBarrierVirtualPartner.Timeline virtual =
+                options.virtualPartner ? GarminBarrierVirtualPartner.build(track) : null;
 
         java.io.File output = new java.io.File(filename);
         FileEncoder encoder = null;
@@ -60,7 +72,9 @@ public final class GarminCourseFitWriter {
             long startTimestamp = startTime.getTimestamp().longValue();
 
             boolean hasCalculatedTimeline = track.TotalTime > 0 || last.getTime() > 0;
-            long lastElapsed = timelineEndSeconds(track, hasCalculatedTimeline);
+            long lastElapsed = virtual == null
+                    ? timelineEndSeconds(track, hasCalculatedTimeline)
+                    : virtual.elapsedSeconds[track.data.size() - 1];
             DateTime endTime = new DateTime(startTimestamp + lastElapsed);
 
             FileIdMesg fileId = new FileIdMesg();
@@ -103,7 +117,9 @@ public final class GarminCourseFitWriter {
 
             for (int i = 0; i < track.data.size(); i++) {
                 CgData point = track.data.get(i);
-                long elapsed = elapsedSeconds(track, point, i, hasCalculatedTimeline);
+                long elapsed = virtual == null
+                        ? elapsedSeconds(track, point, i, hasCalculatedTimeline)
+                        : virtual.elapsedSeconds[i];
                 if (elapsed < previousElapsed)
                     elapsed = previousElapsed;
                 previousElapsed = elapsed;
@@ -119,6 +135,8 @@ public final class GarminCourseFitWriter {
                 record.setPositionLong(Integer.valueOf(longitude));
                 record.setDistance(Float.valueOf(distance));
                 record.setAltitude(Float.valueOf((float) point.getElevation(CgConst.UNIT_METER)));
+                if (virtual != null)
+                    record.setSpeed(Float.valueOf(virtual.targetSpeedMps[i]));
                 encoder.write(record);
 
                 // Export every point that is visible in either roadbook view.
@@ -155,11 +173,12 @@ public final class GarminCourseFitWriter {
                     if ((pointName == null || pointName.isEmpty()) && finish)
                         pointName = "Finish";
                     coursePoint.setName(pointName == null ? "" : pointName);
-                    coursePoint.setType(coursePointType(point, finish));
+                    coursePoint.setType(options.customIcons
+                            ? coursePointType(point, finish) : CoursePoint.GENERIC);
 
-                    if (point.getTimeLimit() > 0)
+                    if (options.includeCutoffs && point.getTimeLimit() > 0)
                         coursePoint.setCutoffMilliseconds(secondsToMilliseconds(point.getTimeLimit()));
-                    if (point.getStation() > 0)
+                    if (options.includeRestTimes && point.getStation() > 0)
                         coursePoint.setRestMilliseconds(secondsToMilliseconds(point.getStation()));
 
                     encoder.write(coursePoint);
@@ -180,6 +199,8 @@ public final class GarminCourseFitWriter {
             success = true;
 
             CgLog.info("Garmin FIT course exported: '" + filename + "', "
+                    + (virtual == null ? "standard" : "virtual partner cutoff") + ", "
+                    + (virtual == null ? "" : virtual.anchors.size() + " cutoff anchors, ")
                     + track.data.size() + " route points, D+="
                     + Math.round(track.getClimbP(CgConst.UNIT_METER)) + "m, D-="
                     + Math.round(track.getClimbM(CgConst.UNIT_METER)) + "m");
