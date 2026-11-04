@@ -30,3 +30,5 @@ jobs:
         run: java -cp "target/classes:target/lib/*" course_generator.tests.GpxWaypointRoundtripSmoke
       - name: QR payload and PNG round-trip smoke
         run: java -cp "target/classes:target/lib/*" course_generator.tests.TrailRaceQrSmoke
+      - name: FIT export options and barrier-pace Virtual Partner smoke
+        run: java -cp "target/classes:target/lib/*" course_generator.tests.GarminFitBarrierVirtualPartnerSmoke
