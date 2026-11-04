@@ -1,87 +1,67 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<!DOCTYPE html>
 <html>
-	<head>
-	      <STYLE TYPE="text/css">
-		H1
-		{
-			FONT-WEIGHT: bold;
-			FONT-SIZE: 24pt;
-			COLOR: black;
-			FONT-FAMILY: Arial;
-			TEXT-ALIGN: left;
-            PADDING-LEFT: 0px;
-		}
-		H2
-		{
-			FONT-WEIGHT: bold;
-			FONT-SIZE: 16pt;
-			COLOR: black;
-			FONT-FAMILY: Arial;
-			TEXT-ALIGN: left;
-            PADDING-LEFT: 0px;
-		}
-		H3
-		{
-			FONT-WEIGHT: bold;
-			FONT-SIZE: 14pt;
-			COLOR: black;
-			FONT-FAMILY: Arial;
-			TEXT-ALIGN: left;
-            PADDING: 0px 0px 0px 0px;
-		}
-		table {
-			PADDING-LEFT: 10px;
-		}
-		span.header
-		{
-			FONT-WEIGHT: bold;
-			FONT-SIZE: 15pt;
-			FONT-FAMILY: Arial;
-			BACKGROUND-COLOR: #ffffff;
-			text-align: left;
-		}
-		span.item
-		{
-			FONT-WEIGHT: bold;
-			FONT-SIZE: 14pt;
-			FONT-FAMILY: Arial;
-			BACKGROUND-COLOR: #ffffff;
-			text-align: left;
-		}
-		span.value
-		{
-			FONT-WEIGHT: normal;
-			FONT-SIZE: 14pt;
-			FONT-FAMILY: Arial;
-			BACKGROUND-COLOR: #ffffff;
-			TEXT-ALIGN: left;
-		}
-		span.separator
-		{
-			FONT-WEIGHT: normal;
-			FONT-SIZE: 14pt;
-			FONT-FAMILY: Arial;
-			BACKGROUND-COLOR: #ffffff;
-			TEXT-ALIGN: left;
-		}
-		P
-		{
-			FONT-SIZE: 14pt;
-			COLOR: black;
-			FONT-FAMILY: Arial;
-			TEXT-DECORATION: none
-            PADDING-LEFT: 30px;
-		}
+<head>
+<meta charset="UTF-8">
+<title>Course Generator 5.0.0 - Release notes</title>
+<style type="text/css">
+  body { font-family: sans-serif; font-size: 11pt; color: #24313f; margin: 12px; }
+  h1 { font-size: 21pt; color: #174a70; margin-bottom: 4px; }
+  h2 { font-size: 14pt; color: #175c80; margin-top: 14px; margin-bottom: 5px; }
+  p { margin-top: 5px; margin-bottom: 8px; }
+  li { margin-bottom: 5px; }
+  .hint { color: #555555; }
+</style>
+</head>
+<body>
+<h1>Course Generator 5.0.0</h1>
+<p><b>A major update for trail and ultra-distance planning:</b>
+more robust route calculations, richer roadbooks, better cutoff management
+and new exports for Garmin and TrailRace+ PRO.</p>
 
-        </STYLE>
-   	    <title>Release notes</title>
-	</head>
+<h2>Route, slope and elevation</h2>
+<ul>
+<li>Slope analysis using a spatial window, reducing artifacts from uneven GPS point spacing.</li>
+<li>Continuous speed interpolation across the Speed/Slope curve, including steep climbs and descents.</li>
+<li>Improved elevation processing and cumulative ascent calculation.</li>
+<li>New per-kilometer statistics for moving pace, ascent and descent.</li>
+</ul>
 
-	<body>
-<H1>Release notes for version 4.6.0</H1>
-<p>- Mini Roadbook : Add tag %-D : Delta descent<br>
-- Mini Roadbook : Add tag %+D : Delta ascent<br>
-- Mini Roadbook : Add tag %Td : Delta time<br>
-- Bug fix: Manage files with a size of 0</p>
-	</body>
+<h2>Roadbook and cutoffs</h2>
+<ul>
+<li>Choose whether a cutoff applies <b>upon arrival at an aid station</b> or <b>after its stop</b>.</li>
+<li>Calculate cutoff margins and the required moving pace.</li>
+<li>More mini-roadbook fields: distance from the previous roadbook point, segment ascent/descent, planned times, cutoff, margin, planned station departure and rest duration.</li>
+<li>The mini-roadbook format editor now exposes the new fields.</li>
+</ul>
+
+<h2>GPX and FIT import/export</h2>
+<ul>
+<li>Richer GPX and Garmin FIT route import, including aid/water locations and available timing information.</li>
+<li>Smaller GPX exports, removing unnecessary numbered names on every track point.</li>
+<li>Preservation of <b>original waypoint positions</b> independently of their route anchor; fixes finish waypoint displacement.</li>
+<li>Aid stations are exported as GPX waypoints, including selection-only exports (within the selected range).</li>
+<li>Exporting GPX no longer marks the editable CGX project as saved.</li>
+<li>Garmin FIT course export with roadbook point names and food/water icons.</li>
+<li>New FIT export options: cutoffs, station rests and icons enabled by default; <b>Virtual Partner</b> disabled by default.</li>
+<li><b>Experimental barrier Virtual Partner:</b> a no-stop virtual runner with terrain-dependent speed adjusted to hit official deadlines. VP FIT course names receive the suffix " VP".</li>
+</ul>
+
+<h2>TrailRace+ PRO and QR codes</h2>
+<ul>
+<li>Generate TR1 codes directly from the current route and roadbook, split into <b>up to three fields of 2,000 characters each</b>.</li>
+<li>Adaptive encoding to better preserve distance, elevation and aid stations.</li>
+<li>Choose between bundled adaptive JavaScript, editable local JavaScript and a locally saved copy of the author's script, with optional manual updates.</li>
+<li><b>One scannable QR code per field</b>, with large view and PNG saving.</li>
+</ul>
+
+<h2>Usability and fixes</h2>
+<ul>
+<li>Version 5.0.0 throughout the app; revisit these notes via <b>Help &gt; Release notes</b>.</li>
+<li><b>"Stop displaying this dialog box"</b> now saves immediately when the notes window closes, even if the app is later interrupted.</li>
+<li>Additional regression tests for route exports and round-trip data integrity.</li>
+</ul>
+<p class="hint"><b>Please note:</b> whether your Garmin watch honors per-record Virtual Partner speeds
+in FIT courses and how TrailRace+ PRO computes elevation gain still require device-side testing.
+Use CGX to save an editable project.</p>
+</body>
 </html>
