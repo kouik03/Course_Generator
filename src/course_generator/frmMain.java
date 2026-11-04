@@ -3473,19 +3473,65 @@ public class frmMain extends javax.swing.JFrame {
 		if (Track.data.isEmpty())
 			return;
 
+		// One export entry point: choose the metadata and pacing options first,
+		// then select the destination file. Defaults match the previous exporter.
+		javax.swing.JCheckBox cutoffOption = new javax.swing.JCheckBox(
+				"Exporter les barrières horaires", true);
+		javax.swing.JCheckBox restOption = new javax.swing.JCheckBox(
+				"Exporter les temps de pause aux ravitaillements", true);
+		javax.swing.JCheckBox iconOption = new javax.swing.JCheckBox(
+				"Exporter les icônes Garmin personnalisées (eau, nourriture…)", true);
+		javax.swing.JCheckBox virtualOption = new javax.swing.JCheckBox(
+				"Virtual Partner : rythme variable, sans pause, calé sur les barrières", false);
+		virtualOption.setToolTipText(
+				"Utilise les barrières du projet même si leur export dans les métadonnées est décoché.");
+
+		javax.swing.JPanel optionsPanel = new javax.swing.JPanel(new java.awt.GridLayout(0, 1, 0, 6));
+		optionsPanel.add(new javax.swing.JLabel("Choisir les données du parcours FIT :"));
+		optionsPanel.add(cutoffOption);
+		optionsPanel.add(restOption);
+		optionsPanel.add(iconOption);
+		optionsPanel.add(virtualOption);
+		optionsPanel.add(new javax.swing.JLabel(
+				"<html><small>Le partenaire ne s'arrête jamais ; ses vitesses sont ajustées"
+						+ " pour passer aux barrières à l'heure limite.<br>"
+						+ "Compatibilité de l'affichage Virtual Partner à vérifier sur la montre.</small></html>"));
+		int result = JOptionPane.showConfirmDialog(this, optionsPanel,
+				"Exporter un parcours Garmin FIT", JOptionPane.OK_CANCEL_OPTION,
+				JOptionPane.PLAIN_MESSAGE);
+		if (result != JOptionPane.OK_OPTION)
+			return;
+
+		GarminFitExportOptions options = new GarminFitExportOptions(
+				cutoffOption.isSelected(), restOption.isSelected(),
+				iconOption.isSelected(), virtualOption.isSelected());
+
+		// Validate the barrier schedule before prompting for a destination.
+		// A failed export must not accidentally replace an existing FIT.
+		if (options.virtualPartner) {
+			try {
+				GarminBarrierVirtualPartner.build(Track);
+			} catch (IllegalArgumentException ex) {
+				JOptionPane.showMessageDialog(this, ex.getMessage(),
+						"Virtual Partner - barrières", JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+		}
+
 		String s = Utils.SaveDialog(this, Settings.previousGPXDirectory, "", ".fit",
 				bundle.getString("frmMain.FITFile"), true, bundle.getString("frmMain.FileExist"));
 
 		if (!s.isEmpty()) {
 			setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 			try {
-				GarminCourseFitWriter.write(Track, s);
+				GarminCourseFitWriter.write(Track, s, options);
 				Settings.previousGPXDirectory = Utils.GetDirFromFilename(s);
 			} catch (Exception e) {
 				CgLog.error("SaveAsFIT : Unable to export Garmin FIT course");
 				e.printStackTrace();
-				JOptionPane.showMessageDialog(this, bundle.getString("frmMain.FileError"), "Course Generator",
-						JOptionPane.ERROR_MESSAGE);
+				JOptionPane.showMessageDialog(this,
+						e.getMessage() == null ? bundle.getString("frmMain.FileError") : e.getMessage(),
+						"Course Generator", JOptionPane.ERROR_MESSAGE);
 			} finally {
 				setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 			}
