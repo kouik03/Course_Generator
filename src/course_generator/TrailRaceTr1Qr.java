@@ -9,7 +9,6 @@ package course_generator;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -42,8 +41,11 @@ public final class TrailRaceTr1Qr {
         if (part == null || part.isEmpty() || part.length() > MAX_BLOCK_LENGTH)
             throw new IllegalArgumentException("Chaque bloc TR1 doit contenir de 1 à 2000 caractères.");
         // The Base64 format is ASCII. Reject silently normalized/non-ASCII data.
-        if (part.getBytes(StandardCharsets.US_ASCII).length != part.length())
-            throw new IllegalArgumentException("Le code TR1 doit être en ASCII.");
+        for (int i = 0; i < part.length(); i++) {
+            char value = part.charAt(i);
+            if (value > 0x7f)
+                throw new IllegalArgumentException("Le code TR1 doit être en ASCII.");
+        }
 
         Map<EncodeHintType, Object> hints = new EnumMap<EncodeHintType, Object>(EncodeHintType.class);
         hints.put(EncodeHintType.CHARACTER_SET, "ISO-8859-1");
