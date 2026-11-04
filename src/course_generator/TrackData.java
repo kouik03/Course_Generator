@@ -424,6 +424,7 @@ public class TrackData {
 				continue;
 
 			CgData point = data.get(line);
+			point.setOriginalWaypointPosition(source.latitude, source.longitude);
 			int aidTags = garminCoursePointAidTags(source);
 			point.setTag(point.getTag() | CgConst.TAG_MARK | aidTags | CgConst.TAG_ROADBOOK);
 
@@ -609,6 +610,7 @@ private static boolean isFinishPointName(String name) {
 		for (int i = 0; i < matchedWaypoints.size(); i++) {
 			SaxGPXHandler.GpxWaypoint waypoint = matchedWaypoints.get(i);
 			CgData point = data.get(matchedLines.get(i));
+			point.setOriginalWaypointPosition(waypoint.latitude, waypoint.longitude);
 			int aidTags = gpxWaypointAidTags(waypoint);
 			point.setTag(point.getTag() | CgConst.TAG_MARK | aidTags | CgConst.TAG_ROADBOOK);
 
@@ -735,8 +737,8 @@ private static boolean isFinishPointName(String name) {
 	private static void writeGPXAidStation(XMLStreamWriter writer, CgData point, int fallbackIndex)
 			throws XMLStreamException {
 		writer.writeStartElement("wpt");
-		writer.writeAttribute("lat", String.format(Locale.ROOT, "%1.14f", point.getLatitude()));
-		writer.writeAttribute("lon", String.format(Locale.ROOT, "%1.14f", point.getLongitude()));
+		writer.writeAttribute("lat", String.format(Locale.ROOT, "%.7f", point.getWaypointLatitude()));
+		writer.writeAttribute("lon", String.format(Locale.ROOT, "%.7f", point.getWaypointLongitude()));
 
 		Utils.WriteStringToXML(writer, "ele",
 				String.format(Locale.ROOT, "%1.7f", point.getElevation(CgConst.UNIT_METER)));
@@ -784,8 +786,8 @@ private static boolean isFinishPointName(String name) {
 		XMLOutputFactory factory = XMLOutputFactory.newInstance();
 		try {
 			BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(name));
-			XMLStreamWriter writer = new IndentingXMLStreamWriter(
-					factory.createXMLStreamWriter(bufferedOutputStream, "UTF-8"));
+			// Compact GPX (the coordinates and times are preserved).
+			XMLStreamWriter writer = factory.createXMLStreamWriter(bufferedOutputStream, "UTF-8");
 
 			// writer.writeStartDocument("UTF-8", "1.0");
 			// writer.writeComment("Course Generator (C) Pierre DELORE");
@@ -798,24 +800,10 @@ private static boolean isFinishPointName(String name) {
 			writer.writeStartElement("gpx");
 			writer.writeAttribute("creator", "Course Generator http://www.techandrun.com");
 			writer.writeAttribute("version", "1.1");
-			writer.writeAttribute("xsi:schemaLocation",
-					"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/WaypointExtension/v1 http://www8.garmin.com/xmlschemas/WaypointExtensionv1.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/ActivityExtension/v1 http://www8.garmin.com/xmlschemas/ActivityExtensionv1.xsd http://www.garmin.com/xmlschemas/AdventuresExtensions/v1 http://www8.garmin.com/xmlschemas/AdventuresExtensionv1.xsd http://www.garmin.com/xmlschemas/PressureExtension/v1 http://www.garmin.com/xmlschemas/PressureExtensionv1.xsd http://www.garmin.com/xmlschemas/TripExtensions/v1 http://www.garmin.com/xmlschemas/TripExtensionsv1.xsd http://www.garmin.com/xmlschemas/TripMetaDataExtensions/v1 http://www.garmin.com/xmlschemas/TripMetaDataExtensionsv1.xsd http://www.garmin.com/xmlschemas/ViaPointTransportationModeExtensions/v1 http://www.garmin.com/xmlschemas/ViaPointTransportationModeExtensionsv1.xsd http://www.garmin.com/xmlschemas/CreationTimeExtension/v1 http://www.garmin.com/xmlschemas/CreationTimeExtensionsv1.xsd http://www.garmin.com/xmlschemas/AccelerationExtension/v1 http://www.garmin.com/xmlschemas/AccelerationExtensionv1.xsd http://www.garmin.com/xmlschemas/PowerExtension/v1 http://www.garmin.com/xmlschemas/PowerExtensionv1.xsd http://www.garmin.com/xmlschemas/VideoExtension/v1 http://www.garmin.com/xmlschemas/VideoExtensionv1.xsd");
 			writer.writeAttribute("xmlns", "http://www.topografix.com/GPX/1/1");
 			writer.writeAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
-			writer.writeAttribute("xmlns:wptx1", "http://www.garmin.com/xmlschemas/WaypointExtension/v1");
-			writer.writeAttribute("xmlns:gpxtrx", "http://www.garmin.com/xmlschemas/GpxExtensions/v3");
-			writer.writeAttribute("xmlns:gpxtpx", "http://www.garmin.com/xmlschemas/TrackPointExtension/v1");
-			writer.writeAttribute("xmlns:gpxx", "http://www.garmin.com/xmlschemas/GpxExtensions/v3");
-			writer.writeAttribute("xmlns:trp", "http://www.garmin.com/xmlschemas/TripExtensions/v1");
-			writer.writeAttribute("xmlns:adv", "http://www.garmin.com/xmlschemas/AdventuresExtensions/v1");
-			writer.writeAttribute("xmlns:prs", "http://www.garmin.com/xmlschemas/PressureExtension/v1");
-			writer.writeAttribute("xmlns:tmd", "http://www.garmin.com/xmlschemas/TripMetaDataExtensions/v1");
-			writer.writeAttribute("xmlns:vptm",
-					"http://www.garmin.com/xmlschemas/ViaPointTransportationModeExtensions/v1");
-			writer.writeAttribute("xmlns:ctx", "http://www.garmin.com/xmlschemas/CreationTimeExtension/v1");
-			writer.writeAttribute("xmlns:gpxacc", "http://www.garmin.com/xmlschemas/AccelerationExtension/v1");
-			writer.writeAttribute("xmlns:gpxpx", "http://www.garmin.com/xmlschemas/PowerExtension/v1");
-			writer.writeAttribute("xmlns:vidx1", "http://www.garmin.com/xmlschemas/VideoExtension/v1");
+			writer.writeAttribute("xsi:schemaLocation",
+					"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd");
 
 			// Re-export aid stations as GPX waypoints so GPX -> Course Generator -> GPX
 			// keeps the ravito positions. For a partial export, only waypoints whose
@@ -901,10 +889,12 @@ private static boolean isFinishPointName(String name) {
 
 				// <time>2010-08-18T07:57:07.000Z</time>
 				// dt = r.getHour().ToUniversalTime();
-				Utils.WriteStringToXML(writer, "time", r.getHour().toString());
+				// Preserve the planned instant and timezone without redundant milliseconds.
+				Utils.WriteStringToXML(writer, "time", r.getHour().toString("yyyy-MM-dd'T'HH:mm:ssZZ"));
 
 				// <name>toto</name>
-				Utils.WriteStringToXML(writer, "name", String.valueOf(i));
+				if (r.getName() != null && !r.getName().trim().isEmpty())
+					Utils.WriteStringToXML(writer, "name", r.getName());
 
 				writer.writeEndElement();// Trkpt
 
@@ -2413,6 +2403,12 @@ private static boolean isFinishPointName(String name) {
 				writer.writeStartElement("TRACKPOINT");
 				Utils.WriteStringToXML(writer, "LATITUDEDEGREES", nf.format(r.getLatitude()));
 				Utils.WriteStringToXML(writer, "LONGITUDEDEGREES", nf.format(r.getLongitude()));
+				if (r.hasOriginalWaypointPosition()) {
+					Utils.WriteStringToXML(writer, "WAYPOINTLATITUDEDEGREES",
+							String.format(Locale.ROOT, "%.7f", r.getWaypointLatitude()));
+					Utils.WriteStringToXML(writer, "WAYPOINTLONGITUDEDEGREES",
+							String.format(Locale.ROOT, "%.7f", r.getWaypointLongitude()));
+				}
 				Utils.WriteStringToXML(writer, "ALTITUDEMETERS", nf.format(r.getElevation(CgConst.UNIT_METER)));
 				Utils.WriteStringToXML(writer, "ALTITUDEMETERSNOTSMOOTHED",
 						nf.format(r.getElevationNotSmoothed(CgConst.UNIT_METER)));
