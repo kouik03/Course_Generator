@@ -10,6 +10,7 @@ import java.awt.Desktop;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Toolkit;
+import java.awt.image.BufferedImage;
 import java.awt.datatransfer.StringSelection;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -79,6 +80,8 @@ public final class TrailRaceTr1Dialog extends JDialog {
             "Auteur du site (version locale)"
     });
     private final JTextArea[] codeFields = new JTextArea[3];
+    private final JButton[] qrButtons = new JButton[3];
+    private Result latestResult;
     private final JLabel report = new JLabel("Aucun code généré");
     private final JProgressBar progress = new JProgressBar();
     private final JButton generate = new JButton("Générer les 3 blocs");
@@ -120,9 +123,15 @@ public final class TrailRaceTr1Dialog extends JDialog {
             JPanel pane = new JPanel(new BorderLayout(4, 4));
             JPanel titleBar = new JPanel(new BorderLayout());
             titleBar.add(new JLabel("Bloc " + (i + 1) + " (2000 caractères maximum)"), BorderLayout.WEST);
+            JPanel blockActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
             JButton copy = new JButton("Copier ce bloc");
             copy.addActionListener(e -> copyText(codeFields[block].getText()));
-            titleBar.add(copy, BorderLayout.EAST);
+            blockActions.add(copy);
+            qrButtons[i] = new JButton("Afficher le QR code");
+            qrButtons[i].setEnabled(false);
+            qrButtons[i].addActionListener(e -> showQrCode(block));
+            blockActions.add(qrButtons[i]);
+            titleBar.add(blockActions, BorderLayout.EAST);
             pane.add(titleBar, BorderLayout.NORTH);
             codeFields[i] = new JTextArea(4, 80);
             codeFields[i].setEditable(false);
@@ -152,6 +161,14 @@ public final class TrailRaceTr1Dialog extends JDialog {
         });
     }
 
+    private void showQrCode(int blockIndex) {
+        if (latestResult == null || blockIndex >= latestResult.qrImages.length)
+            return;
+        TrailRaceTr1QrViewer viewer = new TrailRaceTr1QrViewer(this,
+                latestResult.qrImages, latestResult.parts, blockIndex);
+        viewer.setVisible(true);
+    }
+
     private void generateAsync() {
         if (track == null || track.data.size() < 2) {
             JOptionPane.showMessageDialog(this, "La trace doit contenir au moins deux positions.");
@@ -163,6 +180,12 @@ public final class TrailRaceTr1Dialog extends JDialog {
             input = Input.from(track);
         } catch (Exception ex) { showError(ex); return; }
         final int source = provider.getSelectedIndex();
+        latestResult = null;
+        for (int i = 0; i < 3; i++) {
+            qrButtons[i].setEnabled(false);
+            codeFields[i].setText("");
+        }
+        report.setText("Création des blocs TR1 et des QR codes…");
         setBusy(true);
         new SwingWorker<Result, Void>() {
             @Override protected Result doInBackground() throws Exception {
@@ -173,8 +196,11 @@ public final class TrailRaceTr1Dialog extends JDialog {
                 setBusy(false);
                 try {
                     Result r = get();
-                    for (int i = 0; i < 3; i++)
+                    latestResult = r;
+                    for (int i = 0; i < 3; i++) {
                         codeFields[i].setText(i < r.parts.length ? r.parts[i] : "");
+                        qrButtons[i].setEnabled(i < r.qrImages.length);
+                    }
                     String message = String.format(Locale.ROOT,
                             "<html><b>%d caractères</b> · %d blocs · %.3f km · D+ profil %.0f m · %d points du plan · CRC OK</html>",
                             r.code.length(), r.parts.length, r.distance / 1000.0, r.ascent, r.planCount);
@@ -392,7 +418,7 @@ public final class TrailRaceTr1Dialog extends JDialog {
         }
     }
 
-    private static Result generateCode(String script, boolean adaptive, Input input) {
+    private static Result generateCode(String script, boolean adaptive, Input input) throws Exception {
         try (Context context = newSandbox()) {
             Value route = getRouteCode(context, script);
             String method = adaptive && route.hasMember("encodeAdaptive")
@@ -418,6 +444,11 @@ public final class TrailRaceTr1Dialog extends JDialog {
                 throw new IllegalArgumentException("Code TR1 non compatible avec trois blocs.");
             for (int i = 0; i < result.parts.length; i++)
                 result.parts[i] = code.substring(i * 2000, Math.min(code.length(), (i + 1) * 2000));
+            // Generate and immediately decode every QR to verify byte-for-byte
+            // identity with the text blocks before offering them for scanning.
+            result.qrImages = new BufferedImage[result.parts.length];
+            for (int i = 0; i < result.parts.length; i++)
+                result.qrImages[i] = TrailRaceTr1Qr.createAndVerify(result.parts[i]);
             result.distance = number(output, "lengthM");
             result.ascent = number(output, "climbM");
             result.planCount = input.planCount;
@@ -446,6 +477,7 @@ public final class TrailRaceTr1Dialog extends JDialog {
     private static final class Result {
         String code;
         String[] parts;
+        BufferedImage[] qrImages;
         double distance;
         double ascent;
         int planCount;
