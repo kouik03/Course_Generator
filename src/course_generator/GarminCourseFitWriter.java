@@ -86,7 +86,12 @@ public final class GarminCourseFitWriter {
             encoder.write(fileId);
 
             CourseMesg course = new CourseMesg();
-            course.setName(courseName(track));
+            // FIT has its own CourseMesg.name, distinct from the .fit filename.
+            // Differentiate the VP version on the watch without renaming the CGX project.
+            String fitCourseName = courseName(track);
+            if (options.virtualPartner && !fitCourseName.endsWith(" VP"))
+                fitCourseName += " VP";
+            course.setName(fitCourseName);
             course.setSport(Sport.RUNNING);
             encoder.write(course);
 
