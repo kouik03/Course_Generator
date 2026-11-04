@@ -26,6 +26,15 @@ public final class TrailRaceTr1EngineSmoke {
                 .allowIO(false)
                 .allowCreateThread(false)
                 .build()) {
+            try (InputStream shim = TrailRaceTr1EngineSmoke.class.getResourceAsStream(
+                    "/course_generator/tr1/base64-shim.js")) {
+                if (shim == null) throw new AssertionError("Base64 shim missing");
+                ByteArrayOutputStream b = new ByteArrayOutputStream();
+                byte[] tmp = new byte[4096];
+                int n;
+                while ((n = shim.read(tmp)) != -1) b.write(tmp, 0, n);
+                ctx.eval("js", new String(b.toByteArray(), StandardCharsets.UTF_8));
+            }
             ctx.eval("js", script);
             Value route = ctx.getBindings("js").getMember("RouteCode");
             if (route == null || route.isNull()) throw new AssertionError("RouteCode not global");
