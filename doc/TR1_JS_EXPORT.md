@@ -14,7 +14,7 @@ The **Import JS** button installs a compatible local JavaScript. **Download JS f
 
 ## Scanning the TR1 fields with QR codes
 
-Each generated TR1 block now has an **Afficher le QR code** button. A large reader window can show the previous/next QR, switch from fitted preview to 1200-pixel native resolution, and save the original as a PNG. All QR generation runs **locally**, using ZXing. The QR payload is the **exact raw block text**, with no label, number, URL or extra separator added; the current block number is shown *outside* the QR image. The encoder uses QR error correction **M**, a standard four-module quiet zone and verifies every bitmap by reading the QR back before presenting it. At 2000 characters this is a dense QR: use full-size preview or the saved PNG if a phone struggles to scan the fitted preview.
+Each generated TR1 block now has an **Afficher le QR code** button. A large reader window can show the previous/next QR, switch from fitted preview to 1800-pixel native resolution, and save the original as a PNG. All QR generation runs **locally**, using ZXing. The QR payload is the **exact raw block text**, with no label, number, URL or extra separator added; the current block number is shown *outside* the QR image. The encoder uses QR error correction **M**, a standard four-module quiet zone and verifies every bitmap by reading the QR back before presenting it. At 2000 characters this is a dense QR: use full-size preview or the saved PNG if a phone struggles to scan the fitted preview.
 
 No QR or GPX export changes CGX's modified/saved state.
 
