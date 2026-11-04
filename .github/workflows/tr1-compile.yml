@@ -3,6 +3,10 @@ on:
   push:
     branches:
       - feature/tr1-js-runtime-and-gpx-fidelity
+      - experiment/terrain-debiased-curve-v1
+  pull_request:
+    branches:
+      - experiment/terrain-debiased-curve-v1
 jobs:
   verify:
     runs-on: ubuntu-latest
