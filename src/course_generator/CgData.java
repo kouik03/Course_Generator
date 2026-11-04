@@ -34,6 +34,9 @@ public class CgData {
 	private double Latitude;
 	/** Longitude of the position **/
 	private double Longitude;
+	/** Original GPX waypoint location, independent from the snapped trackpoint. */
+	private double waypointLatitude = Double.NaN;
+	private double waypointLongitude = Double.NaN;
 	/** Elevation of the position in meter **/
 	private double Elevation;
 	/** Not smoothed elevation of the position in meter. **/
@@ -207,6 +210,24 @@ public class CgData {
 	}
 
 	// -------------------------------
+
+	public boolean hasOriginalWaypointPosition() {
+		return !Double.isNaN(waypointLatitude) && !Double.isNaN(waypointLongitude);
+	}
+
+	public void setOriginalWaypointPosition(double latitude, double longitude) {
+		this.waypointLatitude = latitude;
+		this.waypointLongitude = longitude;
+	}
+
+	public double getWaypointLatitude() {
+		return hasOriginalWaypointPosition() ? waypointLatitude : Latitude;
+	}
+
+	public double getWaypointLongitude() {
+		return hasOriginalWaypointPosition() ? waypointLongitude : Longitude;
+	}
+
 	public double getLongitude() {
 		return Longitude;
 	}
@@ -701,6 +722,8 @@ public class CgData {
 		d.Num = Num;
 		d.Latitude = Latitude;
 		d.Longitude = Longitude;
+		d.waypointLatitude = waypointLatitude;
+		d.waypointLongitude = waypointLongitude;
 		d.Elevation = Elevation;
 		d.ElevationNotSmoothed = ElevationNotSmoothed;
 		d.ElevationSmoothed = ElevationSmoothed;
