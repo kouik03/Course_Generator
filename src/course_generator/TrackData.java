@@ -700,6 +700,41 @@ private static boolean isFinishPointName(String name) {
 		return isTimeLoaded;
 	} // -- OpenGPX
 
+	private static boolean isGPXAidStation(CgData point) {
+		if (point == null)
+			return false;
+		return (point.getTag() & (CgConst.TAG_EAT_PT | CgConst.TAG_WATER_PT)) != 0;
+	}
+
+	private static String gpxAidStationSymbol(CgData point) {
+		// Food deliberately wins over water, matching FIT export/import behaviour.
+		if ((point.getTag() & CgConst.TAG_EAT_PT) != 0)
+			return "Restaurant";
+		return "Bar";
+	}
+
+	private static void writeGPXAidStation(XMLStreamWriter writer, CgData point, int fallbackIndex)
+			throws XMLStreamException {
+		writer.writeStartElement("wpt");
+		writer.writeAttribute("lat", String.format(Locale.ROOT, "%1.14f", point.getLatitude()));
+		writer.writeAttribute("lon", String.format(Locale.ROOT, "%1.14f", point.getLongitude()));
+
+		Utils.WriteStringToXML(writer, "ele",
+				String.format(Locale.ROOT, "%1.7f", point.getElevation(CgConst.UNIT_METER)));
+
+		String pointName = point.getName() == null ? "" : point.getName().trim();
+		if (pointName.isEmpty())
+			pointName = String.format("NoName%d", fallbackIndex);
+		Utils.WriteStringToXML(writer, "name", pointName);
+
+		String description = point.getComment() == null ? "" : point.getComment().trim();
+		if (!description.isEmpty())
+			Utils.WriteStringToXML(writer, "desc", description);
+
+		Utils.WriteStringToXML(writer, "sym", gpxAidStationSymbol(point));
+		Utils.WriteStringToXML(writer, "type", "user");
+		writer.writeEndElement();
+	}
 	// -- Save GPX file (complet or partial) --
 	/**
 	 * Save the track in GPX format
@@ -762,6 +797,19 @@ private static boolean isFinishPointName(String name) {
 			writer.writeAttribute("xmlns:gpxacc", "http://www.garmin.com/xmlschemas/AccelerationExtension/v1");
 			writer.writeAttribute("xmlns:gpxpx", "http://www.garmin.com/xmlschemas/PowerExtension/v1");
 			writer.writeAttribute("xmlns:vidx1", "http://www.garmin.com/xmlschemas/VideoExtension/v1");
+
+			// Re-export aid stations as GPX waypoints so GPX -> Course Generator -> GPX
+			// keeps the ravito positions. For a partial export, only waypoints whose
+			// underlying track point lies inside [start, end] are included.
+			int waypointCount = 0;
+			for (int i = start; i <= end; i++) {
+				CgData point = data.get(i);
+				if (!isGPXAidStation(point))
+					continue;
+
+				waypointCount++;
+				writeGPXAidStation(writer, point, waypointCount);
+			}
 
 			// Utils.WriteStringToXML(writer, "creator", "Course Generator
 			// http://www.techandrun.com");
@@ -856,6 +904,7 @@ private static boolean isFinishPointName(String name) {
 
 			CgLog.info("TrackData.SaveGPX : '" + name + "' saved");
 			CgLog.info(cmpt + " positions saved.");
+			CgLog.info(waypointCount + " aid station waypoints saved.");
 		} catch (XMLStreamException | IOException e) {
 			e.printStackTrace();
 		}
