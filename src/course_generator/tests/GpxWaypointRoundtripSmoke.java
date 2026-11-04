@@ -10,6 +10,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import course_generator.CgData;
+import course_generator.SaxCGXHandler;
 import course_generator.TrackData;
 import course_generator.settings.CgSettings;
 import course_generator.utils.CgConst;
@@ -44,6 +45,7 @@ public final class GpxWaypointRoundtripSmoke {
 
         Path exported = Files.createTempFile("cg-gpx-waypoint-", ".gpx");
         Path partial = Files.createTempFile("cg-gpx-selected-", ".gpx");
+        Path cgx = Files.createTempFile("cg-original-waypoint-", ".cgx");
         try {
             track.ExportGPX(exported.toString(), 0, 1);
             if (!track.isModified) throw new AssertionError("GPX export cleared CGX modified flag");
@@ -72,10 +74,22 @@ public final class GpxWaypointRoundtripSmoke {
                 throw new AssertionError("Partial export included a waypoint outside the selection");
             if (!track.isModified)
                 throw new AssertionError("Partial GPX export cleared CGX modified flag");
-            System.out.println("GPX export XML, raw waypoint coordinates, selection and state OK");
+
+            track.SaveCGX(cgx.toString(), 0, 1, false);
+            TrackData reopened = new TrackData(new CgSettings());
+            int error = new SaxCGXHandler().readDataFromCGX(null, cgx.toString(), reopened, 0);
+            if (error != 0 || reopened.data.size() != 2)
+                throw new AssertionError("CGX reimport error: " + error + " / " + reopened.data.size());
+            CgData importedWaypoint = reopened.data.get(0);
+            if (!importedWaypoint.hasOriginalWaypointPosition()
+                    || Math.abs(importedWaypoint.getWaypointLatitude() - 43.843349) > 1e-7
+                    || Math.abs(importedWaypoint.getWaypointLongitude() - 4.356912) > 1e-7)
+                throw new AssertionError("CGX save/reload lost original waypoint location");
+            System.out.println("GPX XML, raw waypoint, CGX round-trip, selection and state OK");
         } finally {
             Files.deleteIfExists(exported);
             Files.deleteIfExists(partial);
+            Files.deleteIfExists(cgx);
         }
     }
 }
