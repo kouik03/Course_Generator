@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.garmin.fit.Decode;
+import com.garmin.fit.FileIdMesg;
 import com.garmin.fit.LapMesg;
 import com.garmin.fit.Mesg;
 import com.garmin.fit.MesgNum;
@@ -61,6 +62,7 @@ public final class GarminFitBarrierVirtualPartnerSmoke {
     }
 
     private static final class Capture {
+        final List<FileIdMesg> fileIds = new ArrayList<FileIdMesg>();
         final List<RecordMesg> records = new ArrayList<RecordMesg>();
         final List<LapMesg> laps = new ArrayList<LapMesg>();
     }
@@ -69,7 +71,9 @@ public final class GarminFitBarrierVirtualPartnerSmoke {
         Capture capture = new Capture();
         try (FileInputStream input = new FileInputStream(file.toFile())) {
             new Decode().read(input, (Mesg message) -> {
-                if (message.getNum() == MesgNum.RECORD)
+                if (message.getNum() == MesgNum.FILE_ID)
+                    capture.fileIds.add(new FileIdMesg(message));
+                else if (message.getNum() == MesgNum.RECORD)
                     capture.records.add(new RecordMesg(message));
                 else if (message.getNum() == MesgNum.LAP)
                     capture.laps.add(new LapMesg(message));
@@ -85,7 +89,7 @@ public final class GarminFitBarrierVirtualPartnerSmoke {
         throw new AssertionError("Missing course point: " + name);
     }
 
-    private static void runCase(TrackData track, GarminFitExportOptions options,
+    private static long runCase(TrackData track, GarminFitExportOptions options,
             boolean expectVirtual, boolean expectCutoffs, boolean expectRests, boolean expectCustomIcon)
             throws Exception {
         Path file = Files.createTempFile("fit-vp-barriers-", ".fit");
@@ -99,6 +103,10 @@ public final class GarminFitBarrierVirtualPartnerSmoke {
             check("FIT options / VP smoke".equals(track.CourseName),
                     "Export unexpectedly modified the CGX project course name");
             Capture capture = readAll(file);
+            check(capture.fileIds.size() == 1, "Incorrect FIT FileId count");
+            Long serial = capture.fileIds.get(0).getSerialNumber();
+            check(serial != null && serial.longValue() != 1L,
+                    "FIT serial_number still uses the old constant identity");
             check(capture.records.size() == 5, "Incorrect FIT Record count");
             check(capture.laps.size() == 1, "Incorrect FIT Lap count");
             long first = capture.records.get(0).getTimestamp().getTimestamp();
@@ -124,6 +132,7 @@ public final class GarminFitBarrierVirtualPartnerSmoke {
             check((r1.cutoffSeconds == 1800) == expectCutoffs, "Cutoff option ignored");
             check((r1.restSeconds == 300) == expectRests, "Rest option ignored");
             check((r1.type == CoursePoint.FOOD) == expectCustomIcon, "Icon option ignored");
+            return serial.longValue();
         } finally {
             Files.deleteIfExists(file);
         }
@@ -142,13 +151,21 @@ public final class GarminFitBarrierVirtualPartnerSmoke {
                     "A moving Virtual Partner stopped at trackpoint " + i);
             check(timeline.targetSpeedMps[i] > 0, "Missing moving target speed");
         }
-        runCase(track, GarminFitExportOptions.defaults(), false, true, true, true);
-        runCase(track, new GarminFitExportOptions(false, false, false, false),
+        long standardSerial = runCase(track, GarminFitExportOptions.defaults(),
+                false, true, true, true);
+        long plainSerial = runCase(track, new GarminFitExportOptions(false, false, false, false),
                 false, false, false, false);
-        runCase(track, new GarminFitExportOptions(true, true, true, true),
+        long vpSerial = runCase(track, new GarminFitExportOptions(true, true, true, true),
                 true, true, true, true);
-        runCase(track, new GarminFitExportOptions(false, false, false, true),
+        long vpMinimalSerial = runCase(track, new GarminFitExportOptions(false, false, false, true),
                 true, false, false, false);
+
+        check(standardSerial == plainSerial,
+                "Normal FIT identity changed with metadata export flags");
+        check(vpSerial == vpMinimalSerial,
+                "VP FIT identity changed with metadata export flags");
+        check(standardSerial != vpSerial,
+                "Normal and Virtual Partner FIT files still share the same file_id identity");
 
         track.data.get(4).setTimeLimit(1700); // Earlier than R1 => impossible.
         boolean refused = false;

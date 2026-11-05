@@ -9,6 +9,9 @@
  */
 package course_generator;
 
+import java.nio.charset.StandardCharsets;
+import java.util.zip.CRC32;
+
 import com.garmin.fit.CourseMesg;
 import com.garmin.fit.CoursePlannerCoursePointMesg;
 import com.garmin.fit.CoursePoint;
@@ -77,20 +80,21 @@ public final class GarminCourseFitWriter {
                     : virtual.elapsedSeconds[track.data.size() - 1];
             DateTime endTime = new DateTime(startTimestamp + lastElapsed);
 
-            FileIdMesg fileId = new FileIdMesg();
-            fileId.setType(File.COURSE);
-            fileId.setManufacturer(Manufacturer.DEVELOPMENT);
-            fileId.setProduct(PRODUCT_ID);
-            fileId.setTimeCreated(startTime);
-            fileId.setSerialNumber(1L);
-            encoder.write(fileId);
-
-            CourseMesg course = new CourseMesg();
             // FIT has its own CourseMesg.name, distinct from the .fit filename.
             // Differentiate the VP version on the watch without renaming the CGX project.
             String fitCourseName = courseName(track);
             if (options.virtualPartner && !fitCourseName.endsWith(" VP"))
                 fitCourseName += " VP";
+
+            FileIdMesg fileId = new FileIdMesg();
+            fileId.setType(File.COURSE);
+            fileId.setManufacturer(Manufacturer.DEVELOPMENT);
+            fileId.setProduct(PRODUCT_ID);
+            fileId.setTimeCreated(startTime);
+            fileId.setSerialNumber(courseSerialNumber(track, fitCourseName, options.virtualPartner));
+            encoder.write(fileId);
+
+            CourseMesg course = new CourseMesg();
             course.setName(fitCourseName);
             course.setSport(Sport.RUNNING);
             encoder.write(course);
@@ -299,6 +303,47 @@ public final class GarminCourseFitWriter {
             return false;
         String lower = name.trim().toLowerCase(java.util.Locale.ROOT);
         return lower.contains("arriv") || lower.contains("finish");
+    }
+
+    /**
+     * Build a stable FIT file_id serial number for this course variant.
+     *
+     * Garmin identifies Course FIT files from their internal file_id metadata,
+     * not from the external .fit filename. The old constant serial_number=1
+     * caused a normal course and its Virtual Partner variant to collide on the
+     * device even though CourseMesg.name was different.
+     *
+     * Keep the identifier deterministic so re-exporting the same route/variant
+     * replaces that variant, while normal and VP remain distinct.
+     */
+    private static long courseSerialNumber(TrackData track, String fitCourseName, boolean virtualPartner) {
+        CRC32 crc = new CRC32();
+        crc.update("CourseGeneratorFITv1".getBytes(StandardCharsets.UTF_8));
+        crc.update(fitCourseName.getBytes(StandardCharsets.UTF_8));
+        crc.update(virtualPartner ? 1 : 0);
+
+        for (CgData point : track.data) {
+            updateCrcInt(crc, degreesToSemicircles(point.getLatitude()));
+            updateCrcInt(crc, degreesToSemicircles(point.getLongitude()));
+        }
+
+        long serial = crc.getValue() & 0xFFFFFFFFL;
+
+        // 0xFFFFFFFF is the FIT invalid value for uint32. Avoid zero as well so
+        // generated files never look like an unset/default identifier.
+        if (serial == 0xFFFFFFFFL)
+            serial = 0xFFFFFFFEL;
+        else if (serial == 0L)
+            serial = 1L;
+
+        return serial;
+    }
+
+    private static void updateCrcInt(CRC32 crc, int value) {
+        crc.update((value >>> 24) & 0xFF);
+        crc.update((value >>> 16) & 0xFF);
+        crc.update((value >>> 8) & 0xFF);
+        crc.update(value & 0xFF);
     }
 
     private static String courseName(TrackData track) {
