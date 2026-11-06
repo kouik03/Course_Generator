@@ -2601,7 +2601,8 @@ public class frmMain extends javax.swing.JFrame {
 		if (Track.data.isEmpty())
 			return;
 
-		FrmMiniroadbook frm = new FrmMiniroadbook(Settings);
+		// Persist global Roadbook Editor presets and palette separately from CGX.
+		FrmMiniroadbook frm = new FrmMiniroadbook(Settings, this::SaveConfig);
 		frm.showDialog(Track);
 	}
 
