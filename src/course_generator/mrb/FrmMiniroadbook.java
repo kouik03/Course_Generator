@@ -61,6 +61,7 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 	private ResourceBundle bundle;
 	private boolean ok;
 	private CgSettings settings;
+	private Runnable savePreferences;
 	private TrackData track;
 	private MrbTableDataModel modelTableData;
 	private int DupLine = -1; // Base line for duplication
@@ -121,7 +122,12 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 	 * Creates new form frmSettings
 	 */
 	public FrmMiniroadbook(CgSettings settings) {
+		this(settings, null);
+	}
+
+	public FrmMiniroadbook(CgSettings settings, Runnable savePreferences) {
 		this.settings = settings;
+		this.savePreferences = savePreferences;
 		bundle = java.util.ResourceBundle.getBundle("course_generator/Bundle");
 		datalist = new MrbDataList();
 		modelTableData = new MrbTableDataModel(datalist, settings);
@@ -135,6 +141,7 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 			public void windowClosing(WindowEvent e) {
 				commitPendingFields();
 				settings.MRB_SplitPosition = SplitPane.getDividerLocation();
+				saveUserPreferences();
 			}
 		});
 	}
@@ -1108,7 +1115,15 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 
 	private boolean ShowConfigMrbDialog() {
 		FrmConfigMrb frm = new FrmConfigMrb(SwingUtilities.windowForComponent(this), settings);
-		return frm.showDialog(track);
+		boolean accepted = frm.showDialog(track);
+		if (accepted)
+			saveUserPreferences();
+		return accepted;
+	}
+
+	private void saveUserPreferences() {
+		if (savePreferences != null)
+			savePreferences.run();
 	}
 
 	private void ShowConfigMrbDuplicate() {
