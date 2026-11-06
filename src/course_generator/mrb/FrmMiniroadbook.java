@@ -249,11 +249,11 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 		btConfig.setFocusable(false);
 		btConfig.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				ShowConfigMrbDialog();
-
-				track.isModified = true;
-				pnlProfil.setTrack(track);
-				pnlProfil.Refresh();
+				if (ShowConfigMrbDialog()) {
+					track.isModified = true;
+					pnlProfil.setTrack(track);
+					pnlProfil.Refresh();
+				}
 			}
 		});
 		ToolBarMRB.add(btConfig);
@@ -349,6 +349,7 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 		btNightAndDayHighlight.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				track.bShowNightDay = !track.bShowNightDay;
+				track.isModified = true;
 				btNightAndDayHighlight.setSelected(track.bShowNightDay);
 				repaint();
 			}
@@ -1134,9 +1135,9 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 			TableData.setRowSelectionInterval(0, 0);
 	}
 
-	private void ShowConfigMrbDialog() {
+	private boolean ShowConfigMrbDialog() {
 		FrmConfigMrb frm = new FrmConfigMrb(SwingUtilities.windowForComponent(this), settings);
-		frm.showDialog(track);
+		return frm.showDialog(track);
 	}
 
 	private void ShowConfigMrbDuplicate() {
