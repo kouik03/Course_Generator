@@ -176,6 +176,19 @@ public class FrmConfigMrb extends javax.swing.JDialog {
 			track.clProfil_SlopeInf15 = ColorSlopeInf15;
 			track.clProfil_SlopeSup15 = ColorSlopeSup15;
 			track.clProfil_SlopeBorder = ColorSlopeBorder;
+
+			// Keep the chosen palette as the default for future/new GPX projects.
+			// This does not replace the per-project colors persisted in CGX.
+			settings.MrbColorSimpleFill = ColorSimpleFill;
+			settings.MrbColorSimpleBorder = ColorSimpleBorder;
+			settings.MrbColorRSPath = ColorRSPath;
+			settings.MrbColorRSRoad = ColorRSRoad;
+			settings.MrbColorRSBorder = ColorRSBorder;
+			settings.MrbColorSlopeInf5 = ColorSlopeInf5;
+			settings.MrbColorSlopeInf10 = ColorSlopeInf10;
+			settings.MrbColorSlopeInf15 = ColorSlopeInf15;
+			settings.MrbColorSlopeSup15 = ColorSlopeSup15;
+			settings.MrbColorSlopeBorder = ColorSlopeBorder;
 		}
 		return ok;
 	}
