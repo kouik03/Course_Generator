@@ -383,6 +383,9 @@ public class frmMain extends javax.swing.JFrame {
 		// -- Post configuration loading settings
 		Track.MrbSizeW = Settings.DefMrbWidth;
 		Track.MrbSizeH = Settings.DefMrbHeight;
+		// TrackData instances were constructed before config.xml was loaded.
+		Track.applyMrbColorPreferences(Settings);
+		Backup_Track.applyMrbColorPreferences(Settings);
 
 		// -- Application and system info in the log. Nothing exit from the computer!
 		CgLog.info("Start Course Generator version " + Version);
