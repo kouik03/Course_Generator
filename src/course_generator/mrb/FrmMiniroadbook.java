@@ -27,6 +27,9 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.util.Objects;
 import java.util.ResourceBundle;
 
 import javax.swing.JButton;
@@ -119,9 +122,18 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 		bundle = java.util.ResourceBundle.getBundle("course_generator/Bundle");
 		datalist = new MrbDataList();
 		modelTableData = new MrbTableDataModel(datalist, settings);
-		memoFormat = new String[5];
+		// A JFrame is non-modal: anything after setVisible(true) executes before
+		// the user can edit it. Use the actual settings array, not a copy that
+		// would be discarded when the window is closed.
+		memoFormat = settings.MemoFormat;
 		initComponents();
-		// setModal(true);
+		addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				commitPendingFields();
+				settings.MRB_SplitPosition = SplitPane.getDividerLocation();
+			}
+		});
 	}
 
 	/**
@@ -188,12 +200,6 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 		// -- Set profile type
 		cbProfilType.setSelectedIndex(track.MRBType);
 
-		memoFormat[0] = settings.MemoFormat[0];
-		memoFormat[1] = settings.MemoFormat[1];
-		memoFormat[2] = settings.MemoFormat[2];
-		memoFormat[3] = settings.MemoFormat[3];
-		memoFormat[4] = settings.MemoFormat[4];
-
 		RefreshBtLabel();
 		RefreshTooltips();
 		RefreshTableData();
@@ -201,33 +207,11 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 
 		btNightAndDayHighlight.setSelected(track.bShowNightDay);
 
-		// End set field
-		ok = false;
-
-		// -- Update the display
-		// Refresh();
-
-		// -- Show the dialog
+		// This is a JFrame, not a modal dialog: setVisible returns immediately.
+		// Per-point formats/colors already mutate TrackData on user actions;
+		// saved format presets are shared directly with CgSettings.
 		setVisible(true);
-
-		// Memorize the last position of the splitbar
-		settings.MRB_SplitPosition = SplitPane.getDividerLocation();
-
-		ok = true;
-
-		if (ok) {
-			settings.MemoFormat[0] = memoFormat[0];
-			settings.MemoFormat[1] = memoFormat[1];
-			settings.MemoFormat[2] = memoFormat[2];
-			settings.MemoFormat[3] = memoFormat[3];
-			settings.MemoFormat[4] = memoFormat[4];
-
-			track.MRBType = cbProfilType.getSelectedIndex();
-
-			track.MrbSizeW = spinWidth.getValueAsInt();
-			track.MrbSizeH = spinHeight.getValueAsInt();
-		}
-		return ok;
+		return true;
 	}
 
 	/**
@@ -579,8 +563,8 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 		if (row < 0)
 			return memo;
 
-		// -- Left click
-		if (e.getButton() == MouseEvent.BUTTON1) {
+		// -- Left click: apply a saved preset to the selected roadbook point.
+		if (e.getButton() == MouseEvent.BUTTON1 && !e.isControlDown()) {
 			int line = (int) datalist.data.get(row).getNum() - 1;
 			if (line > track.data.size())
 				return memo;
@@ -594,11 +578,10 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 			RefreshTableData();
 			pnlProfil.Refresh();
 		}
-		// -- Right click
-		else if (e.getButton() == MouseEvent.BUTTON3) {
+		// -- Right/control-click: memorize the format as a user preference.
+		// This is not a CGX project modification.
+		else if (SwingUtilities.isRightMouseButton(e) || e.isControlDown()) {
 			memo = tfFormat.getText();
-			track.isModified = true;
-			// RefreshTooltips();
 		}
 		return memo;
 	}
@@ -1056,6 +1039,36 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 			tfComment.setEnabled(false);
 		}
 
+	}
+
+	/**
+	 * Flush text still being edited when the user closes the non-modal window.
+	 * A focused text field is not guaranteed to emit focusLost on disposal.
+	 */
+	private void commitPendingFields() {
+		if (track == null || datalist.data.isEmpty())
+			return;
+		int row = TableData.getSelectedRow();
+		if (row < 0)
+			return;
+		int line = (int) datalist.data.get(row).getNum() - 1;
+		if (line < 0 || line >= track.data.size())
+			return;
+
+		String format = tfFormat.getText();
+		String comment = tfComment.getText();
+		CgData point = track.data.get(line);
+		MrbData local = datalist.data.get(row);
+		if (!Objects.equals(point.FmtLbMiniRoadbook, format)) {
+			point.FmtLbMiniRoadbook = format;
+			local.FmtLbMiniRoadbook = format;
+			track.isModified = true;
+		}
+		if (!Objects.equals(point.CommentMiniRoadbook, comment)) {
+			point.CommentMiniRoadbook = comment;
+			local.CommentMiniRoadbook = comment;
+			track.isModified = true;
+		}
 	}
 
 	@Override
