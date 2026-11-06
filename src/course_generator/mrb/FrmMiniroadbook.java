@@ -112,6 +112,9 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 	private MrbDataList datalist;
 	private JToolBar ToolBarMRB;
 	private String[] memoFormat;
+	// Row whose format/comment are currently displayed in the text fields.
+	// This may differ from JTable's selected row while selection is changing.
+	private int displayedPropertyRow = -1;
 	private JButton btNightAndDayHighlight;
 
 	/**
@@ -149,6 +152,7 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 		this.track = track;
 
 		DupLine = -1;
+		displayedPropertyRow = -1;
 
 		// -- Set the content of the model
 		// We add here the roadbook points after filtering them
@@ -493,8 +497,8 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 	protected void PasteFormat() {
 		if (datalist.data.isEmpty())
 			return;
-		int row = TableData.getSelectedRow();
-		if (row < 0)
+		int row = displayedPropertyRow;
+		if (row < 0 || row >= datalist.data.size())
 			return;
 		int line = (int) datalist.data.get(row).getNum() - 1;
 		if (line > track.data.size())
@@ -1000,6 +1004,9 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 		if (datalist.data.isEmpty())
 			return;
 
+		// Commit text for the previous row *before* replacing the text fields
+		// with values from the newly selected row.
+		commitPendingFields();
 		int row = TableData.getSelectedRow();
 		if (row >= 0) {
 			chkSelect.setSelected((datalist.data.get(row).OptionMiniRoadbook & CgConst.MRBOPT_SEL) != 0);
@@ -1039,7 +1046,7 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 			chkTags.setEnabled(false);
 			tfComment.setEnabled(false);
 		}
-
+		displayedPropertyRow = row;
 	}
 
 	/**
@@ -1073,54 +1080,18 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 	}
 
 	@Override
-	public void focusGained(FocusEvent arg0) {
-		// TODO Auto-generated method stub
-
+	public void focusGained(FocusEvent fe) {
+		// The displayed row is captured by RefreshProperties(), independently
+		// from JTable's selection when focus changes.
 	}
 
 	@Override
 	public void focusLost(FocusEvent fe) {
-
-		// -- We exit from the format field i
-		if (fe.getSource() == tfFormat) {
-			if (datalist.data.isEmpty())
-				return;
-
-			int row = TableData.getSelectedRow();
-			if (row >= 0) {
-				int line = (int) datalist.data.get(row).getNum() - 1;
-				if (line > track.data.size())
-					return;
-
-				String txt = tfFormat.getText();
-				track.data.get(line).FmtLbMiniRoadbook = txt;
-				datalist.data.get(row).FmtLbMiniRoadbook = txt;
-
-				track.isModified = true;
-				RefreshTableData();
-				pnlProfil.Refresh();
-			}
-		}
-
-		// -- We exit from the comment field
-		if (fe.getSource() == tfComment) {
-			if (datalist.data.isEmpty())
-				return;
-
-			int row = TableData.getSelectedRow();
-			if (row >= 0) {
-				int line = (int) datalist.data.get(row).getNum() - 1;
-				if (line > track.data.size())
-					return;
-
-				track.data.get(line).CommentMiniRoadbook = tfComment.getText();
-				datalist.data.get(row).CommentMiniRoadbook = tfComment.getText();
-
-				track.isModified = true;
-				RefreshTableData();
-				pnlProfil.Refresh();
-			}
-		}
+		if (fe.getSource() != tfFormat && fe.getSource() != tfComment)
+			return;
+		commitPendingFields();
+		RefreshTableData();
+		pnlProfil.Refresh();
 	}
 
 	private void RefreshTableData() {
