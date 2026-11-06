@@ -497,8 +497,8 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 	protected void PasteFormat() {
 		if (datalist.data.isEmpty())
 			return;
-		int row = displayedPropertyRow;
-		if (row < 0 || row >= datalist.data.size())
+		int row = TableData.getSelectedRow();
+		if (row < 0)
 			return;
 		int line = (int) datalist.data.get(row).getNum() - 1;
 		if (line > track.data.size())
@@ -1056,8 +1056,8 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 	private void commitPendingFields() {
 		if (track == null || datalist.data.isEmpty())
 			return;
-		int row = TableData.getSelectedRow();
-		if (row < 0)
+		int row = displayedPropertyRow;
+		if (row < 0 || row >= datalist.data.size())
 			return;
 		int line = (int) datalist.data.get(row).getNum() - 1;
 		if (line < 0 || line >= track.data.size())
