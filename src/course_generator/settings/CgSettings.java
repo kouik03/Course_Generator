@@ -60,6 +60,18 @@ public class CgSettings {
 
 	public String MemoFormat[] = new String[5];
 	public String DefaultFormat;
+	// User defaults for mini-roadbook profile colors. Saved in config.xml;
+	// individual CGX projects retain their own palette.
+	public Color MrbColorSimpleFill;
+	public Color MrbColorSimpleBorder;
+	public Color MrbColorRSPath;
+	public Color MrbColorRSRoad;
+	public Color MrbColorRSBorder;
+	public Color MrbColorSlopeInf5;
+	public Color MrbColorSlopeInf10;
+	public Color MrbColorSlopeInf15;
+	public Color MrbColorSlopeSup15;
+	public Color MrbColorSlopeBorder;
 	public String mruGPX[] = new String[5];
 	public String mruCGX[] = new String[5];
 	public int TableMainColWidth[] = new int[16];
@@ -149,6 +161,16 @@ public class CgSettings {
 
 		MemoFormat = new String[5];
 		DefaultFormat = "%N%L%A%L%D%L%H";
+		MrbColorSimpleFill = CgConst.CL_PROFIL_SIMPLE_FILL;
+		MrbColorSimpleBorder = CgConst.CL_PROFIL_SIMPLE_BORDER;
+		MrbColorRSPath = CgConst.CL_PROFIL_RS_PATH;
+		MrbColorRSRoad = CgConst.CL_PROFIL_RS_ROAD;
+		MrbColorRSBorder = CgConst.CL_PROFIL_RS_BORDER;
+		MrbColorSlopeInf5 = CgConst.CL_PROFIL_SLOPE_INF5;
+		MrbColorSlopeInf10 = CgConst.CL_PROFIL_SLOPE_INF10;
+		MrbColorSlopeInf15 = CgConst.CL_PROFIL_SLOPE_INF15;
+		MrbColorSlopeSup15 = CgConst.CL_PROFIL_SLOPE_SUP15;
+		MrbColorSlopeBorder = CgConst.CL_PROFIL_SLOPE_BORDER;
 		mruGPX = new String[5];
 		mruCGX = new String[5];
 		TableMainColWidth = new int[16];
@@ -256,6 +278,16 @@ public class CgSettings {
 			Utils.WriteStringToXML(writer, "MEMOFORMAT5", MemoFormat[4]);
 
 			Utils.WriteStringToXML(writer, "DEFAULTFORMAT", DefaultFormat);
+			Utils.WriteIntToXML(writer, "MRBCOLORSIMPLEFILL", MrbColorSimpleFill.getRGB());
+			Utils.WriteIntToXML(writer, "MRBCOLORSIMPLEBORDER", MrbColorSimpleBorder.getRGB());
+			Utils.WriteIntToXML(writer, "MRBCOLORRSPATH", MrbColorRSPath.getRGB());
+			Utils.WriteIntToXML(writer, "MRBCOLORRSROAD", MrbColorRSRoad.getRGB());
+			Utils.WriteIntToXML(writer, "MRBCOLORRSBORDER", MrbColorRSBorder.getRGB());
+			Utils.WriteIntToXML(writer, "MRBCOLORSLOPEINF5", MrbColorSlopeInf5.getRGB());
+			Utils.WriteIntToXML(writer, "MRBCOLORSLOPEINF10", MrbColorSlopeInf10.getRGB());
+			Utils.WriteIntToXML(writer, "MRBCOLORSLOPEINF15", MrbColorSlopeInf15.getRGB());
+			Utils.WriteIntToXML(writer, "MRBCOLORSLOPESUP15", MrbColorSlopeSup15.getRGB());
+			Utils.WriteIntToXML(writer, "MRBCOLORSLOPEBORDER", MrbColorSlopeBorder.getRGB());
 
 			Utils.WriteStringToXML(writer, "MRUGPX1", mruGPX[0]);
 			Utils.WriteStringToXML(writer, "MRUGPX2", mruGPX[1]);

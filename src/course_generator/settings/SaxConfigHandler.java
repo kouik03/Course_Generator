@@ -233,6 +233,26 @@ public class SaxConfigHandler extends DefaultHandler {
 				Settings.MemoFormat[4] = ManageString();
 			} else if (qName.equalsIgnoreCase("DEFAULTFORMAT")) {
 				Settings.DefaultFormat = ManageString();
+			} else if (qName.equalsIgnoreCase("MRBCOLORSIMPLEFILL")) {
+				Settings.MrbColorSimpleFill = ManageColor(CgConst.CL_PROFIL_SIMPLE_FILL, ERR_READ_COLOR);
+			} else if (qName.equalsIgnoreCase("MRBCOLORSIMPLEBORDER")) {
+				Settings.MrbColorSimpleBorder = ManageColor(CgConst.CL_PROFIL_SIMPLE_BORDER, ERR_READ_COLOR);
+			} else if (qName.equalsIgnoreCase("MRBCOLORRSPATH")) {
+				Settings.MrbColorRSPath = ManageColor(CgConst.CL_PROFIL_RS_PATH, ERR_READ_COLOR);
+			} else if (qName.equalsIgnoreCase("MRBCOLORRSROAD")) {
+				Settings.MrbColorRSRoad = ManageColor(CgConst.CL_PROFIL_RS_ROAD, ERR_READ_COLOR);
+			} else if (qName.equalsIgnoreCase("MRBCOLORRSBORDER")) {
+				Settings.MrbColorRSBorder = ManageColor(CgConst.CL_PROFIL_RS_BORDER, ERR_READ_COLOR);
+			} else if (qName.equalsIgnoreCase("MRBCOLORSLOPEINF5")) {
+				Settings.MrbColorSlopeInf5 = ManageColor(CgConst.CL_PROFIL_SLOPE_INF5, ERR_READ_COLOR);
+			} else if (qName.equalsIgnoreCase("MRBCOLORSLOPEINF10")) {
+				Settings.MrbColorSlopeInf10 = ManageColor(CgConst.CL_PROFIL_SLOPE_INF10, ERR_READ_COLOR);
+			} else if (qName.equalsIgnoreCase("MRBCOLORSLOPEINF15")) {
+				Settings.MrbColorSlopeInf15 = ManageColor(CgConst.CL_PROFIL_SLOPE_INF15, ERR_READ_COLOR);
+			} else if (qName.equalsIgnoreCase("MRBCOLORSLOPESUP15")) {
+				Settings.MrbColorSlopeSup15 = ManageColor(CgConst.CL_PROFIL_SLOPE_SUP15, ERR_READ_COLOR);
+			} else if (qName.equalsIgnoreCase("MRBCOLORSLOPEBORDER")) {
+				Settings.MrbColorSlopeBorder = ManageColor(CgConst.CL_PROFIL_SLOPE_BORDER, ERR_READ_COLOR);
 			} else if (qName.equalsIgnoreCase("MRUGPX1")) {
 				Settings.mruGPX[0] = ManageString().trim();
 			} else if (qName.equalsIgnoreCase("MRUGPX2")) {

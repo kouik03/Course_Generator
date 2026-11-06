@@ -239,9 +239,7 @@ public class TrackData {
 		WordWrapLength = 25;
 		SmoothFilter = 0;
 
-		DefaultMRBProfilSimpleColor();
-		DefaultMRBProfilRSColor();
-		DefaultMRBProfilSlopeColor();
+		applyMrbColorPreferences(settings);
 
 		ReadOnly = false;
 		Settings = settings;
@@ -280,6 +278,29 @@ public class TrackData {
 		clProfil_SlopeInf15 = CgConst.CL_PROFIL_SLOPE_INF15;
 		clProfil_SlopeSup15 = CgConst.CL_PROFIL_SLOPE_SUP15;
 		clProfil_SlopeBorder = CgConst.CL_PROFIL_SLOPE_BORDER;
+	}
+
+	/**
+	 * Apply the user's mini-roadbook palette to a new or GPX-only project.
+	 * Loading a CGX subsequently overrides these colors with its own saved palette.
+	 */
+	public void applyMrbColorPreferences(CgSettings settings) {
+		if (settings == null) {
+			DefaultMRBProfilSimpleColor();
+			DefaultMRBProfilRSColor();
+			DefaultMRBProfilSlopeColor();
+			return;
+		}
+		clProfil_Simple_Fill = settings.MrbColorSimpleFill;
+		clProfil_Simple_Border = settings.MrbColorSimpleBorder;
+		clProfil_RS_Path = settings.MrbColorRSPath;
+		clProfil_RS_Road = settings.MrbColorRSRoad;
+		clProfil_RS_Border = settings.MrbColorRSBorder;
+		clProfil_SlopeInf5 = settings.MrbColorSlopeInf5;
+		clProfil_SlopeInf10 = settings.MrbColorSlopeInf10;
+		clProfil_SlopeInf15 = settings.MrbColorSlopeInf15;
+		clProfil_SlopeSup15 = settings.MrbColorSlopeSup15;
+		clProfil_SlopeBorder = settings.MrbColorSlopeBorder;
 	}
 
 	/**
@@ -636,6 +657,8 @@ private static boolean isFinishPointName(String name) {
 	 */
 
 	public boolean OpenGPX(String name, int mode, double PosFilterAskThreshold) throws Exception {
+		if (mode == 0)
+			applyMrbColorPreferences(Settings);
 		SaxGPXHandler GPXhandler = new SaxGPXHandler();
 
 		int ret = GPXhandler.readDataFromGPX(name, this, mode);
@@ -2249,6 +2272,8 @@ private static boolean isFinishPointName(String name) {
 	 *               name will not be updated
 	 */
 	public void OpenCGX(Component parent, String name, int mode, boolean backup) {
+		if (mode == 0 && !backup)
+			applyMrbColorPreferences(Settings);
 		SaxCGXHandler CGXhandler = new SaxCGXHandler();
 
 		int ret = 0;

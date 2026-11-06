@@ -383,6 +383,9 @@ public class frmMain extends javax.swing.JFrame {
 		// -- Post configuration loading settings
 		Track.MrbSizeW = Settings.DefMrbWidth;
 		Track.MrbSizeH = Settings.DefMrbHeight;
+		// TrackData instances were constructed before config.xml was loaded.
+		Track.applyMrbColorPreferences(Settings);
+		Backup_Track.applyMrbColorPreferences(Settings);
 
 		// -- Application and system info in the log. Nothing exit from the computer!
 		CgLog.info("Start Course Generator version " + Version);
@@ -2598,7 +2601,8 @@ public class frmMain extends javax.swing.JFrame {
 		if (Track.data.isEmpty())
 			return;
 
-		FrmMiniroadbook frm = new FrmMiniroadbook(Settings);
+		// Persist global Roadbook Editor presets and palette separately from CGX.
+		FrmMiniroadbook frm = new FrmMiniroadbook(Settings, this::SaveConfig);
 		frm.showDialog(Track);
 	}
 
