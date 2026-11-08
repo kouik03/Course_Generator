@@ -130,7 +130,7 @@ public class SaxConfigHandler extends DefaultHandler {
 	 */
 	private double ManageDouble(double _default, int _errcode) {
 		try {
-			return Double.parseDouble(characters);
+			return Double.parseDouble(characters.toString());
 		} catch (NumberFormatException e) {
 			Settings.ReadError = _errcode;
 			errline = locator.getLineNumber();
@@ -147,7 +147,7 @@ public class SaxConfigHandler extends DefaultHandler {
 	 */
 	private int ManageInt(int _default, int _errcode) {
 		try {
-			return Integer.parseInt(characters);
+			return Integer.parseInt(characters.toString());
 		} catch (NumberFormatException e) {
 			Settings.ReadError = _errcode;
 			errline = locator.getLineNumber();
@@ -164,7 +164,7 @@ public class SaxConfigHandler extends DefaultHandler {
 	 */
 	private boolean ManageBoolean(boolean _default, int _errcode) {
 		try {
-			return Boolean.parseBoolean(characters);
+			return Boolean.parseBoolean(characters.toString());
 		} catch (NumberFormatException e) {
 			Settings.ReadError = _errcode;
 			errline = locator.getLineNumber();
@@ -181,13 +181,13 @@ public class SaxConfigHandler extends DefaultHandler {
 	 */
 	private Color ManageColor(Color _default, int _errcode) {
 		try {
-			int v = Integer.parseInt(characters);
-			characters = "";
+			int v = Integer.parseInt(characters.toString());
+			characters.setLength(0);
 			return new Color(v);
 		} catch (NumberFormatException e) {
 			// errcode = _errcode;
 			errline = locator.getLineNumber();
-			characters = "";
+			characters.setLength(0);
 			return _default;
 		}
 	}
