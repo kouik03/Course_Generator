@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.text.ParseException;
@@ -891,32 +890,27 @@ public class Utils {
 	}
 
 	/**
-	 * checks for connection to the internet through dummy request
-	 * 
-	 * @return
+	 * Checks Internet reachability with bounded HTTP connection and read waits.
+	 * Called only by InternetConnectivityMonitor's background worker, never
+	 * from Swing's Event Dispatch Thread.
 	 */
 	public static boolean isInternetReachable() {
+		HttpURLConnection connection = null;
 		try {
-			// make a URL to a known source
-			URL url = new URL("http://www.google.com");
-
-			// open a connection to that source
-			HttpURLConnection urlConnect = (HttpURLConnection) url.openConnection();
-
-			// trying to retrieve data from the source. If there
-			// is no connection, this line will fail
-			urlConnect.getContent();
-
-		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
-			// e.printStackTrace();
+			connection = (HttpURLConnection) new URL("http://www.google.com").openConnection();
+			connection.setConnectTimeout(3000);
+			connection.setReadTimeout(3000);
+			// Redirects also demonstrate a reachable HTTP server. Do not follow
+			// redirects: that could add another slow network round trip.
+			connection.setInstanceFollowRedirects(false);
+			int status = connection.getResponseCode();
+			return status >= 200 && status < 400;
+		} catch (IOException | SecurityException ex) {
 			return false;
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			// e.printStackTrace();
-			return false;
+		} finally {
+			if (connection != null)
+				connection.disconnect();
 		}
-		return true;
 	}
 
 	/**
