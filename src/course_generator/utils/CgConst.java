@@ -93,9 +93,9 @@ public class CgConst {
 	public static final int MRBOPT_RIGHT = 0x0008;
 	public static final int MRBOPT_SHOWTAGS = 0x0080;
 
-	public static final String DEFAULTMRBFORMAT = "%N%L%A%L%D%L%H";
+	public static final String DEFAULTMRBFORMAT = "%N%L%Dd%LD+:%+d / D-:%-d%L%M / %b%L%P";
 
-	public static final int DEFAULTMRBFONTSIZE = 10;
+	public static final int DEFAULTMRBFONTSIZE = 16;
 
 	public static final int MRB_DUP_POS = 0x0001;
 	public static final int MRB_DUP_ALIGN = 0x0002;

@@ -180,7 +180,7 @@ public class TrackData {
 	/** Position of the label. 'true'=bottom **/
 	public boolean LabelToBottom = false;
 	/** Type of profil in the mini roadbook **/
-	public int MRBType = 0;
+	public int MRBType = 2; // Default profile: With Slope
 	/** Top margin size in pixels in the mini roadbook **/
 	public int TopMargin = 100;
 	/** Show the night and day on the mrb profil **/
@@ -484,6 +484,8 @@ public class TrackData {
 
 		data.clear();
 		isTimeLoaded = false;
+		// A full FIT import starts a new project instead of keeping an old profile.
+		MRBType = 2;
 
 		int number = 1;
 		for (GarminCoursePlannerFitReader.RoutePoint source : course.routePoints) {
@@ -657,8 +659,11 @@ private static boolean isFinishPointName(String name) {
 	 */
 
 	public boolean OpenGPX(String name, int mode, double PosFilterAskThreshold) throws Exception {
-		if (mode == 0)
+		if (mode == 0) {
 			applyMrbColorPreferences(Settings);
+			// Reset the profile when replacing an existing project with a new GPX.
+			MRBType = 2;
+		}
 		SaxGPXHandler GPXhandler = new SaxGPXHandler();
 
 		int ret = GPXhandler.readDataFromGPX(name, this, mode);

@@ -174,11 +174,11 @@ public class CgData {
 		this.Comment = "";
 		this.tmp1 = 0;
 		this.tmp2 = 0;
-		this.FmtLbMiniRoadbook = "";
+		this.FmtLbMiniRoadbook = CgConst.DEFAULTMRBFORMAT;
 		this.OptionMiniRoadbook = 0;
 		this.VPosMiniRoadbook = 0;
 		this.CommentMiniRoadbook = "";
-		this.FontSizeMiniRoadbook = 10;
+		this.FontSizeMiniRoadbook = CgConst.DEFAULTMRBFONTSIZE;
 		this.ToDelete = false;
 		this.isNight = false;
 	}

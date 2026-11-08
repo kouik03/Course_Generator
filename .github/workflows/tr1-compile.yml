@@ -28,6 +28,8 @@ jobs:
         run: java -cp "target/classes:target/lib/*" course_generator.tests.TrailRaceTr1EngineSmoke
       - name: Internet check must not block Swing EDT
         run: java -Djava.awt.headless=true -cp "target/classes:target/lib/*" course_generator.tests.InternetConnectivityMonitorSmoke
+      - name: Roadbook default format, font and slope profile smoke
+        run: java -Djava.awt.headless=true -cp "target/classes:target/lib/*" course_generator.tests.RoadbookDefaultsSmoke
       - name: GPX XML and waypoint regression smoke
         run: java -cp "target/classes:target/lib/*" course_generator.tests.GpxWaypointRoundtripSmoke
       - name: QR payload and PNG round-trip smoke

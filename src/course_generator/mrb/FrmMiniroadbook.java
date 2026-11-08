@@ -381,8 +381,14 @@ public class FrmMiniroadbook extends javax.swing.JFrame implements FocusListener
 		cbProfilType.setModel(new javax.swing.DefaultComboBoxModel<String>(profiltype));
 		cbProfilType.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				pnlProfil.setProfileType(cbProfilType.getSelectedIndex());
-				track.isModified = true;
+				int profileType = cbProfilType.getSelectedIndex();
+				pnlProfil.setProfileType(profileType);
+				// Persist user selection in the CGX, not just in the preview.
+				// Initial selection during showDialog must not mark a project modified.
+				if (track != null && track.MRBType != profileType) {
+					track.MRBType = profileType;
+					track.isModified = true;
+				}
 			}
 		});
 		ToolBarMRB.add(cbProfilType);
