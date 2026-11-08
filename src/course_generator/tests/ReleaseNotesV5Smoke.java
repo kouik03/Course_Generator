@@ -66,6 +66,22 @@ public final class ReleaseNotesV5Smoke {
                     "Manual opt-in should re-enable the next startup dialog");
             check("".equals(optedIn.ReleaseVersion), "Opt-in did not clear stored version");
 
+            // SAX may send whitespace before an empty element and split a text
+            // element across multiple characters() callbacks. Both must load
+            // correctly, otherwise the "Stop displaying" checkbox cannot be
+            // reliably re-enabled.
+            Files.write(dir.resolve("config.xml"), (
+                    "<?xml version=\"1.0\"?><CONFIG>\n"
+                    + "  <DEFAULTFORMAT><![CDATA[%N]]><![CDATA[%L%D]]></DEFAULTFORMAT>\n"
+                    + "  <RELEASEVERSION></RELEASEVERSION>\n"
+                    + "</CONFIG>\n").getBytes(StandardCharsets.UTF_8));
+            CgSettings parsed = new CgSettings();
+            parsed.Load(dir.toString());
+            check("%N%L%D".equals(parsed.DefaultFormat),
+                    "SAX split CDATA chunks not accumulated");
+            check("".equals(parsed.ReleaseVersion),
+                    "SAX empty element inherited indentation whitespace");
+
             String fr = resource("fr_FR");
             String en = resource("en_US");
             check(fr.contains("5.0.0") && fr.contains("Virtual Partner")
@@ -76,6 +92,9 @@ public final class ReleaseNotesV5Smoke {
                     "English release notes are incomplete");
             check(!fr.contains("version 4.6.0") && !en.contains("version 4.6.0"),
                     "Obsolete release-note copy remains");
+            check(fr.contains("Roadbook Editor") && fr.contains("Swing")
+                    && en.contains("Roadbook Editor") && en.contains("Swing"),
+                    "Current Roadbook and Swing freeze fixes missing from release notes");
             System.out.println("5.0.0 release notes, config.xml persistence and re-enable: OK");
         } finally {
             try (Stream<Path> paths = Files.walk(dir)) {
