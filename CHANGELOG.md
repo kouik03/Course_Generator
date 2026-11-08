@@ -4,6 +4,13 @@ This file tracks source-level changes to the development version. Update it alon
 
 ## 5.0.0 — development (November 2026)
 
+### 2026-11-08 — New Roadbook Editor defaults
+- New mini-roadbook labels use `%N%L%Dd%LD+:%+d / D-:%-d%L%M / %b%L%P` with font size **16**.
+- New route projects default to the **With Slope** profile (profile type 2).
+- Migrate only the former built-in user format, preserving personalized format preferences and individual CGX project styling.
+- Fix profile selection persistence in the non-modal Roadbook Editor, so the chosen profile is saved in CGX.
+- Add a headless regression covering defaults, GPX imports and legacy CGX round-trip.
+
 ### 2026-11-08 — Configuration XML and release notes
 - Fixed the SAX configuration parser: empty XML elements, especially `RELEASEVERSION`, now load as empty strings without inheriting indentation whitespace.
 - Accumulate successive SAX `characters()` fragments instead of discarding earlier text. The V5 release-note preference smoke test now checks empty tags and split CDATA.
