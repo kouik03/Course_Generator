@@ -180,7 +180,7 @@ public class TrackData {
 	/** Position of the label. 'true'=bottom **/
 	public boolean LabelToBottom = false;
 	/** Type of profil in the mini roadbook **/
-	public int MRBType = 0;
+	public int MRBType = 2; // Default profile: With Slope
 	/** Top margin size in pixels in the mini roadbook **/
 	public int TopMargin = 100;
 	/** Show the night and day on the mrb profil **/
