@@ -159,6 +159,7 @@ import course_generator.trackdata_table.TrackDataModel;
 import course_generator.utils.CgConst;
 import course_generator.utils.CgLog;
 import course_generator.utils.FileTypeFilter;
+import course_generator.utils.InternetConnectivityMonitor;
 import course_generator.utils.OsCheck;
 import course_generator.utils.Utils;
 import course_generator.utils.Utils.CalcLineResult;
@@ -186,6 +187,13 @@ public class frmMain extends javax.swing.JFrame {
 	private int cmptMinute = 0;
 	private int cmptRelease = -1;
 	private boolean InternetConnectionActive = false;
+	private final InternetConnectivityMonitor internetMonitor = new InternetConnectivityMonitor(
+			Utils::isInternetReachable,
+			reachable -> {
+				// InternetConnectivityMonitor delivers completed results on the EDT.
+				InternetConnectionActive = reachable;
+				RefreshStatusbar(Track);
+			});
 	private Timer timer1s; // 1 second timer object
 	private boolean bNoBackup = true;
 	private String StrMapsDirSize = "";
@@ -313,8 +321,9 @@ public class frmMain extends javax.swing.JFrame {
 			cmptInternetConnexion++;
 			if (cmptInternetConnexion > Settings.ConnectionTimeout) {
 				cmptInternetConnexion = 0;
-				InternetConnectionActive = Utils.isInternetReachable();
-				RefreshStatusbar(Track);
+				// Never perform network I/O on Swing's Event Dispatch Thread.
+				// A still-running probe is skipped rather than queued.
+				internetMonitor.requestCheck();
 			}
 			cmptMinute++;
 			if (cmptMinute > 60) {
@@ -3856,6 +3865,8 @@ public class frmMain extends javax.swing.JFrame {
 
 			if (ret == JOptionPane.YES_OPTION) {
 				setDefaultCloseOperation(EXIT_ON_CLOSE);
+				timer1s.stop();
+				internetMonitor.close();
 				SaveConfig();
 				CgLog.info("End of the application! Bye :(");
 			} else {
@@ -3863,6 +3874,8 @@ public class frmMain extends javax.swing.JFrame {
 			}
 		} else { // No modification! Bye
 			setDefaultCloseOperation(EXIT_ON_CLOSE);
+			timer1s.stop();
+			internetMonitor.close();
 			SaveConfig();
 			CgLog.info("End of the application! Bye :(");
 		}
