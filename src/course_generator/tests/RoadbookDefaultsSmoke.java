@@ -6,7 +6,6 @@ import java.nio.file.Path;
 
 import course_generator.CgData;
 import course_generator.SaxCGXHandler;
-import course_generator.SaxGPXHandler;
 import course_generator.TrackData;
 import course_generator.settings.CgSettings;
 import course_generator.utils.CgConst;
@@ -46,8 +45,12 @@ public final class RoadbookDefaultsSmoke {
                     + "<trkpt lat=\"43.8010\" lon=\"4.3510\"><ele>105</ele></trkpt>"
                     + "</trkseg></trk></gpx>";
             Files.write(gpx, gpxXml.getBytes(StandardCharsets.UTF_8));
-            int gpxError = new SaxGPXHandler().readDataFromGPX(gpx.toString(), fresh, 0);
-            check(gpxError == 0 && fresh.data.size() == 2, "GPX smoke import failed");
+            // A full GPX import must reset the profile even if an earlier
+            // project had selected another profile type.
+            fresh.MRBType = 0;
+            fresh.OpenGPX(gpx.toString(), 0, 5);
+            check(fresh.data.size() == 2, "GPX smoke import failed");
+            check(fresh.MRBType == 2, "New GPX kept a previous project's profile");
             for (CgData p : fresh.data) {
                 check(EXPECTED.equals(p.FmtLbMiniRoadbook), "GPX imported old roadbook format");
                 check(p.FontSizeMiniRoadbook == 16, "GPX imported old font size");
