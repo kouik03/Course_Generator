@@ -160,7 +160,7 @@ public class CgSettings {
 		DistFar = 1000.0;
 
 		MemoFormat = new String[5];
-		DefaultFormat = "%N%L%A%L%D%L%H";
+		DefaultFormat = CgConst.DEFAULTMRBFORMAT;
 		MrbColorSimpleFill = CgConst.CL_PROFIL_SIMPLE_FILL;
 		MrbColorSimpleBorder = CgConst.CL_PROFIL_SIMPLE_BORDER;
 		MrbColorRSPath = CgConst.CL_PROFIL_RS_PATH;
@@ -406,6 +406,11 @@ public class CgSettings {
 		if (ret != 0)
 			System.out.println("CgSettings.Load : Error while loading config file '" + _Path + "'- line ="
 					+ Confighandler.getErrLine());
+
+		// Migrate only the old built-in template, not an intentionally customized
+		// format. Existing user presets and CGX project formats are untouched.
+		if ("%N%L%A%L%D%L%H".equals(DefaultFormat))
+			DefaultFormat = CgConst.DEFAULTMRBFORMAT;
 	}
 
 	/**
