@@ -4,6 +4,12 @@ This file tracks source-level changes to the development version. Update it alon
 
 ## 5.0.0 — development (November 2026)
 
+### 2026-11-09 — TrailRace+ PRO TR1 per-leg elevation gain
+- Fixed the `dp` field of every exported TR1 checkpoint: it now contains **ascent since the previous exported checkpoint** instead of cumulative ascent since the route start.
+- The existing total-ascent scaling is preserved; pass-through markers and the finish also delimit successive legs.
+- Added an end-to-end regression with multiple aid stations and a passage point, verifying the exported values **before and after TR1 encoding/decoding**.
+
+
 ### 2026-11-08 — New Roadbook Editor defaults
 - New mini-roadbook labels use `%N%L%Dd%LD+:%+d / D-:%-d%L%M / %b%L%P` with font size **16**.
 - New route projects default to the **With Slope** profile (profile type 2).
