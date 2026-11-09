@@ -26,6 +26,8 @@ jobs:
         run: mvn -B -DskipTests package
       - name: GraalJS runtime smoke
         run: java -cp "target/classes:target/lib/*" course_generator.tests.TrailRaceTr1EngineSmoke
+      - name: TR1 checkpoint segment D+ and codec round-trip
+        run: java -Djava.awt.headless=true -cp "target/classes:target/lib/*" course_generator.tests.TrailRaceTr1DplusSmoke
       - name: Internet check must not block Swing EDT
         run: java -Djava.awt.headless=true -cp "target/classes:target/lib/*" course_generator.tests.InternetConnectivityMonitorSmoke
       - name: Roadbook default format, font and slope profile smoke

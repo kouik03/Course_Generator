@@ -516,6 +516,10 @@ public final class TrailRaceTr1Dialog extends JDialog {
 
             double scale = rawDplus > 0 ? track.getClimbP(CgConst.UNIT_METER) / rawDplus : 1.0;
             int count = 0;
+            // TR1 "dp" is the ascent of the leg ending at this checkpoint,
+            // not cumulative ascent from the start. Every included point is
+            // a leg boundary, including pass-through points and the finish.
+            double previousCheckpointDplus = 0.0;
             int lastIndex = track.data.size() - 1;
             for (int i = 0; i < track.data.size(); i++) {
                 CgData pt = track.data.get(i);
@@ -546,8 +550,9 @@ public final class TrailRaceTr1Dialog extends JDialog {
                      .append(pt.getTimeLimit() > 0 ? Math.round(pt.getTimeLimit() / 60.0) : -1)
                      .append(",\"srv\":").append(jsonString(service))
                      .append(",\"dp\":")
-                     .append(Math.max(0, Math.round(cumulative[i] * scale)))
+                     .append(Math.max(0, Math.round((cumulative[i] - previousCheckpointDplus) * scale)))
                      .append('}');
+                previousCheckpointDplus = cumulative[i];
                 count++;
             }
             stops.append(']');
