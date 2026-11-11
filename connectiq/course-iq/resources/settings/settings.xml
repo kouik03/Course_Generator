@@ -1,0 +1,8 @@
+<settings>
+    <setting propertyKey="@Properties.blob1" title="@Strings.Block1"><settingConfig type="alphaNumeric" /></setting>
+    <setting propertyKey="@Properties.blob2" title="@Strings.Block2"><settingConfig type="alphaNumeric" /></setting>
+    <setting propertyKey="@Properties.blob3" title="@Strings.Block3"><settingConfig type="alphaNumeric" /></setting>
+    <setting propertyKey="@Properties.nextPoint" title="@Strings.NextPoint"><settingConfig type="numeric" /></setting>
+    <setting propertyKey="@Properties.cutoffAdjustments" title="@Strings.CutoffAdjustments"><settingConfig type="alphaNumeric" /></setting>
+    <setting propertyKey="@Properties.startDelay" title="@Strings.StartDelay"><settingConfig type="numeric" /></setting>
+</settings>
