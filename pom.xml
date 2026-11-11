@@ -7,6 +7,7 @@ mvn versions:display-dependency-updates -->
 	<version>5.0.0</version>
 	<build>
 		<sourceDirectory>src</sourceDirectory>
+		<testSourceDirectory>test</testSourceDirectory>
 		<resources>
 			<resource>
 				<directory>src</directory>
