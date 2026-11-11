@@ -67,6 +67,24 @@ class CourseIqField extends WatchUi.DataField {
         reload();
     }
 
+    function climbAt(distance) {
+        var answer = 0;
+        foreach (var v in _course.vertices) {
+            if (v[:distance] > distance) { break; }
+            answer = v[:climb];
+        }
+        return answer;
+    }
+
+    function descentAt(distance) {
+        var answer = 0;
+        foreach (var v in _course.vertices) {
+            if (v[:distance] > distance) { break; }
+            answer = v[:descent];
+        }
+        return answer;
+    }
+
     function onUpdate(dc) {
         var w = dc.getWidth();
         var h = dc.getHeight();
@@ -84,8 +102,12 @@ class CourseIqField extends WatchUi.DataField {
         var big = h > 180 ? Graphics.FONT_LARGE : Graphics.FONT_MEDIUM;
         dc.drawText(w / 2, h / 4, big, point.name, Graphics.TEXT_JUSTIFY_CENTER);
         var km = (point.distance - previous.distance).toFloat() / 1000.0;
+        var gain = climbAt(point.distance) - climbAt(previous.distance);
+        var loss = descentAt(point.distance) - descentAt(previous.distance);
         dc.drawText(w / 2, h / 2, big, km.format("%.1f") + " km segment",
                     Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w / 2, (h * 3) / 4, Graphics.FONT_SMALL,
+                    "D+ " + gain + "m  D- " + loss + "m", Graphics.TEXT_JUSTIFY_CENTER);
         var status = "POINT";
         var cutoff = point.cutoff;
         if (_next < _cutoffOffsets.size()) { cutoff += _cutoffOffsets[_next]; }
