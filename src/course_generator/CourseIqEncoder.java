@@ -38,12 +38,12 @@ public final class CourseIqEncoder {
 
     private static final class Point {
         int lat, lon, elevation, distance, movingSeconds, climb, descent;
-        Point(CgData p, int climb, int descent) {
+        Point(CgData p, int climb, int descent, int movingSeconds) {
             lat = (int)Math.round(p.getLatitude() * 100000.0);
             lon = (int)Math.round(p.getLongitude() * 100000.0);
             elevation = (int)Math.round(p.getElevation(CgConst.UNIT_METER));
             distance = (int)Math.round(p.getTotal(CgConst.UNIT_METER));
-            movingSeconds = Math.max(0, p.getTime());
+            this.movingSeconds = Math.max(0, movingSeconds);
             this.climb = climb; this.descent = descent;
         }
     }
@@ -54,6 +54,7 @@ public final class CourseIqEncoder {
         List<Point> all = new ArrayList<>();
         List<Integer> stops = new ArrayList<>();
         int climb = 0, descent = 0;
+        int completedPauseSeconds = 0;
         CgData previous = null;
         for (int i = 0; i < track.data.size(); i++) {
             CgData p = track.data.get(i);
@@ -62,12 +63,14 @@ public final class CourseIqEncoder {
                 if (delta > 0) climb = (int)Math.round(climb + delta);
                 else descent = (int)Math.round(descent - delta);
             }
-            all.add(new Point(p, climb, descent));
+            all.add(new Point(p, climb, descent,
+                p.getTime() - completedPauseSeconds - (p.isTimeLimitAfterStation() ? p.getStation() : 0)));
             int tag = p.getTag();
             if (i == 0 || i == track.data.size()-1 ||
                 (tag & (CgConst.TAG_ROADBOOK | CgConst.TAG_MARK)) != 0 ||
                 p.getStation() > 0 || p.getTimeLimit() > 0 ||
                 (tag & CgConst.TAG_REROUTE) != 0) stops.add(i);
+            if (p.getStation() > 0) completedPauseSeconds += p.getStation();
             previous = p;
         }
         if (stops.size() > 255) throw new IllegalArgumentException("Plus de 255 points de passage.");
