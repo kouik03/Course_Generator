@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.zip.CRC32;
+import course_generator.utils.CgConst;
 
 /**
  * CGIQ version 1: self-contained offline roadbook with adaptive, altitude-aware
