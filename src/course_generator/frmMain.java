@@ -208,6 +208,7 @@ public class frmMain extends javax.swing.JFrame {
 	private static JMenuItem mnuSaveGPX;
 	private static JMenuItem mnuSaveFIT;
 	private static JMenuItem mnuSaveTR1;
+	private static JMenuItem mnuSaveCourseIq;
 	private static JMenuItem mnuSaveCSV;
 	private static JMenuItem mnuSavePartCGX;
 	private static JMenuItem mnuSavePartGPX;
@@ -859,6 +860,13 @@ public class frmMain extends javax.swing.JFrame {
 		mnuSaveTR1.setEnabled(false);
 		mnuSaveTR1.addActionListener(evt -> TrailRaceTr1Dialog.showDialog(this, Track));
 		mnuExport.add(mnuSaveTR1);
+
+		// Independent offline Course IQ export (not TrailRace TR1).
+		mnuSaveCourseIq = new javax.swing.JMenuItem("Exporter Course IQ (3 blocs)...");
+		mnuSaveCourseIq.setIcon(Utils.getIcon(this, "export.png", Settings.MenuIconSize));
+		mnuSaveCourseIq.setEnabled(false);
+		mnuSaveCourseIq.addActionListener(evt -> CourseIqExportDialog.showDialog(this, Track));
+		mnuExport.add(mnuSaveCourseIq);
 
 		// -- Save a part of the track in CGX
 		mnuSavePartCGX = new javax.swing.JMenuItem();
@@ -3997,6 +4005,7 @@ public class frmMain extends javax.swing.JFrame {
 		mnuSaveGPX.setEnabled(isLoaded);
 		mnuSaveFIT.setEnabled(isLoaded);
 		mnuSaveTR1.setEnabled(isLoaded);
+		mnuSaveCourseIq.setEnabled(isLoaded);
 		mnuSaveCSV.setEnabled(isLoaded);
 		mnuSavePartCGX.setEnabled(isLoaded);
 		mnuSavePartGPX.setEnabled(isLoaded);
