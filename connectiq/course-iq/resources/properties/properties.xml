@@ -1,0 +1,8 @@
+<properties>
+    <property id="blob1" type="string"></property>
+    <property id="blob2" type="string"></property>
+    <property id="blob3" type="string"></property>
+    <property id="nextPoint" type="number">1</property>
+    <property id="cutoffAdjustments" type="string"></property>
+    <property id="startDelay" type="number">0</property>
+</properties>
