@@ -55,6 +55,8 @@ public class CgConst {
 	public static final int TAG_DROPBAG = 512;
 	public static final int TAG_CREW = 1024;
 	public static final int TAG_FIRST_AID = 2048;
+	/** Alternative route cutoff: can be combined with food, water and other tags. */
+	public static final int TAG_REROUTE = 4096;
 
 	/** Minimum value of the slope for the curve **/
 	public static final double MIN_CLIMB = -50.0;
