@@ -65,7 +65,8 @@ public final class CourseIqEncoder {
             int tag = p.getTag();
             if (i == 0 || i == track.data.size()-1 ||
                 (tag & (CgConst.TAG_ROADBOOK | CgConst.TAG_MARK)) != 0 ||
-                p.getStation() > 0 || p.getTimeLimit() > 0) stops.add(i);
+                p.getStation() > 0 || p.getTimeLimit() > 0 ||
+                (tag & CgConst.TAG_REROUTE) != 0) stops.add(i);
             previous = p;
         }
         if (stops.size() > 255) throw new IllegalArgumentException("Plus de 255 points de passage.");
@@ -165,7 +166,8 @@ public final class CourseIqEncoder {
                 d.writeByte(services);
                 // Conservative default: every positive cutoff is elimination.
                 // A reroute must be explicitly configured later in the editor.
-                d.writeByte(cp.getTimeLimit()>0 ? 1 : 0);
+                d.writeByte(cp.getTimeLimit()>0 ?
+                    ((tag & CgConst.TAG_REROUTE)!=0 ? 2 : 1) : 0);
                 String label=cp.getName();
                 byte[] bytes=(label==null?"":label).getBytes(StandardCharsets.UTF_8);
                 d.writeByte(Math.min(bytes.length,48)); d.write(bytes,0,Math.min(bytes.length,48));
