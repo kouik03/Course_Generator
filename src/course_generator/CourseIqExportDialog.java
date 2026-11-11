@@ -23,10 +23,11 @@ public final class CourseIqExportDialog {
     public static void showDialog(java.awt.Frame owner, TrackData track) {
         try {
             CourseIqEncoder.Result result=CourseIqEncoder.encode(track);
+            CourseIqVerifier.Summary verified=CourseIqVerifier.verify(result.blocks);
             JDialog dialog=new JDialog(owner,"Exporter Course IQ (3 blocs)",true);
             dialog.setLayout(new BorderLayout(8,8));
-            dialog.add(new JLabel("Format CGIQ v1 — "+result.routePoints+
-                " points de trace, "+result.checkpoints+" passages. Chaque bloc ≤ 2000 caractères."),
+            dialog.add(new JLabel("Format CGIQ v1 — "+verified.vertices+
+                " points de trace, "+verified.stops+" passages. Chaque bloc ≤ 2000 caractères."),
                 BorderLayout.NORTH);
             JPanel fields=new JPanel(new GridLayout(3,1,4,8));
             BufferedImage[] qrImages=new BufferedImage[3];
