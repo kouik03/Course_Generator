@@ -59,8 +59,8 @@ public final class CourseIqEncoder {
             CgData p = track.data.get(i);
             if (previous != null) {
                 double delta = p.getElevation(CgConst.UNIT_METER) - previous.getElevation(CgConst.UNIT_METER);
-                if (delta > 0) climb += Math.round((float)delta);
-                else descent += Math.round((float)-delta);
+                if (delta > 0) climb = (int)Math.round(climb + delta);
+                else descent = (int)Math.round(descent - delta);
             }
             all.add(new Point(p, climb, descent));
             int tag = p.getTag();
