@@ -44,6 +44,7 @@ import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 
 import course_generator.CgData;
+import course_generator.CourseIqRerouteIcon;
 import course_generator.TrackData;
 import course_generator.settings.CgSettings;
 import course_generator.utils.CgConst;
@@ -141,6 +142,7 @@ public class frmEditPosition extends javax.swing.JDialog {
 	private JCheckBox chkCrew;
 	private JLabel lbFirstAid;
 	private JCheckBox chkFirstAid;
+	private JCheckBox chkReroute;
 
 	/**
 	 * Creates new form frmSettings
@@ -176,6 +178,7 @@ public class frmEditPosition extends javax.swing.JDialog {
 		chkDropBag.setSelected((data.getTag() & CgConst.TAG_DROPBAG) != 0);
 		chkCrew.setSelected((data.getTag() & CgConst.TAG_CREW) != 0);
 		chkFirstAid.setSelected((data.getTag() & CgConst.TAG_FIRST_AID) != 0);
+		chkReroute.setSelected((data.getTag() & CgConst.TAG_REROUTE) != 0);
 
 		// End set field
 		ok = false;
@@ -240,6 +243,8 @@ public class frmEditPosition extends javax.swing.JDialog {
 			// First aid
 			if (chkFirstAid.isSelected())
 				tag = tag | CgConst.TAG_FIRST_AID;
+			if (chkReroute.isSelected())
+				tag |= CgConst.TAG_REROUTE;
 
 			track.data.get(line).setTag(tag);
 
@@ -621,6 +626,15 @@ public class frmEditPosition extends javax.swing.JDialog {
 
 		chkFirstAid = new javax.swing.JCheckBox();
 		Utils.addComponent(panelRight, chkFirstAid, 2, line++, 1, 1, 0, 0, 5, 5, 0, 0,
+				GridBagConstraints.BASELINE_LEADING, GridBagConstraints.HORIZONTAL);
+
+		// Reroute is an independent, cumulative tag, not a replacement for food/water.
+		javax.swing.JLabel lbReroute = new javax.swing.JLabel("Déroutage (parcours alternatif)");
+		lbReroute.setIcon(CourseIqRerouteIcon.create(24));
+		Utils.addComponent(panelRight, lbReroute, 1, line, 1, 1, 0, 0, 5, 0, 0, 0,
+				GridBagConstraints.BASELINE_LEADING, GridBagConstraints.HORIZONTAL);
+		chkReroute = new javax.swing.JCheckBox();
+		Utils.addComponent(panelRight, chkReroute, 2, line++, 1, 1, 0, 0, 5, 5, 0, 0,
 				GridBagConstraints.BASELINE_LEADING, GridBagConstraints.HORIZONTAL);
 
 		// -- Diff
