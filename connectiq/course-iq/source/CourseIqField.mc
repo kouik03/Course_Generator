@@ -12,6 +12,8 @@ class CourseIqField extends WatchUi.DataField {
     var _course = null;
     var _error = "NO COURSE";
     var _next = 1;
+    var _officialElapsed = null;
+    var _cutoffOffsets = [];
 
     function initialize() {
         DataField.initialize();
@@ -29,6 +31,15 @@ class CourseIqField extends WatchUi.DataField {
             }
             _course = CgiqDecoder.decode(a + b + c);
             _error = null;
+            _cutoffOffsets = [];
+            var corrections = Application.Properties.getValue("cutoffAdjustments");
+            if (corrections != null && corrections.length() > 0) {
+                var values = corrections.split(",");
+                for (var j = 0; j < values.size(); j++) {
+                    var v = values[j].toNumber();
+                    _cutoffOffsets.add(v == null ? 0 : v * 60);
+                }
+            }
             var selected = Application.Properties.getValue("nextPoint");
             if (selected != null && selected instanceof Number && selected >= 1 &&
                 selected < _course.stops.size()) {
@@ -42,9 +53,18 @@ class CourseIqField extends WatchUi.DataField {
     }
 
     function compute(info) {
-        // First iteration deliberately does not claim GPS map matching.
-        // The segment is selected from settings until GPS matching is implemented.
+        // Activity elapsedTime is in milliseconds. Start delay does not shift
+        // official cutoff timestamps: it reduces the runner's available time.
+        if (info != null && info.elapsedTime != null) {
+            var delay = Application.Properties.getValue("startDelay");
+            if (delay == null) { delay = 0; }
+            _officialElapsed = (info.elapsedTime / 1000).toNumber() + delay * 60;
+        }
         return null;
+    }
+
+    function onSettingsChanged() {
+        reload();
     }
 
     function onUpdate(dc) {
@@ -67,8 +87,14 @@ class CourseIqField extends WatchUi.DataField {
         dc.drawText(w / 2, h / 2, big, km.format("%.1f") + " km segment",
                     Graphics.TEXT_JUSTIFY_CENTER);
         var status = "POINT";
-        if (point.kind == 2) { status = "DEROUTAGE REQUIS SI LIMITE"; }
-        else if (point.kind == 1) { status = "BARRIERE ELIMINATOIRE"; }
+        var cutoff = point.cutoff;
+        if (_next < _cutoffOffsets.size()) { cutoff += _cutoffOffsets[_next]; }
+        var overdue = cutoff > 0 && _officialElapsed != null && _officialElapsed > cutoff;
+        if (point.kind == 2) {
+            status = overdue ? "DEROUTAGE REQUIS" : "LIMITE DEROUTAGE";
+        } else if (point.kind == 1) {
+            status = overdue ? "HORS DELAI" : "BARRIERE ELIMINATOIRE";
+        }
         dc.drawText(w / 2, h - 28, Graphics.FONT_XTINY, status,
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
