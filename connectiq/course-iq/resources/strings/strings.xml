@@ -1,0 +1,9 @@
+<strings>
+    <string id="AppName">Course IQ</string>
+    <string id="Block1">Bloc Base64 1</string>
+    <string id="Block2">Bloc Base64 2</string>
+    <string id="Block3">Bloc Base64 3</string>
+    <string id="NextPoint">Prochain point (index 1+)</string>
+    <string id="CutoffAdjustments">Corrections horaires par point (minutes)</string>
+    <string id="StartDelay">Retard de départ (minutes)</string>
+</strings>
