@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -28,6 +29,9 @@ public final class CourseIqExportDialog {
                 " points de trace, "+result.checkpoints+" passages. Chaque bloc ≤ 2000 caractères."),
                 BorderLayout.NORTH);
             JPanel fields=new JPanel(new GridLayout(3,1,4,8));
+            BufferedImage[] qrImages=new BufferedImage[3];
+            for(int i=0;i<3;i++) if(!result.blocks[i].isEmpty())
+                qrImages[i]=TrailRaceTr1Qr.createAndVerify(result.blocks[i]);
             for(int i=0;i<3;i++) {
                 final String value=result.blocks[i];
                 JPanel section=new JPanel(new BorderLayout());
@@ -37,7 +41,15 @@ public final class CourseIqExportDialog {
                 JButton copy=new JButton("Copier bloc "+(i+1)+" ("+value.length()+" caractères)");
                 copy.addActionListener(e->Toolkit.getDefaultToolkit().getSystemClipboard()
                     .setContents(new StringSelection(value),null));
-                section.add(copy,BorderLayout.NORTH);
+                JPanel toolbar=new JPanel();
+                toolbar.add(copy);
+                if(!value.isEmpty()) {
+                    final int block=i;
+                    JButton qr=new JButton("Afficher QR " +(i+1));
+                    qr.addActionListener(e->new TrailRaceTr1QrViewer(dialog,qrImages,result.blocks,block).setVisible(true));
+                    toolbar.add(qr);
+                }
+                section.add(toolbar,BorderLayout.NORTH);
                 section.add(new JScrollPane(area),BorderLayout.CENTER);
                 fields.add(section);
             }
