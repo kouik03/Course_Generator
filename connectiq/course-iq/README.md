@@ -49,3 +49,14 @@ provided. The Monkey C display does not yet GPS-match the route or implement
 the full dynamic prediction engine, rest alerts or an activity-state machine.
 
 Do not use this prototype to make race cutoff decisions.
+
+## Validation plan
+
+1. Run GitHub Actions Java workflow and resolve compiler/test failures.
+2. Round-trip a CGX with water+food+reroute tags, reopen it, then export CGIQ.
+3. Compare decoded per-checkpoint distances, climb/descent and predicted moving times with the original CGX.
+4. Compile the Monkey C data field using the installed Connect IQ SDK, replacing provisional device IDs and supplying the launcher bitmap.
+5. Scan all three QR codes with a phone and verify the exact Base64 text pasted into Connect IQ settings.
+6. Run the data field in the simulator before any real-world cutoff use.
+
+**Warning:** Current Monkey C source is a first draft and has not passed a Garmin SDK build. Current Java tests have not yet been executed in this session. Neither the dynamic pace predictor nor automatic GPS checkpoint detection is implemented.
