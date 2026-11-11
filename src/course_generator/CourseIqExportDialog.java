@@ -46,7 +46,7 @@ public final class CourseIqExportDialog {
                 if(!value.isEmpty()) {
                     final int block=i;
                     JButton qr=new JButton("Afficher QR " +(i+1));
-                    qr.addActionListener(e->new TrailRaceTr1QrViewer(dialog,qrImages,result.blocks,block).setVisible(true));
+                    qr.addActionListener(e->new CourseIqQrViewer(dialog,qrImages,result.blocks,block).setVisible(true));
                     toolbar.add(qr);
                 }
                 section.add(toolbar,BorderLayout.NORTH);
