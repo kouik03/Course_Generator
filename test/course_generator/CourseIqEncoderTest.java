@@ -5,6 +5,7 @@ import java.util.Base64;
 import java.util.zip.CRC32;
 import org.junit.Test;
 import course_generator.utils.CgConst;
+import course_generator.settings.CgSettings;
 
 /** Regression tests for the three-block CGIQ transport and cutoff semantics. */
 public class CourseIqEncoderTest {
@@ -16,7 +17,7 @@ public class CourseIqEncoderTest {
     }
 
     @Test public void encodeSmallCourseAndVerifyCrc() {
-        TrackData track=new TrackData();
+        TrackData track=new TrackData(new CgSettings());
         track.data.clear();
         CgData a=new CgData(), b=new CgData(), c=new CgData();
         a.setLatitude(43.0); a.setLongitude(4.0); a.setElevation(100);
