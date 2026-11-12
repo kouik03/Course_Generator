@@ -109,7 +109,6 @@ class CGIQBytes {
     }
 
     function ascii(count) {
-        var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 -_/.'";
         var result = "";
         for (var i = 0; i < count; i++) {
             var c = u8();
@@ -125,7 +124,7 @@ class CGIQBytes {
     function signature() {
         var value = 17;
         for (var i = 0; i < bytes.size(); i++) {
-            value = (value * 31 + bytes[i]) % 1000000007;
+            value = (value * 31 + bytes[i]) % 50000000;
         }
         return value;
     }
