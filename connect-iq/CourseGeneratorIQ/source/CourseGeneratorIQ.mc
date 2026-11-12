@@ -795,17 +795,17 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         // The two next stops are always visible in addition to all the
         // checkpoint dots along the timeline, each with the remaining km.
         var first = _atStation ? _index + 1 : _index;
-        drawNextPointRow(dc, height * 0.583, first, routeM, width);
-        drawNextPointRow(dc, height * 0.644, first + 1, routeM, width);
+        drawNextPointRow(dc, height * 0.563, first, routeM, width);
+        drawNextPointRow(dc, height * 0.616, first + 1, routeM, width);
 
         var leftPace = segmentPace();
-        fittedText(dc, width * 0.30, height * 0.733,
+        fittedText(dc, width * 0.30, height * 0.681,
                    Graphics.FONT_XTINY, "MOY. /km", colW, muted);
-        fittedText(dc, width * 0.70, height * 0.733,
+        fittedText(dc, width * 0.70, height * 0.681,
                    Graphics.FONT_XTINY, "REQ. /km", colW, muted);
-        fittedText(dc, width * 0.30, height * 0.780,
+        fittedText(dc, width * 0.30, height * 0.739,
                    Graphics.FONT_MEDIUM, leftPace, colW, white);
-        fittedText(dc, width * 0.70, height * 0.780,
+        fittedText(dc, width * 0.70, height * 0.739,
                    Graphics.FONT_MEDIUM, requiredPace, colW,
                    marginColor);
 
@@ -817,8 +817,15 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var share = length > 0 ? remainingM / length : 0.0;
         if (share > 1.0) { share = 1.0; }
         var upRemaining = ((point.ascentM - previousUp) * share).toNumber();
-        txt(dc, height * 0.845, Graphics.FONT_XTINY,
-            "D+ " + upRemaining.format("%d") +
-            "m   FIN " + finishClock, muted);
+        // Separate the secondary values into two narrow cells. On a round
+        // dial the chord is narrower here, so never print a long merged line.
+        fittedText(dc, width * 0.30, height * 0.834,
+                   Graphics.FONT_XTINY,
+                   "D+ " + upRemaining.format("%d") + "m",
+                   colW, muted);
+        fittedText(dc, width * 0.70, height * 0.834,
+                   Graphics.FONT_XTINY,
+                   "FIN " + finishClock,
+                   colW, muted);
     }
 }
