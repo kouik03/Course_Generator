@@ -21,6 +21,13 @@
     <setting propertyKey="@Properties.ManualLap" title="@Strings.ManualLapTitle">
         <settingConfig type="boolean"/>
     </setting>
+    <setting propertyKey="@Properties.ProgressMode" title="@Strings.ProgressModeTitle">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.ProgressWholeCourse</listEntry>
+            <listEntry value="1">@Strings.ProgressSegment</listEntry>
+            <listEntry value="2">@Strings.ProgressAutomatic</listEntry>
+        </settingConfig>
+    </setting>
     <setting propertyKey="@Properties.GpsRadius" title="@Strings.GpsRadiusTitle">
         <settingConfig type="numeric" min="50" max="300"/>
     </setting>
