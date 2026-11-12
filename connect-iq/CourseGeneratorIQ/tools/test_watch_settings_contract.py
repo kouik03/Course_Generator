@@ -16,22 +16,38 @@ class OnDeviceSettingsContractTests(unittest.TestCase):
         cls.field = (src / "CourseGeneratorIQ.mc").read_text()
         cls.helpers = (src / "CGIQWatchSettings.mc").read_text()
         cls.ui = (src / "CGIQDeviceSettings.mc").read_text()
+        cls.native = (src / "CGIQNativeMenu.mc").read_text()
+        cls.default_jungle = (PROJECT / "monkey.jungle").read_text()
+        cls.native_jungle = (PROJECT / "monkey.native.jungle").read_text()
+        cls.runner = (PROJECT / "run-cqiq.sh").read_text()
 
-    def test_settings_are_a_plain_view_not_a_direct_menu2(self):
-        self.assertIn("function getSettingsView()", self.field)
+    def test_two_settings_engines_selected_by_jungle_build(self):
+        self.assertEqual(self.field.count("function getSettingsView()"), 2)
+        self.assertIn("(:cgiqSimulatorSettings)", self.field)
+        self.assertIn("(:cgiqNativeSettings)", self.field)
+        self.assertIn("base.excludeAnnotations = cgiqNativeSettings",
+                      self.default_jungle)
+        self.assertIn("base.excludeAnnotations = cgiqSimulatorSettings",
+                      self.native_jungle)
+        self.assertIn('MENU_MODE="${1:-custom}"', self.runner)
+        self.assertIn("monkey.native.jungle", self.runner)
         self.assertIn("new CGIQDeviceSettingsView()", self.field)
         self.assertIn("new CGIQDeviceSettingsDelegate(settings)", self.field)
+        self.assertIn("new CGIQNativeMenu()", self.field)
+        self.assertIn("new CGIQNativeMenuDelegate(menu)", self.field)
         self.assertIn("extends WatchUi.View", self.ui)
         self.assertIn("extends WatchUi.BehaviorDelegate", self.ui)
-        self.assertNotIn("CGIQWatchMenu(", self.field)
+        self.assertIn("extends WatchUi.Menu2", self.native)
+        self.assertIn("extends WatchUi.Menu2InputDelegate", self.native)
         self.assertNotIn("WatchUi.pushView(", self.ui)
+        self.assertNotIn("WatchUi.pushView(", self.native)
 
     def test_button_navigation_for_datafield_settings(self):
         for method in ["onNextPage()", "onPreviousPage()", "onSelect()", "onBack()"]:
             self.assertIn(method, self.ui)
         for label in [
-            "DEPART EN VAGUE", "CONSULTER UN CP",
-            "CHANGER PROCHAIN CP", "RETOUR SUIVI LIVE",
+            "DEPART EN VAGUE", "CONSULTER CP",
+            "CHOISIR CP SUIVANT", "RETOUR AU SUIVI",
         ]:
             self.assertIn(label, self.ui)
 
@@ -101,11 +117,43 @@ class OnDeviceSettingsContractTests(unittest.TestCase):
         self.assertIn('Properties.getValue("StartDelay")', self.helpers)
         self.assertIn("_delayMin = cgiqWatchStartDelay()", self.field)
 
-    def test_layout_reserves_footer_before_upper_rows(self):
-        self.assertIn("var footerY = (height * 0.807).toNumber();", self.field)
-        self.assertIn("var descentValueY = footerY - hSecond - 5;", self.field)
-        self.assertIn("var headerY = nameY - hHead - 4;", self.field)
-        self.assertIn("if (headerY < height * 0.080)", self.field)
+    def test_main_screen_top_header_stays_visible(self):
+        self.assertIn("var headerY = (height * 0.095).toNumber();", self.field)
+        self.assertIn("nameY = headerY + hHead + 2;", self.field)
+        self.assertIn("if (footerY + hTiny <= height * 0.88)", self.field)
+        self.assertIn("paceFont = Graphics.FONT_SMALL;", self.field)
+        self.assertIn("numberFont = Graphics.FONT_MEDIUM;", self.field)
+
+    def test_bar_is_blue_and_checkpoints_are_clear(self):
+        self.assertIn("dc.setColor(0x354B67, Graphics.COLOR_TRANSPARENT)",
+                      self.field)
+        self.assertIn("dc.setColor(0x66C1F4, Graphics.COLOR_TRANSPARENT)",
+                      self.field)
+        self.assertIn("dc.fillCircle(markerX, y, 7);", self.field)
+        self.assertNotIn("dc.setColor(0xFF9800", self.field)
+
+    def test_return_live_or_confirm_requests_settings_exit(self):
+        self.assertIn("cgiqCloseSettings();", self.ui)
+        self.assertIn("cgiqCloseSettings();", self.native)
+        self.assertIn("WatchUi.popView(WatchUi.SLIDE_IMMEDIATE)", self.helpers)
+        self.assertNotIn("System.exit()", self.ui)
+        self.assertNotIn("System.exit()", self.native)
+        self.assertIn('Storage.setValue("previewCpIndex", -1)', self.ui)
+        self.assertIn('Storage.setValue("previewCpIndex", -1)', self.native)
+
+    def test_custom_menu_labels_avoid_duplicates_and_overlong_footer(self):
+        self.assertIn("return cp.name;", self.ui)
+        self.assertNotIn('"FIN " : "CP"', self.ui)
+        self.assertIn('footer = "OK CONFIRME LE CHOIX";', self.ui)
+        self.assertIn("h * 0.775", self.ui)
+        self.assertIn("_page >= 2", self.ui)
+
+    def test_native_menu_retains_confirmation_and_wave_controls(self):
+        self.assertIn('add("Confirmer", "Recaler la cible", 5000)', self.native)
+        self.assertIn('Storage.setValue("manualCpPlanSig", _menu._plan.signature)', self.native)
+        self.assertIn('Storage.setValue("manualCpRequestId", sequence + 1)', self.native)
+        self.assertIn('Storage.deleteValue("watchStartDelayMin")', self.native)
+        self.assertIn('Storage.setValue("previewCpIndex", _menu._target)', self.native)
 
 
 if __name__ == "__main__":
