@@ -104,7 +104,7 @@ class OnDeviceSettingsContractTests(unittest.TestCase):
     def test_page_state_is_numeric_and_menu_has_four_entries(self):
         self.assertIn("var _page = 0;", self.ui)
         self.assertIn("if (_page == 0) { return 4; }", self.ui)
-        self.assertIn('if (_page == 0) { return "COURSE GENERATOR"; }', self.ui)
+        self.assertIn('if (_page == 0) { return "CG IQ REGLAGES"; }', self.ui)
         for forbidden in [
             '_page == "main"', '_page == "wave"', '_page == "browse"',
             '_page == "jump"', '_page == "details"', '_page == "confirm"',
