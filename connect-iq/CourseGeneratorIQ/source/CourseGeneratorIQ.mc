@@ -905,80 +905,100 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             return;
         }
 
-        // One-checkpoint race cockpit. The large right number is the
-        // remaining time to the OFFICIAL cutoff, not the projected margin.
-        // Both are shown separately: the margin appears under the timeline.
+        // Compact TrailRace-style cockpit, arranged using the DEVICE'S font
+        // heights instead of arbitrary percentages for each independent row.
+        // This prevents text from overlapping on the fenix 9 Pro round panel.
+        var smallH = dc.getFontHeight(Graphics.FONT_SMALL);
+        var mediumH = dc.getFontHeight(Graphics.FONT_MEDIUM);
+        var largeH = dc.getFontHeight(Graphics.FONT_LARGE);
+        var tinyH = dc.getFontHeight(Graphics.FONT_XTINY);
+
+        var headerY = (height * 0.083).toNumber();
+        var nameY = (height * 0.178).toNumber();
+        if (nameY < headerY + mediumH + 3) {
+            nameY = headerY + mediumH + 3;
+        }
+        var numberY = (height * 0.262).toNumber();
+        if (numberY < nameY + smallH + 4) {
+            numberY = nameY + smallH + 4;
+        }
+
+        var progressY = (height * 0.400).toNumber();
+        if (progressY < numberY + largeH + 6) {
+            progressY = numberY + largeH + 6;
+        }
+        var marginY = progressY + 10;
+        var paceTitleY = (height * 0.506).toNumber();
+        if (paceTitleY < marginY + tinyH + 4) {
+            paceTitleY = marginY + tinyH + 4;
+        }
+        var paceValueY = paceTitleY + smallH + 2;
+        var descentTitleY = paceValueY + largeH + 4;
+        var descentValueY = descentTitleY + smallH + 1;
+        var footerY = descentValueY + mediumH + 4;
+
         var cpTitle = _index == _plan.points.size() - 1 ?
                       "FIN" : "CP" + (_index + 1).format("%d");
         if ((point.flags & 6) != 0) {
-            fittedText(dc, width * 0.44, height * 0.103,
+            fittedText(dc, width * 0.44, headerY,
                        Graphics.FONT_MEDIUM, cpTitle,
                        width * 0.23, accent);
-            drawServices(dc, height * 0.137, point.flags);
+            drawServices(dc, headerY + mediumH / 2, point.flags);
         } else {
-            txt(dc, height * 0.103, Graphics.FONT_MEDIUM,
-                cpTitle, accent);
+            txt(dc, headerY, Graphics.FONT_MEDIUM, cpTitle, accent);
         }
 
         var colW = width * 0.39;
-        fittedText(dc, width * 0.285, height * 0.181,
+        fittedText(dc, width * 0.285, nameY,
                    Graphics.FONT_SMALL, point.name,
                    colW, accent);
-        fittedText(dc, width * 0.718, height * 0.181,
+        fittedText(dc, width * 0.718, nameY,
                    Graphics.FONT_SMALL,
                    goal >= 0 ? "BH " + cutoffClock : "SANS BH",
                    colW, accent);
 
-        // Two primary metrics. Leave the units visually subordinate.
-        fittedText(dc, width * 0.277, height * 0.267,
-                   Graphics.FONT_LARGE,
+        // Keep both numeric quantities prominent. The units use wider,
+        // correctly positioned cells instead of truncated "k.." or "h".
+        fittedText(dc, width * 0.266, numberY, Graphics.FONT_LARGE,
                    _atStation ? formatDuration(restRemainingSec(_index)) :
                    (remainingM / 1000.0).format("%.2f"),
-                   colW, _atStation ? amber : 0x80BFFF);
+                   width * 0.34, _atStation ? amber : 0x80BFFF);
         if (!_atStation) {
-            fittedText(dc, width * 0.457, height * 0.335,
-                       Graphics.FONT_XTINY, "km", width * 0.075, accent);
+            fittedText(dc, width * 0.449,
+                       numberY + (largeH * 0.39).toNumber(),
+                       Graphics.FONT_XTINY, "km", width * 0.12, accent);
         }
+
         var leftToCutoff = goal >= 0 ?
                            formatCountdown(cutoffRemainingSec) : "--:--";
-        fittedText(dc, width * 0.710, height * 0.267,
-                   Graphics.FONT_LARGE, leftToCutoff, colW,
+        fittedText(dc, width * 0.697, numberY, Graphics.FONT_LARGE,
+                   leftToCutoff, width * 0.36,
                    cutoffRemainingSec < 0 ? red : 0x00E8C0);
         if (goal >= 0) {
-            fittedText(dc, width * 0.884, height * 0.335,
-                       Graphics.FONT_XTINY, "h", width * 0.06,
+            fittedText(dc, width * 0.884,
+                       numberY + (largeH * 0.39).toNumber(),
+                       Graphics.FONT_XTINY, "h", width * 0.10,
                        cutoffRemainingSec < 0 ? red : 0x00E8C0);
         }
 
-        // One compact checkpoint bar with hollow upcoming markers.
-        drawRoadbookBar(dc, (height * 0.414).toNumber(),
-                        routeM, remainingM, false);
+        // The bar itself displays checkpoint positions; there is no
+        // redundant mileage-caption row or list of aid stations beneath it.
+        drawRoadbookBar(dc, progressY, routeM, remainingM, false);
+        fittedText(dc, width / 2, marginY, Graphics.FONT_XTINY,
+                   goal >= 0 ? "MARGE " + signedMargin : "PAS DE BH",
+                   width * 0.67, marginColor);
 
-        var finishM = _plan.points[_plan.points.size() - 1].distanceM;
-        fittedText(dc, width * 0.290, height * 0.458,
-                   Graphics.FONT_XTINY,
-                   (routeM / 1000.0).format("%.1f") + "/" +
-                   (finishM / 1000.0).format("%.1f") + " km",
-                   colW, muted);
-        fittedText(dc, width * 0.712, height * 0.458,
-                   Graphics.FONT_XTINY,
-                   goal >= 0 ? "MARGE " + signedMargin : "SANS BH",
-                   colW, marginColor);
-
-        // Large mid-screen pace numbers like the TrailRace+ reference.
-        fittedText(dc, width * 0.285, height * 0.526,
+        fittedText(dc, width * 0.285, paceTitleY,
                    Graphics.FONT_SMALL, "ALLURE", colW, muted);
-        fittedText(dc, width * 0.715, height * 0.526,
+        fittedText(dc, width * 0.715, paceTitleY,
                    Graphics.FONT_SMALL, "REQUIS", colW, muted);
-        fittedText(dc, width * 0.285, height * 0.593,
+        fittedText(dc, width * 0.285, paceValueY,
                    Graphics.FONT_LARGE, segmentPace(), colW,
                    0x80BFFF);
-        fittedText(dc, width * 0.715, height * 0.593,
+        fittedText(dc, width * 0.715, paceValueY,
                    Graphics.FONT_LARGE, requiredPace, colW,
                    marginColor);
 
-        // Roadbook stores both directions of cumulative elevation.
-        // Display descent to the next CP, as in the supplied reference.
         var previousDown = _index == 0 ? 0 :
                            _plan.points[_index - 1].descentM;
         var begin = _index == 0 ? 0.0 :
@@ -989,20 +1009,20 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var downRemaining =
             ((point.descentM - previousDown) * share).toNumber();
 
-        fittedText(dc, width * 0.285, height * 0.694,
+        fittedText(dc, width * 0.285, descentTitleY,
                    Graphics.FONT_SMALL, "D- CP", colW, muted);
-        fittedText(dc, width * 0.715, height * 0.694,
+        fittedText(dc, width * 0.715, descentTitleY,
                    Graphics.FONT_SMALL, "ARRIVEE", colW, muted);
-        fittedText(dc, width * 0.285, height * 0.756,
+        fittedText(dc, width * 0.285, descentValueY,
                    Graphics.FONT_MEDIUM,
                    downRemaining.format("%d") + " m", colW,
                    0x80BFFF);
-        fittedText(dc, width * 0.715, height * 0.756,
+        fittedText(dc, width * 0.715, descentValueY,
                    Graphics.FONT_MEDIUM, finishClock, colW,
                    accent);
 
-        // Footer: real watch clock at left, activity elapsed at right.
-        // Split into independent columns: no truncation of the entire row.
+        // One centred, compact footer retains both the real device clock
+        // and ultra elapsed time. It fits the round dial's narrower bottom.
         var clock = System.getClockTime();
         var nowText = clock.hour.format("%02d") + ":" +
                       clock.min.format("%02d");
@@ -1012,16 +1032,8 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var elapsedText = raceHours.format("%d") + ":" +
                           raceMinutes.format("%02d") + ":" +
                           raceSeconds.format("%02d");
-        fittedText(dc, width * 0.356, height * 0.850,
-                   Graphics.FONT_SMALL, nowText, width * 0.25,
-                   0x80BFFF);
-        dc.setColor(0xEEA45A, Graphics.COLOR_TRANSPARENT);
-        var separator = (width / 2).toNumber();
-        var bottom = (height * 0.858).toNumber();
-        dc.drawLine(separator, bottom,
-                    separator, bottom + (height * 0.036).toNumber());
-        fittedText(dc, width * 0.661, height * 0.850,
-                   Graphics.FONT_SMALL, elapsedText, width * 0.32,
-                   0x80BFFF);
+        fittedText(dc, width / 2, footerY, Graphics.FONT_XTINY,
+                   nowText + "  |  " + elapsedText,
+                   width * 0.66, 0x80BFFF);
     }
 }
