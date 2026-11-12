@@ -43,7 +43,7 @@ function cgiqCloseSettings() {
         // Leave the view in place for a platform-level Back action and
         // log the actual exception so simulator/real hardware can be
         // compared without guessing.
-        System.println("CGIQ settings: popView unavailable: " + e);
+        System.println("CGIQ settings: popView unavailable");
         return false;
     }
 }
