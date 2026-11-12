@@ -140,7 +140,10 @@ class CGIQWatchMenuDelegate extends WatchUi.Menu2InputDelegate {
         }
 
         if (_page == "wave") {
-            var choice = id;
+            // MenuItem.getId() is Object or Null; only numeric IDs
+            // are accepted on this page. Narrow before comparisons.
+            if (!(id instanceof Lang.Number)) { return; }
+            var choice = id as Lang.Number;
             if (choice == -10) {
                 Storage.deleteValue("watchStartDelayMin");
             } else {
@@ -159,10 +162,12 @@ class CGIQWatchMenuDelegate extends WatchUi.Menu2InputDelegate {
         }
 
         if (_page == "preview") {
+            if (!(id instanceof Lang.Number)) { return; }
+            var previewId = id as Lang.Number;
             var plan = cgiqLoadWatchPlan();
-            if (plan.error.length() == 0 && id >= 0 &&
-                id < plan.points.size()) {
-                Storage.setValue("previewCpIndex", id);
+            if (plan.error.length() == 0 && previewId >= 0 &&
+                previewId < plan.points.size()) {
+                Storage.setValue("previewCpIndex", previewId);
                 // Go back to the root settings menu.
                 WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
             }
@@ -170,10 +175,12 @@ class CGIQWatchMenuDelegate extends WatchUi.Menu2InputDelegate {
         }
 
         if (_page == "jump") {
+            if (!(id instanceof Lang.Number)) { return; }
+            var jumpId = id as Lang.Number;
             var currentPlan = cgiqLoadWatchPlan();
-            if (currentPlan.error.length() == 0 && id >= 0 &&
-                id < currentPlan.points.size()) {
-                next("confirm", id);
+            if (currentPlan.error.length() == 0 && jumpId >= 0 &&
+                jumpId < currentPlan.points.size()) {
+                next("confirm", jumpId);
             }
             return;
         }
