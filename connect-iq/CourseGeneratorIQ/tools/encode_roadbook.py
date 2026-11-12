@@ -94,7 +94,16 @@ def encode(data: dict) -> bytes:
             lat10000 = round(float(lat) * 10000)
             lon10000 = round(float(lon) * 10000)
         name = _ascii_name(point["name"])
-        flags = 1 if point.get("cutoff_after_pause", True) else 0
+        services = str(point.get("services", "")).upper()
+        if any(ch not in "WF" for ch in services) or len(set(services)) != len(services):
+            raise ValueError(
+                f"Point {position}: services acceptes : W=eau, F=nourriture (sans doublon)"
+            )
+        # Extend spare CGIQ v1 flag bits without breaking older roadbooks:
+        # 0 = cutoff after pause, 1 = water, 2 = food.
+        flags = (1 if point.get("cutoff_after_pause", True) else 0)
+        flags |= 2 if "W" in services else 0
+        flags |= 4 if "F" in services else 0
 
         payload += _u16(distance10, "distance/10m")
         payload += _u16(up, "ascent_m") + _u16(down, "descent_m")
@@ -169,7 +178,9 @@ def decode(raw: bytes) -> dict:
             "name": name, "km": distance10 / 100, "ascent_m": up,
             "descent_m": down, "target_elapsed_min": target,
             "pause_min": pause, "cutoff_min": None if cutoff == 65535 else cutoff,
-            "cutoff_after_pause": bool(flags & 1), "lat": lat / 10000,
+            "cutoff_after_pause": bool(flags & 1),
+            "services": ("W" if flags & 2 else "") + ("F" if flags & 4 else ""),
+            "lat": lat / 10000,
             "lon": lon / 10000,
         })
     if offset != len(raw) - 1:
