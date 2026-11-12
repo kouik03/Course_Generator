@@ -1,5 +1,7 @@
 # Course Generator IQ — champ Garmin Fēnix 9 Pro 51 mm
 
+**OBJECTIF PRIORITAIRE (NON ENCORE IMPLÉMENTÉ) :** suivre la trace GPS embarquée dans les blocs Base64 (comme TR1), projeter la position sur le parcours officiel, détecter les sorties de route et les ravitos automatiquement, calculer la distance et les temps restants depuis le tracé et le D+ réel. Coefficient configurable sur montre + téléphone : **100 m de D+ = 1 km plat équivalent** par défaut. **Voir [SPEC_GPS_TRACE.md](SPEC_GPS_TRACE.md)** pour les critères de validation et l'ordre des travaux. L'implémentation actuelle utilise encore la distance d'activité Garmin et ne fournit PAS ces garanties.
+
 Ce sous-projet est un **champ de données Connect IQ** (pas une application autonome).
 Le module est développé sur `experiment/terrain-debiased-curve-v1` sans modifier le Java/Maven de Course Generator.
 **Statut : code poussé, non encore recompilé sur le SDK macOS 9.3.0 après ces ajouts.**
