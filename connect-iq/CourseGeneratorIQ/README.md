@@ -212,3 +212,7 @@ Du haut vers le bas :
 Le champ **ne deplace pas les barrieres officielles** si le depart est retarde. L'horloge H est celle de la montre, sans la reconstituer a partir de l'heure de depart. Les donnees restees dans le roadbook sont reutilisees, seules les positions visuelles ont change.
 
 **Test a realiser sur le SDK 9.3.0 :** lancer `CGIq`, verifier qu'aucune info en bas ne se chevauche, que l'horloge H reflete l'heure du Mac/simulateur, et que T avance quand l'activite est en cours.
+
+### Correction du chevauchement ETA / barre et de l'horloge (Fenix 9 Pro)
+
+Le simulateur du 12 novembre montrait la legende `0.0 / 18.0 km` superposee a `ETA 08:18 / PLAN 08:18`, ainsi qu'une heure de course tronquee et des titres D+/FIN trop longs. La disposition est maintenant en lignes distinctes : ETA au-dessus de la barre ; kilometre parcouru sous la barre ; deux allures ; D+ et FIN simplifies sur une seule ligne ; heure de la montre et temps de course remontes dans le cadran. Le rendu reste a valider sur le simulateur local avec `CGIq`.
