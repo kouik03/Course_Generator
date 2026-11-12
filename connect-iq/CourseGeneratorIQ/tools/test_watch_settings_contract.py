@@ -51,13 +51,23 @@ class OnDeviceSettingsContractTests(unittest.TestCase):
         self.assertIn('Storage.setValue("previewCpIndex", -1)', self.ui)
 
     def test_manual_retarget_requires_explicit_confirmation(self):
-        self.assertIn('setPage(_page == "browse" ? "details" : "confirm")', self.ui)
-        self.assertIn('if (_page == "confirm")', self.ui)
+        self.assertIn('setPage(_page == 2 ? 4 : 5)', self.ui)
+        self.assertIn('if (_page == 5)', self.ui)
         self.assertIn('if (_cursor == 0 && _target >= 0', self.ui)
         self.assertIn('Storage.setValue("manualCpPlanSig", _plan.signature)', self.ui)
         self.assertIn("requestPlan == _plan.signature", self.field)
         self.assertIn('Storage.setValue("manualCpRequestId"', self.ui)
         self.assertIn('Storage.setValue("manualCpAppliedId", req)', self.field)
+
+    def test_page_state_is_numeric_and_menu_has_four_entries(self):
+        self.assertIn("var _page = 0;", self.ui)
+        self.assertIn("if (_page == 0) { return 4; }", self.ui)
+        self.assertIn('if (_page == 0) { return "COURSE GENERATOR"; }', self.ui)
+        for forbidden in [
+            '_page == "main"', '_page == "wave"', '_page == "browse"',
+            '_page == "jump"', '_page == "details"', '_page == "confirm"',
+        ]:
+            self.assertNotIn(forbidden, self.ui)
 
     def test_wave_settings_override_phone_only_when_chosen(self):
         self.assertIn('Storage.getValue("watchStartDelayMin")', self.helpers)
