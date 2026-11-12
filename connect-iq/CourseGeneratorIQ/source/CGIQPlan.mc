@@ -19,12 +19,17 @@ class CGIQBytes {
     var bytes = [];
     var pos = 0;
     var error = "";
+    var errorPos = 0;
+    var errorCode = -1;
 
     function initialize() {}
 
     function decode(source) as Boolean {
         bytes = [];
         pos = 0;
+        error = "";
+        errorPos = 0;
+        errorCode = -1;
         var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
         var buffer = 0;
         var bitCount = 0;
@@ -40,11 +45,19 @@ class CGIQBytes {
             }
             if (padded) {
                 error = "BASE64 PADDING";
+                errorPos = i + 1;
+                errorCode = ch.toCharArray()[0].toNumber();
                 return false;
             }
+            // Also accept URL-safe Base64, which avoids '+' and '/' in
+            // mobile settings editors. Existing standard Base64 remains valid.
             var n = alphabet.find(ch);
+            if (ch == "-") { n = 62; }
+            if (ch == "_") { n = 63; }
             if (n == null) {
                 error = "BASE64 CARACTERE";
+                errorPos = i + 1;
+                errorCode = ch.toCharArray()[0].toNumber();
                 return false;
             }
             buffer = buffer * 64 + n;
@@ -135,6 +148,8 @@ class CGIQPlan {
     var officialStartMin = 450;
     var signature = -1;
     var error = "";
+    var errorPos = 0;
+    var errorCode = -1;
     var demo = false;
 
     function initialize() {}
@@ -143,9 +158,13 @@ class CGIQPlan {
         points = [];
         demo = false;
         error = "";
+        errorPos = 0;
+        errorCode = -1;
         var reader = new CGIQBytes();
         if (!reader.decode(payload)) {
             error = reader.error;
+            errorPos = reader.errorPos;
+            errorCode = reader.errorCode;
             return false;
         }
         if (reader.u8() != 67 || reader.u8() != 71 ||
