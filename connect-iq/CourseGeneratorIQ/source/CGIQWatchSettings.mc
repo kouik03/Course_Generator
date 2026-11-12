@@ -36,9 +36,8 @@ class CGIQWatchMenu extends WatchUi.Menu2 {
         var plan = cgiqLoadWatchPlan();
 
         if (page == "main") {
-            var delay = cgiqWatchStartDelay();
             addItem(new WatchUi.MenuItem("Depart en vague",
-                "+" + delay.format("%d") + " min", "wave", null));
+                "Choisir un retard de depart", "wave", null));
             if (plan.error.length() != 0) {
                 addItem(new WatchUi.MenuItem("Roadbook invalide",
                     plan.error, "error", null));
