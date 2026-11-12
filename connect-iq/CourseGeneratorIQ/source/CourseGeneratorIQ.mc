@@ -26,8 +26,8 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         if (info.timerTime != null) {
             _elapsedMs = info.timerTime;
         }
-        if (info.distance != null) {
-            _distanceM = info.distance;
+        if (info.elapsedDistance != null) {
+            _distanceM = info.elapsedDistance;
         }
     }
 
