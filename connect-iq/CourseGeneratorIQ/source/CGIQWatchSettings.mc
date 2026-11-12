@@ -184,6 +184,9 @@ class CGIQWatchMenuDelegate extends WatchUi.Menu2InputDelegate {
                     // An event sequence prevents reapplying a manually
                     // selected CP every time the data field is opened.
                     Storage.setValue("manualCpIndex", _target);
+                    // Preserve an explicit pre-start selection through the
+                    // first onTimerStart(), which otherwise resets a new run.
+                    Storage.setValue("manualCpKeepAtStart", true);
                     var seq = Storage.getValue("manualCpRequestId");
                     if (seq == null) { seq = 0; }
                     Storage.setValue("manualCpRequestId", seq + 1);
