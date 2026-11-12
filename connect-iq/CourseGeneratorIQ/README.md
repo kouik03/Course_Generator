@@ -527,3 +527,33 @@ en `..` au lieu de disparaitre silencieusement.
 La distance reste **la progression virtuelle du roadbook**, differente
 de la distance mesuree et enregistree dans le FIT Garmin.
 
+
+## Correctif ciblé de l'en-tête rond (capture du simulateur du 12 novembre 2026)
+
+L'écran principal affichait les valeurs et la barre correctement, mais ne
+montrait plus que les fragments du nom du CP (par exemple \`..MO\`) et de
+la barrière horaire (\`BH..\`) tout en masquant le titre \`CP1/FIN\` :
+les premières lignes étaient trop proches du bord **arrondi**.
+
+La disposition plein écran utilise maintenant dix rangées verticales fixes,
+de 14,5 % (titre CP) à 83,5 % (horloge/chrono), en réservant notamment
+**24 %** au nom/BH et **33,5 %** aux grandes valeurs. Le texte de l'en-tête
+est borné par la **corde disponible dans le disque** pour chacun des deux
+centres de colonne et peut descendre d'une taille de police lorsque nécessaire.
+Les fonctions \`Dc.getFontHeight\` limitent la taille de chaque police à
+l'espace entre deux rangées.
+
+Les autres informations (progression, marge, allures, D− et arrivée, horloge)
+gardent leurs emplacements. Le moteur de calcul, le codec Base64, les
+paramètres et le choix de Menu2 ne sont pas modifiés par ce correctif.
+
+Après \`CGIq\`, vérifier :
+1. **CP1/FIN** et icônes visibles au-dessus du nom/BH ;
+2. nom du prochain CP lisible à gauche et heure BH complète à droite ;
+3. grands compteurs, barre et marge toujours sans chevauchement ;
+4. D−/ARRIVEE et heure/chrono toujours entièrement visibles ;
+5. même rendu du cadran après \`CGIq menu2\` (seul le menu change).
+
+Les tests GitHub vérifient les dix emplacements et les mécanismes de largeur
+et de hauteur ; ils ne remplacent pas une validation **visuelle dans le
+simulateur Garmin**.
