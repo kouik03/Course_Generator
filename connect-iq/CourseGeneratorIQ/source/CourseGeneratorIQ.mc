@@ -660,11 +660,13 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var ratio = (viewM - fromM) / (toM - fromM);
         var doneW = (span * ratio).toNumber();
 
-        dc.setColor(0x454C55, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(x, y - 3, span, 6, 3);
+        // Subdued navy line and cool-blue progress, matching the
+        // checkpoint timeline in the supplied real-watch reference.
+        dc.setColor(0x354B67, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(x, y - 2, span, 4, 2);
         if (doneW > 0) {
-            dc.setColor(0xFF9800, Graphics.COLOR_TRANSPARENT);
-            dc.fillRoundedRectangle(x, y - 3, doneW, 6, 3);
+            dc.setColor(0x66C1F4, Graphics.COLOR_TRANSPARENT);
+            dc.fillRoundedRectangle(x, y - 2, doneW, 4, 2);
         }
 
         // Small intermediate ticks make the last 1 km useful at a glance.
@@ -684,23 +686,26 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             if (km < fromM || km > toM) { continue; }
             var markerX = x +
                 ((km - fromM) / (toM - fromM) * span).toNumber();
-            // Draw completed CPs from confirmed virtual position, not
-            // merely from the currently selected NEXT CP index.
+            // Larger contrasting checkpoints: filled blue = passed,
+            // hollow ring = ahead. The runner is the only white marker.
             var isPassed = km <= routeM;
-            dc.setColor(0x6EC4FF, Graphics.COLOR_TRANSPARENT);
             if (isPassed) {
-                dc.fillCircle(markerX, y, 4);
+                dc.setColor(0x86D7FF, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(markerX, y, 5);
             } else {
-                dc.drawCircle(markerX, y, i == _index ? 6 : 5);
+                dc.setColor(0x86D7FF, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(markerX, y, 7);
+                dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(markerX, y, 4);
             }
         }
 
         // Current athlete position, deliberately bigger than CP markers.
         var hereX = x + doneW;
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(hereX, y, 7);
+        dc.fillCircle(hereX, y, 8);
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(hereX, y, 4);
+        dc.fillCircle(hereX, y, 5);
 
 
     }
@@ -923,51 +928,64 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             return;
         }
 
-        // Screen geometry is computed BOTTOM-UP. The old top-down layout
-        // let large Garmin font metrics push D-/ARRIVEE and the clock below
-        // the round screen. Reserving a footer first prevents that.
-        var headerFont = Graphics.FONT_MEDIUM;
+        // Keep CP header and checkpoint name in the visible upper chord.
+        // Layout flows TOP-DOWN and reduces secondary font sizes until the
+        // footer fits within the safe lower chord. The previous bottom-up
+        // formula pushed both upper labels above the round screen.
+        var headerFont = Graphics.FONT_SMALL;
         var nameFont = Graphics.FONT_SMALL;
         var numberFont = Graphics.FONT_LARGE;
         var paceFont = Graphics.FONT_MEDIUM;
         var secondaryFont = Graphics.FONT_SMALL;
         var captionFont = Graphics.FONT_XTINY;
 
-        var hHead = dc.getFontHeight(headerFont);
-        var hName = dc.getFontHeight(nameFont);
-        var hNum = dc.getFontHeight(numberFont);
-        var hPace = dc.getFontHeight(paceFont);
-        var hSecond = dc.getFontHeight(secondaryFont);
+        var hHead = 0;
+        var hName = 0;
+        var hNum = 0;
+        var hPace = 0;
+        var hSecond = 0;
         var hTiny = dc.getFontHeight(captionFont);
 
-        var footerY = (height * 0.807).toNumber();
-        var descentValueY = footerY - hSecond - 5;
-        var descentTitleY = descentValueY - hTiny - 2;
-        var paceValueY = descentTitleY - hPace - 5;
-        var paceTitleY = paceValueY - hTiny - 2;
-        var marginY = paceTitleY - hTiny - 5;
-        var progressY = marginY - 12;
-        var numberY = progressY - hNum - 7;
-        var nameY = numberY - hName - 3;
-        var headerY = nameY - hHead - 4;
+        var headerY = (height * 0.095).toNumber();
+        var nameY = 0;
+        var numberY = 0;
+        var progressY = 0;
+        var marginY = 0;
+        var paceTitleY = 0;
+        var paceValueY = 0;
+        var descentTitleY = 0;
+        var descentValueY = 0;
+        var footerY = 0;
 
-        // Keep the big distance and cutoff figures when possible. If a
-        // firmware uses taller font metrics, reduce the lower pace font.
-        if (headerY < height * 0.080) {
-            paceFont = Graphics.FONT_SMALL;
-            hPace = dc.getFontHeight(paceFont);
-            paceValueY = descentTitleY - hPace - 5;
-            paceTitleY = paceValueY - hTiny - 2;
-            marginY = paceTitleY - hTiny - 5;
-            progressY = marginY - 12;
-            numberY = progressY - hNum - 7;
-            nameY = numberY - hName - 3;
-            headerY = nameY - hHead - 4;
-        }
-        if (headerY < height * 0.054) {
-            headerFont = Graphics.FONT_SMALL;
+        // The 51mm AMOLED font metrics vary with the firmware. Compute
+        // the full stack, then sacrifice font size of secondary rows first.
+        for (var pass = 0; pass < 5; pass++) {
             hHead = dc.getFontHeight(headerFont);
-            headerY = nameY - hHead - 4;
+            hName = dc.getFontHeight(nameFont);
+            hNum = dc.getFontHeight(numberFont);
+            hPace = dc.getFontHeight(paceFont);
+            hSecond = dc.getFontHeight(secondaryFont);
+
+            nameY = headerY + hHead + 2;
+            numberY = nameY + hName + 2;
+            progressY = numberY + hNum + 5;
+            marginY = progressY + 10;
+            paceTitleY = marginY + hTiny + 2;
+            paceValueY = paceTitleY + hTiny + 2;
+            descentTitleY = paceValueY + hPace + 3;
+            descentValueY = descentTitleY + hTiny + 2;
+            footerY = descentValueY + hSecond + 3;
+
+            if (footerY + hTiny <= height * 0.88) { break; }
+            if (pass == 0) {
+                paceFont = Graphics.FONT_SMALL;
+            } else if (pass == 1) {
+                nameFont = Graphics.FONT_XTINY;
+            } else if (pass == 2) {
+                secondaryFont = Graphics.FONT_XTINY;
+            } else if (pass == 3) {
+                numberFont = Graphics.FONT_MEDIUM;
+            }
         }
 
         var cpTitle = _index == _plan.points.size() - 1 ?
