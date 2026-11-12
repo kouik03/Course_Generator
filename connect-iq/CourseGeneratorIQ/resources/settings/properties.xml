@@ -8,4 +8,5 @@
     <property id="AutoGps" type="boolean">true</property>
     <property id="ManualLap" type="boolean">true</property>
     <property id="GpsRadius" type="number">100</property>
+    <property id="ProgressMode" type="number">2</property>
 </properties>
