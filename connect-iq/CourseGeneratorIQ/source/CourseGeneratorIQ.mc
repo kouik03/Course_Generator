@@ -6,6 +6,7 @@ import Toybox.Graphics;
 import Toybox.Activity;
 import Toybox.Attention;
 import Toybox.Math;
+import Toybox.System;
 import Toybox.Lang;
 
 var gCourseGeneratorField = null;
@@ -633,21 +634,6 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         }
     }
 
-    function drawNextPointRow(dc, y, index, routeM, width) {
-        if (index >= _plan.points.size()) { return; }
-        var station = _plan.points[index];
-        var toGo = station.distanceM - routeM;
-        if (toGo < 0) { toGo = 0; }
-        var xLabel = width * 0.38;
-        var xValue = width * 0.73;
-        var nameColor = index == _index ? 0xFFFFFF : 0xBFC7D2;
-        fittedText(dc, xLabel, y, Graphics.FONT_SMALL, station.name,
-                   width * 0.39, nameColor);
-        fittedText(dc, xValue, y, Graphics.FONT_SMALL,
-                   (toGo / 1000.0).format("%.1f") + " km",
-                   width * 0.27, index == _index ? 0xFF9800 : 0xBFC7D2);
-    }
-
     function onUpdate(dc as Graphics.Dc) as Void {
         var width = dc.getWidth();
         var height = dc.getHeight();
@@ -761,16 +747,17 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             return;
         }
 
-        // Garmin 51 mm full-screen: every line stays inside a safe chord
-        // of the round dial, unlike the former single-column prototype.
+        // Full-screen race cockpit: ONE next checkpoint in the header.
+        // Unlike the previous design, do not repeat upcoming aid-station
+        // names under the progression bar. Use that room for a real clock.
         txt(dc, height * 0.116, Graphics.FONT_SMALL, point.name, accent);
 
         var colW = width * 0.315;
-        fittedText(dc, width * 0.30, height * 0.208,
+        fittedText(dc, width * 0.30, height * 0.205,
                    Graphics.FONT_XTINY,
                    _atStation ? "PAUSE" : "RESTE",
                    colW, muted);
-        fittedText(dc, width * 0.70, height * 0.208,
+        fittedText(dc, width * 0.70, height * 0.205,
                    Graphics.FONT_XTINY,
                    goal >= 0 ? "BH " + cutoffClock : "SANS BH",
                    colW, muted);
@@ -785,27 +772,24 @@ class CourseGeneratorIQField extends WatchUi.DataField {
                    goal >= 0 ? signedMargin : "--",
                    colW, marginColor);
 
-        txt(dc, height * 0.398, Graphics.FONT_SMALL,
-            _atStation ? "RAVITO / LAP POUR REPARTIR" :
-            "ETA " + etaClock + "  /  PLAN " + plannedClock, muted);
-
-        drawRoadbookBar(dc, (height * 0.481).toNumber(), routeM,
+        // Orange distance bar, small checkpoint dots and white runner marker.
+        // The checkpoints are visible HERE only: no bulky textual list.
+        drawRoadbookBar(dc, (height * 0.438).toNumber(), routeM,
                         remainingM, false);
 
-        // The two next stops are always visible in addition to all the
-        // checkpoint dots along the timeline, each with the remaining km.
-        var first = _atStation ? _index + 1 : _index;
-        drawNextPointRow(dc, height * 0.563, first, routeM, width);
-        drawNextPointRow(dc, height * 0.616, first + 1, routeM, width);
+        txt(dc, height * 0.508, Graphics.FONT_XTINY,
+            _atStation ? "RAVITO  /  LAP POUR REPARTIR" :
+            "ETA " + etaClock + "  /  PLAN " + plannedClock, muted);
 
+        // Pace versus required pace takes the central, widest chord.
         var leftPace = segmentPace();
-        fittedText(dc, width * 0.30, height * 0.681,
+        fittedText(dc, width * 0.30, height * 0.580,
                    Graphics.FONT_XTINY, "MOY. /km", colW, muted);
-        fittedText(dc, width * 0.70, height * 0.681,
+        fittedText(dc, width * 0.70, height * 0.580,
                    Graphics.FONT_XTINY, "REQ. /km", colW, muted);
-        fittedText(dc, width * 0.30, height * 0.739,
+        fittedText(dc, width * 0.30, height * 0.636,
                    Graphics.FONT_MEDIUM, leftPace, colW, white);
-        fittedText(dc, width * 0.70, height * 0.739,
+        fittedText(dc, width * 0.70, height * 0.636,
                    Graphics.FONT_MEDIUM, requiredPace, colW,
                    marginColor);
 
@@ -817,15 +801,29 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var share = length > 0 ? remainingM / length : 0.0;
         if (share > 1.0) { share = 1.0; }
         var upRemaining = ((point.ascentM - previousUp) * share).toNumber();
-        // Separate the secondary values into two narrow cells. On a round
-        // dial the chord is narrower here, so never print a long merged line.
-        fittedText(dc, width * 0.30, height * 0.834,
-                   Graphics.FONT_XTINY,
-                   "D+ " + upRemaining.format("%d") + "m",
-                   colW, muted);
-        fittedText(dc, width * 0.70, height * 0.834,
-                   Graphics.FONT_XTINY,
-                   "FIN " + finishClock,
-                   colW, muted);
+
+        fittedText(dc, width * 0.30, height * 0.733,
+                   Graphics.FONT_XTINY, "D+ PROCHAIN", colW, muted);
+        fittedText(dc, width * 0.70, height * 0.733,
+                   Graphics.FONT_XTINY, "FIN PREVUE", colW, muted);
+        fittedText(dc, width * 0.30, height * 0.775,
+                   Graphics.FONT_SMALL,
+                   upRemaining.format("%d") + " m", colW, white);
+        fittedText(dc, width * 0.70, height * 0.775,
+                   Graphics.FONT_SMALL, finishClock, colW, white);
+
+        // Device-local wall-clock time (not the course's official start).
+        // Activity elapsed time is shown beside it, including pauses.
+        // Hours deliberately do not wrap after 24h on an ultratrail.
+        var clock = System.getClockTime();
+        var nowText = clock.hour.format("%02d") + ":" +
+                      clock.min.format("%02d");
+        var raceHours = (_elapsedSec / 3600).toNumber();
+        var raceMinutes = ((_elapsedSec % 3600) / 60).toNumber();
+        var elapsedText = raceHours.format("%02d") + ":" +
+                          raceMinutes.format("%02d");
+        txt(dc, height * 0.865, Graphics.FONT_XTINY,
+            "HEURE " + nowText + "  /  COURSE " + elapsedText,
+            muted);
     }
 }
