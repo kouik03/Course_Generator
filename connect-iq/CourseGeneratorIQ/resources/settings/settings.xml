@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings>
+    <setting propertyKey="@Properties.Block1" title="@Strings.Block1Title" prompt="@Strings.PasteBlock">
+        <settingConfig type="alphaNumeric" maxLength="1500"/>
+    </setting>
+    <setting propertyKey="@Properties.Block2" title="@Strings.Block2Title" prompt="@Strings.PasteBlock">
+        <settingConfig type="alphaNumeric" maxLength="1500"/>
+    </setting>
+    <setting propertyKey="@Properties.Block3" title="@Strings.Block3Title" prompt="@Strings.PasteBlock">
+        <settingConfig type="alphaNumeric" maxLength="1500"/>
+    </setting>
+    <setting propertyKey="@Properties.StartDelay" title="@Strings.StartDelayTitle">
+        <settingConfig type="numeric" min="0" max="180"/>
+    </setting>
+    <setting propertyKey="@Properties.RestAlertMin" title="@Strings.RestAlertTitle">
+        <settingConfig type="numeric" min="0" max="30"/>
+    </setting>
+    <setting propertyKey="@Properties.AutoGps" title="@Strings.AutoGpsTitle">
+        <settingConfig type="boolean"/>
+    </setting>
+    <setting propertyKey="@Properties.ManualLap" title="@Strings.ManualLapTitle">
+        <settingConfig type="boolean"/>
+    </setting>
+    <setting propertyKey="@Properties.GpsRadius" title="@Strings.GpsRadiusTitle">
+        <settingConfig type="numeric" min="50" max="300"/>
+    </setting>
+</settings>
