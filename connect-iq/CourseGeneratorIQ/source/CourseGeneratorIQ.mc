@@ -772,24 +772,25 @@ class CourseGeneratorIQField extends WatchUi.DataField {
                    goal >= 0 ? signedMargin : "--",
                    colW, marginColor);
 
-        // Orange distance bar, small checkpoint dots and white runner marker.
-        // The checkpoints are visible HERE only: no bulky textual list.
-        drawRoadbookBar(dc, (height * 0.438).toNumber(), routeM,
-                        remainingM, false);
-
-        txt(dc, height * 0.508, Graphics.FONT_XTINY,
+        // ETA is above the progress bar. The bar's own kilometer caption
+        // is below it, so both strings have independent text rows.
+        txt(dc, height * 0.374, Graphics.FONT_XTINY,
             _atStation ? "RAVITO  /  LAP POUR REPARTIR" :
             "ETA " + etaClock + "  /  PLAN " + plannedClock, muted);
 
+        // Checkpoint markers remain on this single progress bar.
+        drawRoadbookBar(dc, (height * 0.461).toNumber(), routeM,
+                        remainingM, false);
+
         // Pace versus required pace takes the central, widest chord.
         var leftPace = segmentPace();
-        fittedText(dc, width * 0.30, height * 0.580,
+        fittedText(dc, width * 0.30, height * 0.555,
                    Graphics.FONT_XTINY, "MOY. /km", colW, muted);
-        fittedText(dc, width * 0.70, height * 0.580,
+        fittedText(dc, width * 0.70, height * 0.555,
                    Graphics.FONT_XTINY, "REQ. /km", colW, muted);
-        fittedText(dc, width * 0.30, height * 0.636,
+        fittedText(dc, width * 0.30, height * 0.609,
                    Graphics.FONT_MEDIUM, leftPace, colW, white);
-        fittedText(dc, width * 0.70, height * 0.636,
+        fittedText(dc, width * 0.70, height * 0.609,
                    Graphics.FONT_MEDIUM, requiredPace, colW,
                    marginColor);
 
@@ -802,15 +803,14 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         if (share > 1.0) { share = 1.0; }
         var upRemaining = ((point.ascentM - previousUp) * share).toNumber();
 
-        fittedText(dc, width * 0.30, height * 0.733,
-                   Graphics.FONT_XTINY, "D+ PROCHAIN", colW, muted);
-        fittedText(dc, width * 0.70, height * 0.733,
-                   Graphics.FONT_XTINY, "FIN PREVUE", colW, muted);
-        fittedText(dc, width * 0.30, height * 0.775,
-                   Graphics.FONT_SMALL,
-                   upRemaining.format("%d") + " m", colW, white);
-        fittedText(dc, width * 0.70, height * 0.775,
-                   Graphics.FONT_SMALL, finishClock, colW, white);
+        // Secondary figures need one row only: larger spacing for clock.
+        fittedText(dc, width * 0.30, height * 0.720,
+                   Graphics.FONT_XTINY,
+                   "D+ " + upRemaining.format("%d") + " m",
+                   colW, muted);
+        fittedText(dc, width * 0.70, height * 0.720,
+                   Graphics.FONT_XTINY,
+                   "FIN " + finishClock, colW, muted);
 
         // Device-local wall-clock time (not the course's official start).
         // Activity elapsed time is shown beside it, including pauses.
@@ -822,8 +822,10 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var raceMinutes = ((_elapsedSec % 3600) / 60).toNumber();
         var elapsedText = raceHours.format("%02d") + ":" +
                           raceMinutes.format("%02d");
-        txt(dc, height * 0.865, Graphics.FONT_XTINY,
+        // Put the clock on the wider lower-middle chord, not the
+        // near-edge row where the original long string was truncated.
+        txt(dc, height * 0.801, Graphics.FONT_XTINY,
             "H " + nowText + "  /  T " + elapsedText,
-            muted);
+            white);
     }
 }
