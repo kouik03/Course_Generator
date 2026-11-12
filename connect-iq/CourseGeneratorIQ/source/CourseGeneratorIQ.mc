@@ -21,6 +21,13 @@ class CourseGeneratorIQApp extends Application.AppBase {
         return [gCourseGeneratorField];
     }
 
+    // Garmin activity settings -> Connect IQ Fields -> Course Generator IQ.
+    // This independent menu intentionally contains no Base64 entry fields.
+    function getSettingsView() {
+        return [new CGIQWatchMenu("main", -1),
+                new CGIQWatchMenuDelegate("main", -1)];
+    }
+
     function onSettingsChanged() as Void {
         if (gCourseGeneratorField != null) {
             gCourseGeneratorField.reloadSettings();
@@ -57,6 +64,7 @@ class CourseGeneratorIQField extends WatchUi.DataField {
     var _b2len = 0;
     var _b3len = 0;
     var _decoderTest = "NON TESTE";
+    var _previewIndex = -1;
 
     function initialize() {
         DataField.initialize();
@@ -135,6 +143,44 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         } else {
             clearState();
         }
+        applyDeviceSettings();
+    }
+
+    // On-watch menu values are persisted in Storage, not in the phone
+    // settings. Apply them without reloading/replacing the live roadbook.
+    function applyDeviceSettings() {
+        _delayMin = cgiqWatchStartDelay();
+
+        var preview = Storage.getValue("previewCpIndex");
+        _previewIndex = -1;
+        if (_plan != null && _plan.error.length() == 0 &&
+            preview != null && preview >= 0 &&
+            preview < _plan.points.size()) {
+            _previewIndex = preview;
+        }
+
+        var req = Storage.getValue("manualCpRequestId");
+        var handled = Storage.getValue("manualCpAppliedId");
+        if (req == null || req == handled ||
+            _plan == null || _plan.error.length() != 0) {
+            return;
+        }
+        var target = Storage.getValue("manualCpIndex");
+        if (target != null && target >= 0 && target < _plan.points.size()) {
+            // Never pretend the GPS has reached the selected CP: retain
+            // measured route distance. Only the NEXT target changes.
+            _index = target;
+            _atStation = false;
+            _arrivalSec = 0;
+            _departTimerSec = _timerSec;
+            _nearSeconds = 0;
+            _awaySeconds = 0;
+            _prewarned = false;
+            _departureWarned = false;
+            _previewIndex = -1;
+            saveState();
+        }
+        Storage.setValue("manualCpAppliedId", req);
     }
 
     function clearState() {
@@ -184,12 +230,13 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             _lon = coords[1];
             _hasGps = true;
         }
+        applyDeviceSettings();
+        if (_elapsedSec >= 30) {
+            Storage.setValue("manualCpKeepAtStart", false);
+        }
         if (_plan == null || _plan.error.length() != 0 ||
             _index >= _plan.points.size()) {
             return;
-        }
-        if (_elapsedSec < 10 && _index > 0) {
-            clearState();
         }
         checkGps();
         checkRestAlerts();
@@ -197,8 +244,13 @@ class CourseGeneratorIQField extends WatchUi.DataField {
 
     function onTimerStart() as Void {
         if (_elapsedSec < 30) {
-            clearState();
+            // An explicit CP selection in watch settings before starting
+            // an activity should not be discarded as a stale previous race.
+            var armed = Storage.getValue("manualCpKeepAtStart");
+            if (armed != true) { clearState(); }
         }
+        Storage.setValue("manualCpKeepAtStart", false);
+        applyDeviceSettings();
         _paused = false;
     }
 
@@ -214,6 +266,9 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         _elapsedSec = 0;
         _timerSec = 0;
         _rawDistanceM = 0.0;
+        Storage.setValue("manualCpKeepAtStart", false);
+        Storage.setValue("previewCpIndex", -1);
+        _previewIndex = -1;
         clearState();
     }
 
@@ -657,6 +712,71 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         }
     }
 
+
+    // Browsing is read-only: live CP, LAP, pause and GPS progress still use
+    // _index. A separate preview screen prevents the CP's cutoff being
+    // confused with the real race cutoff.
+    function drawPointPreview(dc, index) {
+        var width = dc.getWidth();
+        var height = dc.getHeight();
+        var point = _plan.points[index];
+        var oldDistance = index == 0 ? 0.0 :
+                          _plan.points[index - 1].distanceM;
+        var oldUp = index == 0 ? 0 :
+                    _plan.points[index - 1].ascentM;
+        var oldDown = index == 0 ? 0 :
+                      _plan.points[index - 1].descentM;
+        var remaining = point.distanceM - currentRouteM();
+
+        var blue = 0x5EC8FF;
+        var white = Graphics.COLOR_WHITE;
+        var muted = 0xB7BBC4;
+        var heading = index == _plan.points.size() - 1 ?
+            "CONSULT FIN" : "CONSULT CP" + (index + 1).format("%d");
+        txt(dc, height * 0.105, Graphics.FONT_SMALL, heading, blue);
+        txt(dc, height * 0.195, Graphics.FONT_MEDIUM, point.name, white);
+
+        fittedText(dc, width * 0.29, height * 0.304,
+            Graphics.FONT_XTINY, "KM CUMULES", width * 0.35, muted);
+        fittedText(dc, width * 0.72, height * 0.304,
+            Graphics.FONT_XTINY, "KM TRONCON", width * 0.35, muted);
+        fittedText(dc, width * 0.29, height * 0.372,
+            Graphics.FONT_MEDIUM, (point.distanceM / 1000.0).format("%.2f"),
+            width * 0.35, white);
+        fittedText(dc, width * 0.72, height * 0.372,
+            Graphics.FONT_MEDIUM,
+            ((point.distanceM - oldDistance) / 1000.0).format("%.2f"),
+            width * 0.35, white);
+
+        fittedText(dc, width * 0.29, height * 0.482,
+            Graphics.FONT_XTINY, "D+ TRONCON", width * 0.35, muted);
+        fittedText(dc, width * 0.72, height * 0.482,
+            Graphics.FONT_XTINY, "D- TRONCON", width * 0.35, muted);
+        fittedText(dc, width * 0.29, height * 0.548,
+            Graphics.FONT_MEDIUM,
+            (point.ascentM - oldUp).format("%d") + " m",
+            width * 0.35, blue);
+        fittedText(dc, width * 0.72, height * 0.548,
+            Graphics.FONT_MEDIUM,
+            (point.descentM - oldDown).format("%d") + " m",
+            width * 0.35, blue);
+
+        txt(dc, height * 0.659, Graphics.FONT_XTINY,
+            "RESTE " + (remaining / 1000.0).format("%.1f") +
+            " km / PAUSE " + point.pauseMin.format("%d") + " min",
+            muted);
+
+        var barTime = point.cutoffMin == 65535 ?
+            "BH --:--" : "BH " + targetClock(point.cutoffMin);
+        txt(dc, height * 0.744, Graphics.FONT_SMALL,
+            barTime + " / PLAN " +
+            targetClock(_plan.officialStartMin + point.targetMin),
+            white);
+
+        txt(dc, height * 0.837, Graphics.FONT_XTINY,
+            "MENU > RETOUR SUIVI LIVE", blue);
+    }
+
     function onUpdate(dc as Graphics.Dc) as Void {
         var width = dc.getWidth();
         var height = dc.getHeight();
@@ -703,6 +823,13 @@ class CourseGeneratorIQField extends WatchUi.DataField {
                 "/" + _b3len.format("%d"), muted);
             txt(dc, height * 0.78, Graphics.FONT_XTINY,
                 _decoderTest, accent);
+            return;
+        }
+
+        // Read a watch-menu selection even when the activity is paused.
+        applyDeviceSettings();
+        if (_previewIndex >= 0) {
+            drawPointPreview(dc, _previewIndex);
             return;
         }
 
