@@ -255,6 +255,15 @@ class CourseGeneratorIQField extends WatchUi.DataField {
 
     function arriveStation() {
         if (_atStation || _index >= _plan.points.size()) { return; }
+        // Final checkpoint completes the course immediately: no departure LAP.
+        if (_index == _plan.points.size() - 1) {
+            _offsetM = _plan.points[_index].distanceM - _rawDistanceM;
+            _index++;
+            _atStation = false;
+            saveState();
+            buzz();
+            return;
+        }
         _atStation = true;
         _arrivalSec = _elapsedSec;
         _offsetM = _plan.points[_index].distanceM - _rawDistanceM;
