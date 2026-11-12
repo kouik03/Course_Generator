@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <iq:manifest version="3" xmlns:iq="http://www.garmin.com/xml/connectiq">
-    <iq:application id="6c6a85a5c1974c5a92a9445e16f8a701"
-                    type="datafield"
-                    name="@Strings.AppName"
-                    entry="CourseGeneratorIQApp"
-                    launcherIcon="@Drawables.LauncherIcon"
-                    minApiLevel="3.2.0">
+    <iq:application id="a8a5d8afe7454c5da42ddd619c7ab3ab" type="datafield" name="@Strings.AppName" entry="CourseGeneratorIQApp" minApiLevel="3.2.0" launcherIcon="@Drawables.LauncherIcon">
         <iq:products>
             <iq:product id="fenix9pro51mm"/>
         </iq:products>
@@ -14,5 +9,9 @@
             <iq:language>eng</iq:language>
             <iq:language>fre</iq:language>
         </iq:languages>
+        <iq:barrels/>
+        <iq:activityFilter>
+            <iq:activity sport="Toybox.Activity.SPORT_RUNNING"/>
+        </iq:activityFilter>
     </iq:application>
 </iq:manifest>
