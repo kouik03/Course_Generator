@@ -260,3 +260,100 @@ Lancer `CGIq`, avec `fenix9pro51mm`. Verifier sur le simulateur :
 La demo a un depart officiel fictif a 07:30 : si le simulateur est lance a 20h, le compteur de BH reste exprime depuis le depart fictif et ne concorde pas avec l'horloge courante. En course reelle, il faut configurer exactement l'heure de depart et son decalage. **La compilation Monkey C et le rendu final de ce lot ne sont pas verifies par les workflows Python : ils restent a valider dans le simulateur macOS.**
 
 Le D- CP est encore une **approximation lineaire sur le troncon**, et non le D- restant extrait de la geometrie GPX. Les pictogrammes et l'ergonomie sont une implementation propre a Course Generator IQ, sans reutilisation de graphismes TrailRace+ PRO.
+
+## Reglages directement sur la montre : menus independants de Garmin Connect IQ mobile
+
+La Fenix 9 Pro permet l'entree **getSettingsView()** pour les champs de donnees.
+Ceci est une **interface differente** des fichiers de parametres XML editables
+sur le telephone. L'ecran de la montre ne contient pas de champs Base64 :
+les trois blocs sont toujours lus depuis l'application Garmin Connect IQ
+sur le telephone, mais ne sont pas exposes dans le menu de la montre.
+
+### Acces
+
+Dans le profil d'activite qui contient le champ **Course Generator IQ**, ouvrir
+les reglages de l'activite, puis l'entree **Connect IQ Fields / Champs Connect IQ**
+et choisir **Course Generator IQ** (le chemin exact peut varier avec le firmware
+Fenix 9 Pro). Dans le simulateur Garmin : **Settings -> Trigger App Settings**
+lorsque le champ de donnees est charge. Si l'entree est grisee, verifier que
+c'est bien le PRG nouvellement compile et que le champ est actif.
+
+### Menu
+
+1. **Depart en vague** : retards predefinis +0, +5, +10, +15, +20,
+   +30, +45, +60, +90, +120 et +180 minutes ; ajustements +1/-1 et +5/-5
+   minutes pour les vagues non rondes. **Reglage telephone** retire la
+   surcharge de la montre et reprend `StartDelay` defini dans Garmin Connect IQ.
+   Les barrières officielles **ne bougent pas** lorsqu'on change le retard.
+2. **Consulter un CP** : liste dynamique des 1 a 25 CP du roadbook actuel,
+   avec leurs vrais noms, km et D+ cumule. Choisir un point affiche une
+   fiche **CONSULTATION** dans le champ, indiquant kilometres cumules,
+   longueur du troncon, D+/D- du troncon, D+/D- cumules, distance
+   depuis la position actuelle, pause, BH et passage prevu.
+   Le **suivi de course continue normalement** pendant cette consultation,
+   sans modifier le CP courant ou l'historique des pauses.
+3. **Retour suivi live** : quitte la consultation pour retrouver
+   l'ecran de course normal.
+4. **Changer prochain CP** : selection d'un prochain CP, puis **confirmation
+   obligatoire** pour reprendre le suivi sur cette cible. Cela change le
+   prochain CP **sans inventer un passage GPS** et sans recalibrer
+   artificiellement la distance Garmin. Les donnees enregistrees des CP
+   anterieurs ne sont pas reconstruites.
+   
+### Persistance et securite
+
+- Le retard applique sur la montre est conserve en stockage local et prime
+  sur celui du telephone tant qu'il n'est pas reinitialise via
+  **Reglage telephone**.
+- La consultation est stockee separement et n'altere pas le CP courant,
+  les LAP, les pauses ou le recalcule de la marge.
+- Les choix de prochain CP comportent une confirmation et sont relies a la
+  **signature du roadbook charge**, empechant le report d'une ancienne
+  selection a un autre parcours.
+- Une selection explicite faite avant le depart est preservee lors du
+  demarrage initial de l'activite. Un reset d'activite remet le suivi a zero.
+- Il faut sortir du menu pour revenir a l'ecran principal ; si un
+  sous-titre du menu deja ouvert parait ancien apres un changement,
+  quitter et rouvrir le menu.
+
+### Plan de test montre / simulateur
+
+1. Lancer `CGIq` puis **Settings -> Trigger App Settings**.
+2. Confirmer que le menu ne comporte **aucun champ Base64**.
+3. Choisir **Depart en vague -> +15 minutes** puis revenir au
+   tableau de bord : la BH reste a 08:40 dans la demo et le temps restant
+   diminue de 15 minutes. Le changement doit persister en rouvrant le
+   champ. Choisir ensuite **Reglage telephone** pour revenir au retard 0.
+4. Choisir **Consulter un CP -> CP2 R2 DEMO** ; sur l'ecran
+   consultation, verifier 11 km cumules, 6 km de troncon et les D+/D-
+   du troncon (280 m / 250 m). L'ecran de course doit toujours suivre R1.
+5. **Retour suivi live** : retrouver R1 DEMO sans passage fictif.
+6. **Changer prochain CP -> R2 -> Annuler** : rien ne change.
+   Recommencer puis **Confirmer** : R2 devient le prochain CP.
+7. Charger de nouveaux blocs, puis verifier qu'une consultation et un
+   recalage anciens ne sont plus appliques a tort.
+
+**Important : cette interface Monkey C doit encore etre compilee et testee
+sur ton SDK Connect IQ 9.3.0.** Les tests Python verifies sur GitHub
+controlent le codec et les invariants de source, mais ne garantissent pas
+que le menu soit visible sur le firmware exact de la montre.
+
+### Pourquoi conserver CGIQ v1 pour l'instant
+
+Le codec actuel est un **format de roadbook versionne**, pas un prototype
+jetable, mais son encodeur Python sert encore de **pont intermediaire** en
+attendant l'export direct depuis Course Generator Java.
+
+Le TR1 existant (routecode.py / routecode-adaptive.js) optimise un autre
+contenu : geometry GPS simplifiee, profils d'altitude et points de controle,
+dans trois champs allant jusqu'a environ 2000 caracteres chacun, avec
+CRC16. L'encodeur adaptatif teste des budgets points/profils et protege les
+points de controle dans la simplification ; cela peut reduire fortement la
+taille a precision acceptable, mais ne prouve pas une compression
+mathematiquement optimale de tout parcours possible.
+
+CGIQ v1 conserve quant a lui les **temps cibles, pauses, D+/D- cumules,
+BH avant/apres ravito et coordonnees optionnelles**, mais ne porte pas
+encore les points de trace et de profil. L'integration future
+spatiale/temps exige une etude de budget de bytes et un protocole compatible,
+plutot que de substituer brutalement un des deux encodages.
