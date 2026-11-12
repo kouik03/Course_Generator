@@ -50,6 +50,7 @@ class CourseGeneratorIQField extends WatchUi.DataField {
     var _autoGps = true;
     var _manualLap = true;
     var _radiusM = 100;
+    var _progressMode = 2; // 0 full course, 1 between CPs, 2 last-km zoom
     var _paused = false;
     var _b1len = 0;
     var _b2len = 0;
@@ -106,6 +107,10 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         if (manual != null) { _manualLap = manual; }
         var radius = Properties.getValue("GpsRadius");
         if (radius != null) { _radiusM = radius; }
+        var mode = Properties.getValue("ProgressMode");
+        if (mode != null && mode >= 0 && mode <= 2) {
+            _progressMode = mode;
+        }
 
         if (_plan.error.length() != 0) {
             clearState();
@@ -491,157 +496,336 @@ class CourseGeneratorIQField extends WatchUi.DataField {
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
 
+    // Fit a single text item in its own column. We never draw off the dial.
+    function fittedText(dc, centerX, y, font, textValue, maxW, color) {
+        var selected = font;
+        if (dc.getTextWidthInPixels(textValue, selected) > maxW &&
+            selected == Graphics.FONT_LARGE) {
+            selected = Graphics.FONT_MEDIUM;
+        }
+        if (dc.getTextWidthInPixels(textValue, selected) > maxW &&
+            selected == Graphics.FONT_MEDIUM) {
+            selected = Graphics.FONT_SMALL;
+        }
+        if (dc.getTextWidthInPixels(textValue, selected) > maxW &&
+            selected == Graphics.FONT_SMALL) {
+            selected = Graphics.FONT_XTINY;
+        }
+        var out = textValue;
+        if (dc.getTextWidthInPixels(out, selected) > maxW) {
+            var length = out.length();
+            while (length > 0 && dc.getTextWidthInPixels(
+                textValue.substring(0, length) + "..", selected) > maxW) {
+                length--;
+            }
+            out = length == 0 ? "" : textValue.substring(0, length) + "..";
+        }
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(centerX, y, selected, out,
+                    Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    function maxSafeColumnWidth(dc, y, proposed) {
+        var allowed = usableTextWidth(dc, y, Graphics.FONT_SMALL);
+        // Columns share the middle of the same safe circular chord.
+        var half = allowed * 0.48;
+        return proposed < half ? proposed : half;
+    }
+
+    function remainingFinishSeconds() {
+        if (_plan == null || _index >= _plan.points.size()) { return 0; }
+        var result = remainingLegSec();
+        for (var i = _index + 1; i < _plan.points.size(); i++) {
+            result += plannedLegSec(i);
+        }
+        for (var j = _index; j < _plan.points.size() - 1; j++) {
+            result += restRemainingSec(j);
+        }
+        return result;
+    }
+
+    function segmentPace() {
+        if (_atStation || _index >= _plan.points.size()) { return "--:--"; }
+        var segmentStart = _index == 0 ? 0.0 :
+                           _plan.points[_index - 1].distanceM;
+        var movedM = currentRouteM() - segmentStart;
+        var activeSec = _timerSec - _departTimerSec;
+        if (movedM < 400 || activeSec <= 30) { return "--:--"; }
+        return formatPace(activeSec / 60.0 / (movedM / 1000.0));
+    }
+
+    // A checkpoint timeline, with the white dot tracking the athlete.
+    // View modes: entire race, current leg, or automatic last-kilometer zoom.
+    function drawRoadbookBar(dc, y, routeM, remainingM, compact) {
+        var width = dc.getWidth();
+        var x = (width * (compact ? 0.075 : 0.16)).toNumber();
+        var span = (width * (compact ? 0.85 : 0.68)).toNumber();
+        var last = _plan.points[_plan.points.size() - 1];
+        var fromM = 0.0;
+        var toM = last.distanceM;
+        var modeLabel = "PARCOURS";
+        var legStartM = _index == 0 ? 0.0 :
+                        _plan.points[_index - 1].distanceM;
+        var legEndM = _plan.points[_index].distanceM;
+
+        if (_progressMode == 1) {
+            fromM = legStartM;
+            toM = legEndM;
+            modeLabel = "TRONCON";
+        } else if (_progressMode == 2 &&
+                   remainingM <= 1000.0 && !_atStation &&
+                   _index < _plan.points.size()) {
+            fromM = legEndM - 1000.0;
+            if (fromM < legStartM) { fromM = legStartM; }
+            toM = legEndM;
+            modeLabel = "DERNIER KM";
+        }
+
+        if (toM <= fromM) { return; }
+        var viewM = routeM;
+        if (_atStation) { viewM = legEndM; }
+        if (viewM < fromM) { viewM = fromM; }
+        if (viewM > toM) { viewM = toM; }
+        var ratio = (viewM - fromM) / (toM - fromM);
+        var doneW = (span * ratio).toNumber();
+
+        dc.setColor(0x454C55, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(x, y - 3, span, 6, 3);
+        if (doneW > 0) {
+            dc.setColor(0xFF9800, Graphics.COLOR_TRANSPARENT);
+            dc.fillRoundedRectangle(x, y - 3, doneW, 6, 3);
+        }
+
+        // Small intermediate ticks make the last 1 km useful at a glance.
+        if (modeLabel == "DERNIER KM" && !compact) {
+            for (var tick = 1; tick < 10; tick++) {
+                var positionM = fromM + (toM - fromM) * tick / 10.0;
+                var pixel = x + ((positionM - fromM) /
+                                 (toM - fromM) * span).toNumber();
+                dc.setColor(0x65717C, Graphics.COLOR_TRANSPARENT);
+                dc.drawLine(pixel, y - 8, pixel, y + 7);
+            }
+        }
+
+        // All roadbook checkpoints visible in full-course view.
+        for (var i = 0; i < _plan.points.size(); i++) {
+            var km = _plan.points[i].distanceM;
+            if (km < fromM || km > toM) { continue; }
+            var markerX = x +
+                ((km - fromM) / (toM - fromM) * span).toNumber();
+            var isPassed = i < _index || (i == _index && _atStation);
+            var color = isPassed ? 0xFF9800 : 0xBAC1CA;
+            dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(markerX, y, i == _index ? 5 : 3);
+        }
+
+        // Current athlete position, deliberately bigger than CP markers.
+        var hereX = x + doneW;
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(hereX, y, 7);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(hereX, y, 4);
+
+        if (!compact) {
+            var caption = modeLabel + "  ";
+            if (modeLabel == "PARCOURS") {
+                caption += (routeM / 1000.0).format("%.1f") + "/" +
+                           (last.distanceM / 1000.0).format("%.1f") + " KM";
+            } else {
+                caption += ((viewM - fromM) / 1000.0).format("%.1f") +
+                           "/" + ((toM - fromM) / 1000.0).format("%.1f") + " KM";
+            }
+            fittedText(dc, width / 2, y + (dc.getHeight() * 0.026),
+                       Graphics.FONT_XTINY, caption, width * 0.72, 0xB1B6C0);
+        }
+    }
+
+    function drawNextPointRow(dc, y, index, routeM, width) {
+        if (index >= _plan.points.size()) { return; }
+        var station = _plan.points[index];
+        var toGo = station.distanceM - routeM;
+        if (toGo < 0) { toGo = 0; }
+        var xLabel = width * 0.38;
+        var xValue = width * 0.73;
+        var nameColor = index == _index ? 0xFFFFFF : 0xBFC7D2;
+        fittedText(dc, xLabel, y, Graphics.FONT_SMALL, station.name,
+                   width * 0.39, nameColor);
+        fittedText(dc, xValue, y, Graphics.FONT_SMALL,
+                   (toGo / 1000.0).format("%.1f") + " km",
+                   width * 0.27, index == _index ? 0xFF9800 : 0xBFC7D2);
+    }
+
     function onUpdate(dc as Graphics.Dc) as Void {
         var width = dc.getWidth();
         var height = dc.getHeight();
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
-        var compact = height < 185 || width < 185;
-        var tiny = Graphics.FONT_XTINY;
-        var small = Graphics.FONT_SMALL;
-        var medium = Graphics.FONT_MEDIUM;
-        var large = Graphics.FONT_LARGE;
+
+        var compact = height < 190 || width < 190;
         var white = Graphics.COLOR_WHITE;
-        var pale = Graphics.COLOR_LT_GRAY;
-        var aqua = Graphics.COLOR_BLUE;
-        var gold = Graphics.COLOR_YELLOW;
-        var red = Graphics.COLOR_RED;
-        var green = Graphics.COLOR_GREEN;
+        var muted = 0xB7BBC4;
+        var accent = 0x18B8F3;
+        var orange = 0xFF9800;
+        var amber = 0xFFBD38;
+        var red = 0xFF3737;
+        var green = 0x24DD53;
 
         if (_plan == null || _plan.error.length() != 0) {
-            txt(dc, height * 0.14, tiny, "CG IQ / DIAGNOSTIC", pale);
-            txt(dc, height * 0.28, small,
+            txt(dc, height * 0.14, Graphics.FONT_XTINY,
+                "CG IQ / DIAGNOSTIC", muted);
+            txt(dc, height * 0.28, Graphics.FONT_SMALL,
                 _plan == null ? "AUCUN PLAN" : _plan.error, red);
             var detail = "AUCUN CARACTERE DETECTE";
             if (_plan != null && _plan.errorPos > 0) {
-                var index = _plan.errorPos;
+                var location = _plan.errorPos;
                 var block = 1;
-                if (index > _b1len) {
-                    index -= _b1len;
+                if (location > _b1len) {
+                    location -= _b1len;
                     block = 2;
-                    if (index > _b2len) {
-                        index -= _b2len;
+                    if (location > _b2len) {
+                        location -= _b2len;
                         block = 3;
                     }
                 }
                 detail = "BLOC " + block.format("%d") +
-                    "  POS " + index.format("%d");
+                         " POS " + location.format("%d");
             }
-            txt(dc, height * 0.43, small, detail, white);
+            txt(dc, height * 0.43, Graphics.FONT_SMALL, detail, white);
             if (_plan != null && _plan.errorCode >= 0) {
-                txt(dc, height * 0.53, small,
-                    "CHAR U+" + _plan.errorCode.format("%04X"), gold);
+                txt(dc, height * 0.53, Graphics.FONT_SMALL,
+                    "CHAR U+" + _plan.errorCode.format("%04X"), amber);
             }
-            txt(dc, height * 0.66, tiny,
+            txt(dc, height * 0.66, Graphics.FONT_XTINY,
                 "LONGUEURS " + _b1len.format("%d") +
                 "/" + _b2len.format("%d") +
-                "/" + _b3len.format("%d"), pale);
-            txt(dc, height * 0.78, tiny, _decoderTest, aqua);
+                "/" + _b3len.format("%d"), muted);
+            txt(dc, height * 0.78, Graphics.FONT_XTINY,
+                _decoderTest, accent);
             return;
         }
 
-        var title = _plan.demo ? "CG IQ / DEMO" : "COURSE GENERATOR";
+        var title = _plan.demo ? "CG IQ / DEMO" : "COURSE GENERATOR IQ";
         if (_index >= _plan.points.size()) {
-            txt(dc, height * 0.19, small, title, aqua);
-            txt(dc, height * 0.42, large, "ARRIVEE", green);
-            txt(dc, height * 0.64, medium,
+            txt(dc, height * 0.18, Graphics.FONT_SMALL, title, accent);
+            txt(dc, height * 0.38, Graphics.FONT_LARGE, "ARRIVEE", green);
+            txt(dc, height * 0.59, Graphics.FONT_MEDIUM,
                 (_rawDistanceM / 1000.0).format("%.2f") + " km", white);
+            txt(dc, height * 0.72, Graphics.FONT_SMALL,
+                "ROADBOOK TERMINE", muted);
             return;
         }
 
         var point = _plan.points[_index];
         var routeM = currentRouteM();
+        if (routeM < 0.0) { routeM = 0.0; }
         var remainingM = point.distanceM - routeM;
         if (remainingM < 0) { remainingM = 0.0; }
 
         var goal = findNextCutoff();
-        var margin = 0.0;
         var cutoffClock = "--:--";
-        var estimatedNeeded = 0.0;
+        var margin = 0.0;
         var requiredPace = "--:--";
-        var marginColor = pale;
+        var marginColor = muted;
         if (goal >= 0) {
-            var deadlineSec = (_plan.points[goal].cutoffMin -
+            // Official cutoffs never move with a later personal start.
+            var deadline = (_plan.points[goal].cutoffMin -
                 _plan.officialStartMin - _delayMin) * 60;
-            estimatedNeeded = neededSecondsUntil(goal);
-            margin = deadlineSec - _elapsedSec - estimatedNeeded;
+            margin = deadline - _elapsedSec - neededSecondsUntil(goal);
             cutoffClock = targetClock(_plan.points[goal].cutoffMin);
-            marginColor = margin < 0 ? red : (margin < 900 ? gold : green);
+            marginColor = margin < 0 ? red : (margin < 900 ? amber : green);
 
-            var availableMove = deadlineSec - _elapsedSec -
-                remainingRestUntil(goal);
-            var goalRemainingM = _plan.points[goal].distanceM - routeM;
-            if (availableMove > 60 && goalRemainingM > 10) {
+            var movable = deadline - _elapsedSec -
+                          remainingRestUntil(goal);
+            var distanceToLimit = _plan.points[goal].distanceM - routeM;
+            if (movable > 60 && distanceToLimit > 10) {
                 requiredPace = formatPace(
-                    availableMove / 60.0 / (goalRemainingM / 1000.0));
+                    movable / 60.0 / (distanceToLimit / 1000.0));
             }
         }
 
-        // Point names already contain their roadbook number (e.g. R1 DEMO).
-        // Prepending another number made "R1 R1 DEMO" on the watch.
-        var label = point.name;
-        var etaSec = _elapsedSec + remainingLegSec();
+        var eta = _elapsedSec + remainingLegSec();
         var etaClock = targetClock(_plan.officialStartMin +
-            _delayMin + (etaSec / 60).toNumber());
+            _delayMin + (eta / 60).toNumber());
+        var plannedClock = targetClock(_plan.officialStartMin +
+            _delayMin + point.targetMin);
+        var signedMargin = (margin < 0 ? "-" : "+") +
+            formatDuration(margin);
+        var finishClock = targetClock(_plan.officialStartMin +
+            _delayMin +
+            ((_elapsedSec + remainingFinishSeconds()) / 60).toNumber());
 
         if (compact) {
-            txt(dc, height * 0.03, tiny, title, aqua);
-            txt(dc, height * 0.25, medium, label, white);
-            if (_atStation) {
-                var waitSec = restRemainingSec(_index);
-                txt(dc, height * 0.51, large,
-                    "PAUSE " + formatDuration(waitSec), gold);
-            } else {
-                txt(dc, height * 0.50, large,
-                    (remainingM / 1000.0).format("%.1f") + " km", white);
-            }
-            txt(dc, height * 0.77, small,
-                goal < 0 ? "SANS BH" : "BH " + cutoffClock +
-                "  " + (margin < 0 ? "-" : "+") + formatDuration(margin),
-                marginColor);
+            txt(dc, height * 0.035, Graphics.FONT_XTINY,
+                point.name, accent);
+            txt(dc, height * 0.25, Graphics.FONT_LARGE,
+                _atStation ? "PAUSE " + formatDuration(restRemainingSec(_index)) :
+                (remainingM / 1000.0).format("%.1f") + " km", white);
+            drawRoadbookBar(dc, (height * 0.61).toNumber(), routeM,
+                            remainingM, true);
+            txt(dc, height * 0.76, Graphics.FONT_SMALL,
+                goal < 0 ? "SANS BH" :
+                "BH " + cutoffClock + " / " + signedMargin, marginColor);
             return;
         }
 
-        // Deliberately move the first and last lines toward the middle of
-        // the round AMOLED screen; font fitting handles remaining widths.
-        txt(dc, height * 0.145, tiny, title, aqua);
-        txt(dc, height * 0.235, medium, label, white);
+        // Garmin 51 mm full-screen: every line stays inside a safe chord
+        // of the round dial, unlike the former single-column prototype.
+        txt(dc, height * 0.116, Graphics.FONT_SMALL, point.name, accent);
 
-        if (_atStation) {
-            txt(dc, height * 0.335, small, "RAVITAILLEMENT", gold);
-            var left = restRemainingSec(_index);
-            txt(dc, height * 0.445, large,
-                left > 0 ? formatDuration(left) : "DEPART !",
-                left > 0 ? white : gold);
-            txt(dc, height * 0.570, small, "LAP = DEPART", pale);
-        } else {
-            txt(dc, height * 0.335, small, "DISTANCE RESTANTE", pale);
-            txt(dc, height * 0.445, large,
-                (remainingM / 1000.0).format("%.2f") + " km", white);
-            txt(dc, height * 0.570, small, "ETA " + etaClock +
-                " / PLAN " + targetClock(
-                    _plan.officialStartMin + _delayMin + point.targetMin),
-                pale);
-        }
+        var colW = width * 0.315;
+        fittedText(dc, width * 0.30, height * 0.208,
+                   Graphics.FONT_XTINY,
+                   _atStation ? "PAUSE RESTANTE" : "PROCHAIN / KM",
+                   colW, muted);
+        fittedText(dc, width * 0.70, height * 0.208,
+                   Graphics.FONT_XTINY,
+                   goal >= 0 ? "BH " + cutoffClock : "SANS BH",
+                   colW, muted);
 
-        var bhText = goal >= 0 ? "BH " + cutoffClock :
-            "AUCUNE BARRIERE";
-        txt(dc, height * 0.657, small, bhText, pale);
-        txt(dc, height * 0.726, medium,
-            goal >= 0 ? "MARGE " +
-                (margin < 0 ? "-" : "+") + formatDuration(margin) :
-                "MARGE --",
-            marginColor);
+        fittedText(dc, width * 0.30, height * 0.278,
+                   Graphics.FONT_LARGE,
+                   _atStation ? formatDuration(restRemainingSec(_index)) :
+                   (remainingM / 1000.0).format("%.2f"),
+                   colW, _atStation ? amber : white);
+        fittedText(dc, width * 0.70, height * 0.278,
+                   Graphics.FONT_LARGE,
+                   goal >= 0 ? signedMargin : "--",
+                   colW, marginColor);
 
-        var previousUp = _index == 0 ? 0 : _plan.points[_index - 1].ascentM;
-        var legLengthM = point.distanceM -
-            (_index == 0 ? 0 : _plan.points[_index - 1].distanceM);
-        var remainPart = legLengthM > 0 ?
-            remainingM / legLengthM : 0.0;
-        if (remainPart > 1.0) { remainPart = 1.0; }
-        var upRemaining = ((point.ascentM - previousUp) * remainPart).toNumber();
-        txt(dc, height * 0.823, tiny,
+        txt(dc, height * 0.398, Graphics.FONT_SMALL,
+            _atStation ? "RAVITO / LAP POUR REPARTIR" :
+            "ETA " + etaClock + "  /  PLAN " + plannedClock, muted);
+
+        drawRoadbookBar(dc, (height * 0.481).toNumber(), routeM,
+                        remainingM, false);
+
+        // The two next stops are always visible in addition to all the
+        // checkpoint dots along the timeline, each with the remaining km.
+        var first = _atStation ? _index + 1 : _index;
+        drawNextPointRow(dc, height * 0.583, first, routeM, width);
+        drawNextPointRow(dc, height * 0.644, first + 1, routeM, width);
+
+        var leftPace = segmentPace();
+        fittedText(dc, width * 0.30, height * 0.733,
+                   Graphics.FONT_XTINY, "MOY. TRONCON", colW, muted);
+        fittedText(dc, width * 0.70, height * 0.733,
+                   Graphics.FONT_XTINY, "REQUIS / KM", colW, muted);
+        fittedText(dc, width * 0.30, height * 0.780,
+                   Graphics.FONT_MEDIUM, leftPace, colW, white);
+        fittedText(dc, width * 0.70, height * 0.780,
+                   Graphics.FONT_MEDIUM, requiredPace, colW,
+                   marginColor);
+
+        var previousUp = _index == 0 ? 0 :
+                         _plan.points[_index - 1].ascentM;
+        var begin = _index == 0 ? 0.0 :
+                    _plan.points[_index - 1].distanceM;
+        var length = point.distanceM - begin;
+        var share = length > 0 ? remainingM / length : 0.0;
+        if (share > 1.0) { share = 1.0; }
+        var upRemaining = ((point.ascentM - previousUp) * share).toNumber();
+        txt(dc, height * 0.860, Graphics.FONT_XTINY,
             "D+ ~" + upRemaining.format("%d") +
-            "m  /  REQUIS " + requiredPace + "/km", pale);
+            "m  /  FIN ~" + finishClock, muted);
     }
 }
