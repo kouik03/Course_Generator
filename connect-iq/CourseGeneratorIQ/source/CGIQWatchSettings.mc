@@ -55,6 +55,9 @@ class CGIQWatchMenu extends WatchUi.Menu2 {
                     "Arreter la consultation", "live", null));
             }
             var current = Storage.getValue("pointIndex");
+            if (Storage.getValue("courseSig") != plan.signature) {
+                current = 0;
+            }
             if (current == null || current < 0 ||
                 current >= plan.points.size()) {
                 current = 0;
@@ -184,6 +187,7 @@ class CGIQWatchMenuDelegate extends WatchUi.Menu2InputDelegate {
                     // An event sequence prevents reapplying a manually
                     // selected CP every time the data field is opened.
                     Storage.setValue("manualCpIndex", _target);
+                    Storage.setValue("manualCpPlanSig", validPlan.signature);
                     // Preserve an explicit pre-start selection through the
                     // first onTimerStart(), which otherwise resets a new run.
                     Storage.setValue("manualCpKeepAtStart", true);
