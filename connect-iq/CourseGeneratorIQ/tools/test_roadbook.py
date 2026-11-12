@@ -34,6 +34,31 @@ class RoadbookTests(unittest.TestCase):
         self.assertEqual(restored["points"][1]["cutoff_min"], 1605)
         self.assertEqual(restored["points"][1]["cutoff_after_pause"], False)
 
+    def test_exact_simulator_base64_and_padding(self):
+        # The exact three 40-character blocks reported by the simulator user.
+        # They contain two legal '=' padding characters at the end.
+        blocks = [
+            "Q0dJUQEDwgH0AbQAZAAwAAUIAgEAAAAAAAAHUjEg",
+            "REVNT0wEzAFeAXMACFMCAQAAAAAAAAdSMiBERU1P",
+            "CAfQArICyAAArQIAAAAAAAAACEZJTiBERU1Ppg==",
+        ]
+        self.assertEqual([len(b) for b in blocks], [40, 40, 40])
+        base64_text = "".join(blocks)
+        self.assertTrue(base64_text.endswith("=="))
+        payload = base64.b64decode(base64_text, validate=True)
+        self.assertEqual(len(payload), 88)
+        self.assertEqual(sum(payload) % 256, 0)
+        self.assertEqual(decode(payload)["official_start_min"], 450)
+        self.assertEqual(len(decode(payload)["points"]), 3)
+        self.assertEqual(
+            encode(__import__("json").loads(
+                (Path(__file__).parent / "demo-roadbook.json").read_text(
+                    encoding="utf-8"
+                )
+            )),
+            payload,
+        )
+
     def test_three_blocks_join_exactly(self):
         payload = encode(self.model)
         encoded = base64.b64encode(payload).decode("ascii")
