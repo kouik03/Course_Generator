@@ -13,13 +13,16 @@ class CGIQNativeMenu extends WatchUi.Menu2 {
     var _page = 0;
     var _target = 0;
     var _count = 0;
+    var _initializing = false;
     var _plan = null;
     var _waves = [0, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, -1, -2, -3, -4, -10];
 
     function initialize() {
         Menu2.initialize({:title=>"Course Generator IQ"});
         _plan = cgiqLoadWatchPlan();
+        _initializing = true;
         showPage(0, 0);
+        _initializing = false;
     }
 
     function add(label, sub, id) {
@@ -90,7 +93,11 @@ class CGIQNativeMenu extends WatchUi.Menu2 {
             add("Annuler", "Conserver le suivi", 5001);
         }
         if (_count > 0) { setFocus(0); }
-        WatchUi.requestUpdate();
+        // The initial menu is constructed before getSettingsView returns:
+        // requesting a redraw before Garmin displays it can be invalid.
+        if (!_initializing) {
+            WatchUi.requestUpdate();
+        }
     }
 }
 
