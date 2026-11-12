@@ -1,0 +1,17 @@
+name: Course Generator IQ roadbook codec
+on:
+  push:
+    branches:
+      - experiment/terrain-debiased-curve-v1
+    paths:
+      - "connect-iq/CourseGeneratorIQ/**"
+      - ".github/workflows/cgiq-roadbook-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  python-codec-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run standalone encoder and protocol tests
+        run: python3 -m unittest discover -s connect-iq/CourseGeneratorIQ/tools -p 'test_*.py' -v
