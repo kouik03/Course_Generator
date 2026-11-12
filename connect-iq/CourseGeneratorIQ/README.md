@@ -195,3 +195,20 @@ La commande enchaine :
 4. **Uniquement si la compilation reussit**, fermeture des anciennes instances de ConnectIQ.app, lancement d'un simulateur neuf et execution avec `monkeydo`.
 
 Le SDK peut etre force avec la variable `CGIQ_SDK=/chemin/du/SDK` si besoin. La commande ne modifie pas volontairement le stockage persistant des blocs Base64 du simulateur. Les fichiers d'installation shell sont lus par `bash`, donc les commentaires `#` n'entrainent pas l'erreur `zsh: command not found: #`.
+
+## Affichage course minimaliste (inspire des principes de TrailRace+ PRO)
+
+L'ecran plein champ n'affiche desormais **qu'un seul ravitaillement textuel** : le prochain point courant en haut. La barre conserve uniquement ses petits marqueurs de CP, sans liste de noms et de kilometrages sous celle-ci.
+
+Du haut vers le bas :
+1. Nom du prochain CP.
+2. Distance restante / marge face a l'heure de barriere officielle (deux grandes valeurs).
+3. Progression orange de la course, marqueurs de CP, position blanche.
+4. ETA recalculee et heure cible du plan, ou indication LAP pendant la pause.
+5. Moyenne du troncon / allure requise pour la prochaine barriere.
+6. D+ approximatif restant au prochain CP / heure estimee de fin.
+7. **Heure locale et temps ecoule d'activite** sur la derniere ligne : `H 19:35 / T 03:21`. H = heure actuelle fournie par la montre (`System.getClockTime`), T = duree d'activite, pauses incluses. T ne revient pas a zero apres 24 heures.
+
+Le champ **ne deplace pas les barrieres officielles** si le depart est retarde. L'horloge H est celle de la montre, sans la reconstituer a partir de l'heure de depart. Les donnees restees dans le roadbook sont reutilisees, seules les positions visuelles ont change.
+
+**Test a realiser sur le SDK 9.3.0 :** lancer `CGIq`, verifier qu'aucune info en bas ne se chevauche, que l'horloge H reflete l'heure du Mac/simulateur, et que T avance quand l'activite est en cours.
