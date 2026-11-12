@@ -13,5 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Validate global CGIq launcher and installation scripts
+        run: |
+          bash -n connect-iq/CourseGeneratorIQ/run-cqiq.sh
+          bash -n connect-iq/CourseGeneratorIQ/install-cqiq.sh
       - name: Run standalone encoder and protocol tests
         run: python3 -m unittest discover -s connect-iq/CourseGeneratorIQ/tools -p 'test_*.py' -v
