@@ -131,3 +131,39 @@ En cas de chaine non reconnue, l'ecran affiche :
 - **DECODEUR OK** : le decodeur a accepte un vecteur de test integre de 120 caracteres / 88 octets, identique au roadbook demo genere. Si ce test est OK et les valeurs utilisateur sont refusees, le probleme se situe dans la transmission/saisie des reglages.
 
 L'application refuse le plan si sa somme de controle n'est pas bonne : **aucune extrapolation sur un roadbook endommage**. Les deux alphabets Base64 standard et URL-safe sont acceptes.
+
+## Affichage 51 mm : tableau de bord de progression
+
+La vue plein écran est inspirée des **principes d'ergonomie** des champs de données TrailRace+ : chiffres lisibles en mouvement, progression visuelle et points de contrôle sur la ligne, sans réutiliser ses ressources graphiques.
+
+- **En-tête** : nom du prochain point de contrôle, sans préfixe doublé.
+- **Deux grandes valeurs** : distance en km jusqu'au prochain point (à gauche) ; **marge prévisionnelle** avec couleur verte/ambre/rouge (à droite). La barrière horaire affichée au-dessus reste une heure **officielle**, inchangée par un départ personnel retardé.
+- **Ligne ETA / PLAN** : ETA recalculée par le moteur actuel, face au passage cible du roadbook.
+- **Barre de progression** : section orange déjà parcourue, points pour les ravitaillements et l'arrivée, petit point blanc pour la position courante.
+- **Deux lignes de prochains points** : noms et distances restant à parcourir depuis la position actuelle, et non les distances cumulées.
+- **Bas** : allure moyenne du tronçon (elle reste inconnue avant 400 m parcourus) et allure requise jusqu'à la prochaine barrière, puis D+ restant approximatif / ETA arrivée.
+- **Pause au ravito** : le grand chiffre gauche devient la durée de pause restante ; la ligne ETA devient une indication du bouton LAP pour repartir.
+
+### Modes de la barre de progression
+
+Dans les paramètres Connect IQ : **Barre de progression**.
+
+| Mode | Description |
+| --- | --- |
+| **Parcours entier** | Distance du départ à l'arrivée, avec points de tous les ravitaillements |
+| **Entre ravitaillements** | Portion entre le point précédent et le prochain, avec la progression locale |
+| **Automatique (défaut)** | Parcours entier puis, dans le dernier kilomètre avant le prochain point, zoom sur ce dernier kilomètre avec repères tous les 100 m |
+
+La barre utilise la distance **de l'activité Garmin recalée au passage des ravitos**, pas une localisation projetée sur la trace GPX comme TrailRace+ PRO. La précision du zoom reste donc limitée par la précision kilométrique de Garmin et par les recalages.
+
+### Vérifications sur la Fēnix 9 Pro 51 mm
+
+1. Charger les trois blocs de démonstration existants, sans les modifier.
+2. Vérifier la nouvelle présentation : **R1 DEMO**, 5,00 km, +17 min, ETA 08:18, BH 08:40, points R1 / R2 / FIN et point blanc au départ.
+3. Dans les réglages du simulateur, changer **Barre de progression** entre les trois modes. Le mode automatique doit être visible en simulant moins de 1 km avant R1 (ex. position 4,5 km).
+4. Simuler une activité qui avance : le remplissage orange et le point blanc progressent, les distances des deux lignes diminuent.
+5. Simuler un LAP manuel d'arrivée au R1, puis le suivant pour repartir : le grand chiffre gauche affiche la pause, puis le prochain R2.
+6. Vérifier le cadran rond mais aussi un écran 1/2 champ (affichage compact simplifié).
+7. Vérifier qu'aucune valeur ne se coupe contre le bord du cadran.
+
+**Ce lot d'affichage reste à compiler et vérifier dans le simulateur SDK 9.3.0**. Les GitHub Actions existantes ne compilent pas le code Monkey C.
