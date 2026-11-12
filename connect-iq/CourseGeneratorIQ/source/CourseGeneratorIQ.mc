@@ -176,8 +176,20 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var requestPlan = Storage.getValue("manualCpPlanSig");
         if (requestPlan == _plan.signature && target != null &&
             target >= 0 && target < _plan.points.size()) {
-            // Never pretend the GPS has reached the selected CP: retain
-            // measured route distance. Only the NEXT target changes.
+            // Choosing the NEXT CP confirms every CP before it. Anchor the
+            // virtual course position at least at the previous checkpoint;
+            // otherwise selecting FIN at activity distance 0 would leave
+            // the progress bar empty and show the full 18 km remaining.
+            //
+            // This is a ROADBOOK correction only: _rawDistanceM (Garmin's
+            // measured activity distance and the FIT track) is unchanged.
+            var previousM = target == 0 ? 0.0 :
+                            _plan.points[target - 1].distanceM;
+            var routeBeforeM = currentRouteM();
+            if (target < _index || routeBeforeM < previousM) {
+                _offsetM = previousM - _rawDistanceM;
+            }
+
             _index = target;
             _atStation = false;
             _arrivalSec = 0;
@@ -672,7 +684,9 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             if (km < fromM || km > toM) { continue; }
             var markerX = x +
                 ((km - fromM) / (toM - fromM) * span).toNumber();
-            var isPassed = i < _index || (i == _index && _atStation);
+            // Draw completed CPs from confirmed virtual position, not
+            // merely from the currently selected NEXT CP index.
+            var isPassed = km <= routeM;
             dc.setColor(0x6EC4FF, Graphics.COLOR_TRANSPARENT);
             if (isPassed) {
                 dc.fillCircle(markerX, y, 4);
