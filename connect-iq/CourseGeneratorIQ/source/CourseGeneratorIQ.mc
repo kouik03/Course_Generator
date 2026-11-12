@@ -620,13 +620,13 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         dc.fillCircle(hereX, y, 4);
 
         if (!compact) {
-            var caption = modeLabel + "  ";
+            var caption = "";
             if (modeLabel == "PARCOURS") {
-                caption += (routeM / 1000.0).format("%.1f") + "/" +
-                           (last.distanceM / 1000.0).format("%.1f") + " KM";
+                caption = (routeM / 1000.0).format("%.1f") + " / " +
+                          (last.distanceM / 1000.0).format("%.1f") + " km";
             } else {
-                caption += ((viewM - fromM) / 1000.0).format("%.1f") +
-                           "/" + ((toM - fromM) / 1000.0).format("%.1f") + " KM";
+                caption = ((viewM - fromM) / 1000.0).format("%.1f") +
+                          " / " + ((toM - fromM) / 1000.0).format("%.1f") + " km";
             }
             fittedText(dc, width / 2, y + (dc.getHeight() * 0.026),
                        Graphics.FONT_XTINY, caption, width * 0.72, 0xB1B6C0);
@@ -768,7 +768,7 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var colW = width * 0.315;
         fittedText(dc, width * 0.30, height * 0.208,
                    Graphics.FONT_XTINY,
-                   _atStation ? "PAUSE RESTANTE" : "PROCHAIN / KM",
+                   _atStation ? "PAUSE" : "RESTE",
                    colW, muted);
         fittedText(dc, width * 0.70, height * 0.208,
                    Graphics.FONT_XTINY,
@@ -800,9 +800,9 @@ class CourseGeneratorIQField extends WatchUi.DataField {
 
         var leftPace = segmentPace();
         fittedText(dc, width * 0.30, height * 0.733,
-                   Graphics.FONT_XTINY, "MOY. TRONCON", colW, muted);
+                   Graphics.FONT_XTINY, "MOY. /km", colW, muted);
         fittedText(dc, width * 0.70, height * 0.733,
-                   Graphics.FONT_XTINY, "REQUIS / KM", colW, muted);
+                   Graphics.FONT_XTINY, "REQ. /km", colW, muted);
         fittedText(dc, width * 0.30, height * 0.780,
                    Graphics.FONT_MEDIUM, leftPace, colW, white);
         fittedText(dc, width * 0.70, height * 0.780,
@@ -817,8 +817,8 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var share = length > 0 ? remainingM / length : 0.0;
         if (share > 1.0) { share = 1.0; }
         var upRemaining = ((point.ascentM - previousUp) * share).toNumber();
-        txt(dc, height * 0.860, Graphics.FONT_XTINY,
-            "D+ ~" + upRemaining.format("%d") +
-            "m  /  FIN ~" + finishClock, muted);
+        txt(dc, height * 0.845, Graphics.FONT_XTINY,
+            "D+ " + upRemaining.format("%d") +
+            "m   FIN " + finishClock, muted);
     }
 }
