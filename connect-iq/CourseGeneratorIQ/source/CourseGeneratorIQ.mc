@@ -62,9 +62,9 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var second = Properties.getValue("Block2");
         var third = Properties.getValue("Block3");
         var data = "";
-        if (first != null) { data += first; }
-        if (second != null) { data += second; }
-        if (third != null) { data += third; }
+        if (first != null) { data += first.toString(); }
+        if (second != null) { data += second.toString(); }
+        if (third != null) { data += third.toString(); }
 
         var nextPlan = new CGIQPlan();
         if (data.length() == 0) {
