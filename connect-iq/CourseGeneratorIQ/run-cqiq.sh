@@ -8,6 +8,23 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 PROJECT="$SCRIPT_DIR"
 BRANCH="experiment/terrain-debiased-curve-v1"
 DEVICE="fenix9pro51mm"
+# "CGIq" => custom simulator menu, "CGIq menu2" => real Menu2
+# implementation also executed inside the simulator for an A/B test.
+MENU_MODE="${1:-custom}"
+case "$MENU_MODE" in
+    custom|simulator)
+        JUNGLE="$PROJECT/monkey.jungle"
+        MENU_MODE="custom"
+        ;;
+    menu2|native|device)
+        JUNGLE="$PROJECT/monkey.native.jungle"
+        MENU_MODE="menu2"
+        ;;
+    *)
+        printf "Usage : CGIq [custom|menu2]\n" >&2
+        exit 2
+        ;;
+esac
 OUTPUT="$PROJECT/bin/CourseGeneratorIQ.prg"
 KEY="$HOME/Library/Mobile Documents/com~apple~CloudDocs/garmin/developer_key"
 SDK_HOME="$HOME/Library/Application Support/Garmin/ConnectIQ/Sdks"
@@ -17,7 +34,7 @@ fail() {
     exit 1
 }
 
-printf '\n=== Course Generator IQ | fenix 9 Pro 51 mm ===\n'
+printf '\n=== Course Generator IQ | fenix 9 Pro 51 mm | menu %s ===\n' "$MENU_MODE"
 
 [[ -d "$REPO_ROOT/.git" ]] || fail "Le depot Git est introuvable : $REPO_ROOT"
 CURRENT_BRANCH="$(git -C "$REPO_ROOT" branch --show-current)"
@@ -46,13 +63,13 @@ fi
 [[ -x "$SDK/bin/monkeydo" ]] || fail "monkeydo introuvable dans : $SDK"
 [[ -d "$SDK/bin/ConnectIQ.app" ]] || fail "ConnectIQ.app introuvable dans : $SDK"
 [[ -f "$KEY" ]] || fail "Cle Garmin introuvable : $KEY"
-[[ -f "$PROJECT/monkey.jungle" ]] || fail "Fichier monkey.jungle introuvable"
+[[ -f "$JUNGLE" ]] || fail "Fichier Jungle introuvable : $JUNGLE"
 
 printf '\n[2/4] Compilation (%s)...\n' "$DEVICE"
 printf 'SDK : %s\n' "$SDK"
 mkdir -p "$PROJECT/bin"
 "$SDK/bin/monkeyc" \
-    -f "$PROJECT/monkey.jungle" \
+    -f "$JUNGLE" \
     -o "$OUTPUT" \
     -y "$KEY" \
     -d "$DEVICE" \
