@@ -2,6 +2,7 @@ import Toybox.Application.Properties;
 import Toybox.Application.Storage;
 import Toybox.WatchUi;
 import Toybox.Lang;
+import Toybox.System;
 
 // Watch-side menus are entirely separate from the phone-side XML settings.
 // In particular the three Base64 blocks are NEVER shown on the watch.
@@ -30,6 +31,21 @@ function cgiqWatchStartDelay() {
     return phone == null ? 0 : phone;
 }
 
-// The device UI is now implemented in CGIQDeviceSettings.mc as a plain
-// WatchUi.View plus BehaviorDelegate. These helpers are shared with the
-// activity data field and the on-watch configuration view.
+// Both menu engines call this after a confirmed edit or "Return to live".
+// The settings view is system-owned, not the data field's ordinary View.
+function cgiqCloseSettings() {
+    try {
+        WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+        return true;
+    } catch (e) {
+        // Garmin may restrict popView on a given firmware. In that case,
+        // do NOT call System.exit() (which would terminate the data field).
+        // Leave the view in place for a platform-level Back action and
+        // log the actual exception so simulator/real hardware can be
+        // compared without guessing.
+        System.println("CGIQ settings: popView unavailable: " + e);
+        return false;
+    }
+}
+
+// Shared by the custom simulator View and native real-device Menu2.
