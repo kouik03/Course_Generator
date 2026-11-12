@@ -36,11 +36,11 @@ class OnDeviceSettingsContractTests(unittest.TestCase):
         )[0]
         self.assertNotIn("_index =", preview)
         self.assertNotIn("Storage.setValue(", preview)
-        self.assertIn('Storage.setValue("previewCpIndex", id)', self.menu)
+        self.assertIn('Storage.setValue("previewCpIndex", previewId)', self.menu)
         self.assertIn('Storage.setValue("previewCpIndex", -1)', self.menu)
 
     def test_manual_retarget_requires_confirmation_and_plan_identity(self):
-        self.assertIn('next("confirm", id)', self.menu)
+        self.assertIn('next("confirm", jumpId)', self.menu)
         self.assertIn('if (id == "apply")', self.menu)
         self.assertIn('Storage.setValue("manualCpPlanSig", validPlan.signature)', self.menu)
         self.assertIn("requestPlan == _plan.signature", self.field)
