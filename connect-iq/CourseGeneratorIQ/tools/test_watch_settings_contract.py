@@ -121,11 +121,42 @@ class OnDeviceSettingsContractTests(unittest.TestCase):
         self.assertIn("_delayMin = cgiqWatchStartDelay()", self.field)
 
     def test_main_screen_top_header_stays_visible(self):
-        self.assertIn("var headerY = (height * 0.095).toNumber();", self.field)
-        self.assertIn("nameY = headerY + hHead + 2;", self.field)
-        self.assertIn("if (footerY + hTiny <= height * 0.88)", self.field)
-        self.assertIn("paceFont = Graphics.FONT_SMALL;", self.field)
-        self.assertIn("numberFont = Graphics.FONT_MEDIUM;", self.field)
+        # The prior 9.5%-height top anchor placed CP/name/BH outside the
+        # usable chord of the round Fenix 9 Pro display.
+        self.assertNotIn("var headerY = (height * 0.095).toNumber();",
+                         self.field)
+        self.assertIn("function roundColumnText(", self.field)
+        self.assertIn("function fontForSlot(", self.field)
+        self.assertIn("var chord = usableTextWidth(dc, y, font);",
+                      self.field)
+        self.assertIn("var leftSpace = centerX - leftEdge;", self.field)
+        self.assertIn("var rightSpace = rightEdge - centerX;", self.field)
+        self.assertIn("roundColumnText(dc, width * 0.285, nameY", self.field)
+        self.assertIn("roundColumnText(dc, width * 0.718, nameY", self.field)
+
+        # Independent row anchors keep text from pushing the footer out
+        # of the round display when the device fonts change.
+        import re
+        matches = re.findall(
+            r"var (headerY|nameY|numberY|progressY|marginY|paceTitleY|"
+            r"paceValueY|descentTitleY|descentValueY|footerY)"
+            r" = \\(height \\* (0\\.\\d+)\\)\\.toNumber\\(\\);",
+            self.field,
+        )
+        anchors = dict((name, float(pct)) for name, pct in matches)
+        order = [
+            "headerY", "nameY", "numberY", "progressY", "marginY",
+            "paceTitleY", "paceValueY", "descentTitleY",
+            "descentValueY", "footerY",
+        ]
+        self.assertEqual(set(anchors), set(order))
+        values = [anchors[name] for name in order]
+        self.assertEqual(values, sorted(values))
+        self.assertGreaterEqual(anchors["headerY"], 0.14)
+        self.assertGreaterEqual(anchors["nameY"], 0.23)
+        self.assertLessEqual(anchors["footerY"], 0.84)
+        self.assertIn("fontForSlot(dc, Graphics.FONT_LARGE,", self.field)
+        self.assertIn("fontForSlot(dc, Graphics.FONT_MEDIUM,", self.field)
 
     def test_bar_is_blue_and_checkpoints_are_clear(self):
         self.assertIn("dc.setColor(0x354B67, Graphics.COLOR_TRANSPARENT)",
