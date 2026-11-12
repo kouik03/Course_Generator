@@ -357,3 +357,24 @@ BH avant/apres ravito et coordonnees optionnelles**, mais ne porte pas
 encore les points de trace et de profil. L'integration future
 spatiale/temps exige une etude de budget de bytes et un protocole compatible,
 plutot que de substituer brutalement un des deux encodages.
+
+## Correction mise en page ronde Fenix 9 Pro : novembre 2026
+
+Le retour du simulateur montrait des chevauchements entre les lignes CP1/R1,
+les valeurs ALLURE/REQUIS et les en-tetes D-/ARRIVEE, ainsi que des unites
+tronquees ("k.."), une marge tronquee ("MARGE +17..") et le chronometre
+coupe a droite.
+
+Le tableau de bord utilise maintenant `Dc.getFontHeight()` pour calculer la
+position des lignes : en-tete CP, nom et BH, deux grands chiffres, barre,
+marge, ALLURE/REQUIS, D-/ARRIVEE, horloge et temps ecoule. Les marges
+inter-lignes dependent des polices mesurees sur le peripherique.
+
+La ligne redondante `0.0/18.0 km` sous la barre a ete retiree pour
+recuperer de l'espace, et le footer est maintenant compacte au centre
+(`21:03 | 0:00:00`) pour tenir dans la largeur disponible sur un cadran
+rond. Les unites `km` et `h` ont des zones de texte plus larges.
+
+Verifier le rendu avec `CGIq`. Les tests automatises Python ne compilent
+pas Monkey C et ne peuvent pas confirmer visuellement l'absence
+de chevauchements.
