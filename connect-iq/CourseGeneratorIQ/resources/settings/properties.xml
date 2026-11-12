@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<properties>
+    <property id="Block1" type="string"></property>
+    <property id="Block2" type="string"></property>
+    <property id="Block3" type="string"></property>
+    <property id="StartDelay" type="number">0</property>
+    <property id="RestAlertMin" type="number">3</property>
+    <property id="AutoGps" type="boolean">true</property>
+    <property id="ManualLap" type="boolean">true</property>
+    <property id="GpsRadius" type="number">100</property>
+</properties>
