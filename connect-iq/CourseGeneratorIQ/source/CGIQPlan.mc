@@ -24,42 +24,70 @@ class CGIQBytes {
 
     function initialize() {}
 
+    // Decode with Unicode code points, not substring == literal comparisons.
+    // Garmin Monkey C may treat distinct String instances as non-identical.
+    // In particular, the two terminal '=' characters are valid Base64 padding.
     function decode(source) as Boolean {
         bytes = [];
         pos = 0;
         error = "";
         errorPos = 0;
         errorCode = -1;
-        var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        var characters = source.toCharArray();
         var buffer = 0;
         var bitCount = 0;
+        var encodedCount = 0;
+        var paddingCount = 0;
         var padded = false;
-        for (var i = 0; i < source.length(); i++) {
-            var ch = source.substring(i, i + 1);
-            if (ch == " " || ch == "\n" || ch == "\r" || ch == "\t") {
+
+        for (var i = 0; i < characters.size(); i++) {
+            var code = characters[i].toNumber();
+
+            // Ignore ASCII whitespace produced by copy/paste.
+            if (code == 32 || code == 9 || code == 10 || code == 13) {
                 continue;
             }
-            if (ch == "=") {
+            encodedCount++;
+
+            // '=' (U+003D) terminates a padded Base64 string.
+            if (code == 61) {
                 padded = true;
+                paddingCount++;
+                if (paddingCount > 2) {
+                    error = "BASE64 PADDING";
+                    errorPos = i + 1;
+                    errorCode = code;
+                    return false;
+                }
                 continue;
             }
             if (padded) {
                 error = "BASE64 PADDING";
                 errorPos = i + 1;
-                errorCode = ch.toCharArray()[0].toNumber();
+                errorCode = code;
                 return false;
             }
-            // Also accept URL-safe Base64, which avoids '+' and '/' in
-            // mobile settings editors. Existing standard Base64 remains valid.
-            var n = alphabet.find(ch);
-            if (ch == "-") { n = 62; }
-            if (ch == "_") { n = 63; }
-            if (n == null) {
+
+            // Standard Base64 plus URL-safe alphabet.
+            var n = -1;
+            if (code >= 65 && code <= 90) {
+                n = code - 65;
+            } else if (code >= 97 && code <= 122) {
+                n = code - 97 + 26;
+            } else if (code >= 48 && code <= 57) {
+                n = code - 48 + 52;
+            } else if (code == 43 || code == 45) {
+                n = 62;
+            } else if (code == 47 || code == 95) {
+                n = 63;
+            }
+            if (n < 0) {
                 error = "BASE64 CARACTERE";
                 errorPos = i + 1;
-                errorCode = ch.toCharArray()[0].toNumber();
+                errorCode = code;
                 return false;
             }
+
             buffer = buffer * 64 + n;
             bitCount += 6;
             if (bitCount >= 8) {
@@ -73,6 +101,17 @@ class CGIQBytes {
                 }
             }
         }
+
+        // No truncated quartets, misplaced padding, or nonzero unused bits.
+        if (encodedCount % 4 != 0 ||
+            (paddingCount == 0 && bitCount != 0) ||
+            (paddingCount == 1 && bitCount != 2) ||
+            (paddingCount == 2 && bitCount != 4) ||
+            buffer != 0) {
+            error = "BASE64 PADDING";
+            return false;
+        }
+
         if (bytes.size() < 10) {
             error = "PLAN TROP COURT";
             return false;
