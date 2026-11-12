@@ -24,8 +24,12 @@ class CourseGeneratorIQApp extends Application.AppBase {
     // Garmin activity settings -> Connect IQ Fields -> Course Generator IQ.
     // This independent menu intentionally contains no Base64 entry fields.
     function getSettingsView() {
-        return [new CGIQWatchMenu("main", -1),
-                new CGIQWatchMenuDelegate("main", -1)];
+        // Do not return Menu2 directly: Garmin's data-field simulator can
+        // show a black view in that configuration. Use a plain View and its
+        // BehaviorDelegate as the system-managed on-watch settings screen.
+        System.println("CGIQ: open on-device settings");
+        var settings = new CGIQDeviceSettingsView();
+        return [settings, new CGIQDeviceSettingsDelegate(settings)];
     }
 
     function onSettingsChanged() as Void {
