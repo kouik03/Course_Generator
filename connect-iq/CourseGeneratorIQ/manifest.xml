@@ -4,6 +4,7 @@
                     type="datafield"
                     name="@Strings.AppName"
                     entry="CourseGeneratorIQApp"
+                    launcherIcon="@Drawables.LauncherIcon"
                     minApiLevel="3.2.0">
         <iq:products>
             <iq:product id="fenix9pro51mm"/>
