@@ -22,14 +22,23 @@ class CourseGeneratorIQApp extends Application.AppBase {
     }
 
     // Garmin activity settings -> Connect IQ Fields -> Course Generator IQ.
-    // This independent menu intentionally contains no Base64 entry fields.
+    // Both menu engines share their Storage data and neither edits Base64.
+    // The build's Jungle exclusions choose precisely one implementation.
+    // CLI "CGIq" uses this custom View for simulator regression tests.
+    (:cgiqSimulatorSettings)
     function getSettingsView() {
-        // Do not return Menu2 directly: Garmin's data-field simulator can
-        // show a black view in that configuration. Use a plain View and its
-        // BehaviorDelegate as the system-managed on-watch settings screen.
-        System.println("CGIQ: open on-device settings");
+        System.println("CGIQ: open custom settings View");
         var settings = new CGIQDeviceSettingsView();
         return [settings, new CGIQDeviceSettingsDelegate(settings)];
+    }
+
+    // Build with monkey.native.jungle (or "CGIq menu2") for genuine Menu2.
+    // Garmin permits a Menu2InputDelegate directly from getSettingsView.
+    (:cgiqNativeSettings)
+    function getSettingsView() {
+        System.println("CGIQ: open native Menu2 settings");
+        var menu = new CGIQNativeMenu();
+        return [menu, new CGIQNativeMenuDelegate(menu)];
     }
 
     function onSettingsChanged() as Void {
