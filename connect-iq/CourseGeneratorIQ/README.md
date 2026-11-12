@@ -296,9 +296,13 @@ c'est bien le PRG nouvellement compile et que le champ est actif.
    l'ecran de course normal.
 4. **Changer prochain CP** : selection d'un prochain CP, puis **confirmation
    obligatoire** pour reprendre le suivi sur cette cible. Cela change le
-   prochain CP **sans inventer un passage GPS** et sans recalibrer
-   artificiellement la distance Garmin. Les donnees enregistrees des CP
-   anterieurs ne sont pas reconstruites.
+   prochain CP sans modifier la distance d'activite fournie par Garmin.
+   Le curseur **virtuel du roadbook** est au minimum recale sur le
+   ravitaillement precedent, puisque selectionner le prochain CP confirme
+   les ravitos precedents. Cela **ne fabrique pas de point GPS ni de
+   kilometrage dans le fichier FIT**. Si le curseur etait deja au-dela
+   de ce ravito, il conserve sa position plus avancee ; revenir
+   manuellement a un CP anterieur recale au point precedent.
    
 ### Persistance et securite
 
@@ -419,3 +423,25 @@ La validation automatique GitHub controle les fichiers de protocole, scripts
 et contrats de source, **pas la compilation ou l'interface Monkey C**. En cas
 d'ecran noir persistant, relever les traces d'execution du simulateur Garmin
 plutot que de supposer que le menu a fonctionne.
+
+### Progression apres selection manuelle du prochain CP
+
+Exemple avec `demo-roadbook.json` : R1 est a 5 km, R2 a 11 km et
+la ligne d'arrivee a 18 km. Si tu choisis **FIN comme prochain CP** dans
+les reglages de la montre, le roadbook considere R1 et R2 comme deja
+franchis. La barre totale devient orange **jusqu'a R2 = 11/18 km,
+soit 61,1 %**, le curseur blanc apparait sur R2 et il reste **7 km**
+jusqu'a FIN, meme si le simulateur ne fournit encore aucun kilometre
+d'activite Garmin.
+
+L'offset du roadbook est enregistre dans `routeOffsetM` et reste
+distinct de `Activity.Info.elapsedDistance`. Cela ne falsifie jamais la
+trace GPS Garmin. En presence d'une distance d'activite deja plus
+avancee que R2, la selection de FIN ne doit pas revenir en arriere.
+
+La selection **Consulter un CP** reste strictement en lecture seule :
+elle ne remplit pas la barre. Les pastilles remplies correspondent
+maintenant a la distance du roadbook confirmee plutot qu'au seul
+numero du CP selectionne. L'effet est visible dans le mode de barre
+**Parcours entier** (ou Automatique hors du zoom a 1 km) ; le mode
+**Entre ravitaillements** affiche seulement le troncon courant.
