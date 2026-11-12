@@ -282,6 +282,7 @@ class CGIQPlan {
         a.targetMin = 48;
         a.pauseMin = 5;
         a.cutoffMin = 520;
+        a.flags = 7; // cutoff after pause, water and food: demo only
         points.add(a);
 
         var b = new CGIQPoint();
@@ -292,6 +293,7 @@ class CGIQPlan {
         b.targetMin = 115;
         b.pauseMin = 8;
         b.cutoffMin = 595;
+        b.flags = 3; // cutoff after pause, water: demo only
         points.add(b);
 
         var c = new CGIQPoint();
@@ -302,6 +304,7 @@ class CGIQPlan {
         c.targetMin = 200;
         c.pauseMin = 0;
         c.cutoffMin = 685;
+        c.flags = 0; // finish cutoff upon arrival
         points.add(c);
     }
 }
