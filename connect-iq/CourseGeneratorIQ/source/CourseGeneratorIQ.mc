@@ -612,6 +612,42 @@ class CourseGeneratorIQField extends WatchUi.DataField {
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
 
+    // Fit text in one column without letting the ROUND AMOLED mask clip
+    // its left or right edge. This is especially important for the CP name
+    // and official BH near the top of the Fenix 9 Pro screen.
+    function roundColumnText(dc, centerX, y, font, value, maxW, color) {
+        var chord = usableTextWidth(dc, y, font);
+        var leftEdge = (dc.getWidth() - chord) / 2;
+        var rightEdge = dc.getWidth() - leftEdge;
+        var leftSpace = centerX - leftEdge;
+        var rightSpace = rightEdge - centerX;
+        var half = leftSpace < rightSpace ? leftSpace : rightSpace;
+        var roundWidth = half * 2 - 6;
+        if (roundWidth < 0) { roundWidth = 0; }
+        fittedText(dc, centerX, y, font, value,
+                   roundWidth < maxW ? roundWidth : maxW, color);
+    }
+
+    // Guard each row against the actual font metrics published by the
+    // device SDK. The slot positions below remain stable even when a
+    // font must shrink, so adjusting the header cannot move the footer.
+    function fontForSlot(dc, preferred, maxHeight) {
+        var font = preferred;
+        if (dc.getFontHeight(font) > maxHeight &&
+            font == Graphics.FONT_LARGE) {
+            font = Graphics.FONT_MEDIUM;
+        }
+        if (dc.getFontHeight(font) > maxHeight &&
+            font == Graphics.FONT_MEDIUM) {
+            font = Graphics.FONT_SMALL;
+        }
+        if (dc.getFontHeight(font) > maxHeight &&
+            font == Graphics.FONT_SMALL) {
+            font = Graphics.FONT_XTINY;
+        }
+        return font;
+    }
+
     function remainingFinishSeconds() {
         if (_plan == null || _index >= _plan.points.size()) { return 0; }
         var result = remainingLegSec();
@@ -937,82 +973,53 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             return;
         }
 
-        // Keep CP header and checkpoint name in the visible upper chord.
-        // Layout flows TOP-DOWN and reduces secondary font sizes until the
-        // footer fits within the safe lower chord. The previous bottom-up
-        // formula pushed both upper labels above the round screen.
-        var headerFont = Graphics.FONT_SMALL;
-        var nameFont = Graphics.FONT_SMALL;
-        var numberFont = Graphics.FONT_LARGE;
-        var paceFont = Graphics.FONT_MEDIUM;
-        var secondaryFont = Graphics.FONT_SMALL;
+        // Reserved font-aware rows. The old top-down layout placed the
+        // name/BH too high in the narrow chord of the ROUND display:
+        // screenshot showed only "..MO" and "BH.." while CP1 vanished.
+        // Each row now has its own screen slot; the rest of the dashboard
+        // and the footer cannot be displaced by a larger firmware font.
+        var headerY = (height * 0.145).toNumber();
+        var nameY = (height * 0.240).toNumber();
+        var numberY = (height * 0.335).toNumber();
+        var progressY = (height * 0.465).toNumber();
+        var marginY = (height * 0.492).toNumber();
+        var paceTitleY = (height * 0.553).toNumber();
+        var paceValueY = (height * 0.609).toNumber();
+        var descentTitleY = (height * 0.703).toNumber();
+        var descentValueY = (height * 0.752).toNumber();
+        var footerY = (height * 0.835).toNumber();
+
+        var headerFont = fontForSlot(dc, Graphics.FONT_SMALL,
+                                     nameY - headerY - 4);
+        var nameFont = fontForSlot(dc, Graphics.FONT_SMALL,
+                                   numberY - nameY - 5);
+        var numberFont = fontForSlot(dc, Graphics.FONT_LARGE,
+                                     progressY - numberY - 7);
+        var paceFont = fontForSlot(dc, Graphics.FONT_MEDIUM,
+                                   descentTitleY - paceValueY - 5);
+        var secondaryFont = fontForSlot(dc, Graphics.FONT_SMALL,
+                                        footerY - descentValueY - 5);
         var captionFont = Graphics.FONT_XTINY;
-
-        var hHead = 0;
-        var hName = 0;
-        var hNum = 0;
-        var hPace = 0;
-        var hSecond = 0;
-        var hTiny = dc.getFontHeight(captionFont);
-
-        var headerY = (height * 0.095).toNumber();
-        var nameY = 0;
-        var numberY = 0;
-        var progressY = 0;
-        var marginY = 0;
-        var paceTitleY = 0;
-        var paceValueY = 0;
-        var descentTitleY = 0;
-        var descentValueY = 0;
-        var footerY = 0;
-
-        // The 51mm AMOLED font metrics vary with the firmware. Compute
-        // the full stack, then sacrifice font size of secondary rows first.
-        for (var pass = 0; pass < 5; pass++) {
-            hHead = dc.getFontHeight(headerFont);
-            hName = dc.getFontHeight(nameFont);
-            hNum = dc.getFontHeight(numberFont);
-            hPace = dc.getFontHeight(paceFont);
-            hSecond = dc.getFontHeight(secondaryFont);
-
-            nameY = headerY + hHead + 2;
-            numberY = nameY + hName + 2;
-            progressY = numberY + hNum + 5;
-            marginY = progressY + 10;
-            paceTitleY = marginY + hTiny + 2;
-            paceValueY = paceTitleY + hTiny + 2;
-            descentTitleY = paceValueY + hPace + 3;
-            descentValueY = descentTitleY + hTiny + 2;
-            footerY = descentValueY + hSecond + 3;
-
-            if (footerY + hTiny <= height * 0.88) { break; }
-            if (pass == 0) {
-                paceFont = Graphics.FONT_SMALL;
-            } else if (pass == 1) {
-                nameFont = Graphics.FONT_XTINY;
-            } else if (pass == 2) {
-                secondaryFont = Graphics.FONT_XTINY;
-            } else if (pass == 3) {
-                numberFont = Graphics.FONT_MEDIUM;
-            }
-        }
+        var hHead = dc.getFontHeight(headerFont);
+        var hNum = dc.getFontHeight(numberFont);
 
         var cpTitle = _index == _plan.points.size() - 1 ?
                       "FIN" : "CP" + (_index + 1).format("%d");
         if ((point.flags & 6) != 0) {
-            fittedText(dc, width * 0.43, headerY,
-                       headerFont, cpTitle, width * 0.24, accent);
+            roundColumnText(dc, width * 0.43, headerY,
+                            headerFont, cpTitle, width * 0.24, accent);
             drawServices(dc, headerY + hHead / 2, point.flags);
         } else {
-            txt(dc, headerY, headerFont, cpTitle, accent);
+            roundColumnText(dc, width / 2, headerY,
+                            headerFont, cpTitle, width * 0.44, accent);
         }
 
         var colW = width * 0.39;
-        fittedText(dc, width * 0.285, nameY, nameFont,
-                   point.name, colW, accent);
-        fittedText(dc, width * 0.718, nameY, nameFont,
-                   goal >= 0 ? "BH " + cutoffClock : "SANS BH",
-                   colW, accent);
+        roundColumnText(dc, width * 0.285, nameY, nameFont,
+                        point.name, colW, accent);
+        roundColumnText(dc, width * 0.718, nameY, nameFont,
+                        goal >= 0 ? "BH " + cutoffClock : "SANS BH",
+                        colW, accent);
 
         fittedText(dc, width * 0.265, numberY, numberFont,
                    _atStation ? formatDuration(restRemainingSec(_index)) :
