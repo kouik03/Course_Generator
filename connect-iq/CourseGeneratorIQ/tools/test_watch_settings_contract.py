@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Source-level safety contracts for Garmin on-device settings.
+"""Source-level contracts for the on-device Garmin data-field settings UI.
 
-These tests are NOT a Monkey C compilation; compile with the Garmin SDK
-before testing on hardware.
+This test suite is not a Monkey C build or a simulator rendering test.
 """
 from pathlib import Path
 import unittest
@@ -13,56 +12,64 @@ PROJECT = Path(__file__).resolve().parents[1]
 class OnDeviceSettingsContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.field = (PROJECT / "source" / "CourseGeneratorIQ.mc").read_text()
-        cls.menu = (PROJECT / "source" / "CGIQWatchSettings.mc").read_text()
+        src = PROJECT / "source"
+        cls.field = (src / "CourseGeneratorIQ.mc").read_text()
+        cls.helpers = (src / "CGIQWatchSettings.mc").read_text()
+        cls.ui = (src / "CGIQDeviceSettings.mc").read_text()
 
-    def test_watch_menu_is_a_separate_garmin_settings_flow(self):
+    def test_settings_are_a_plain_view_not_a_direct_menu2(self):
         self.assertIn("function getSettingsView()", self.field)
-        self.assertIn('new CGIQWatchMenu("main", -1)', self.field)
-        self.assertIn("extends WatchUi.Menu2", self.menu)
-        self.assertIn("extends WatchUi.Menu2InputDelegate", self.menu)
+        self.assertIn("new CGIQDeviceSettingsView()", self.field)
+        self.assertIn("new CGIQDeviceSettingsDelegate(settings)", self.field)
+        self.assertIn("extends WatchUi.View", self.ui)
+        self.assertIn("extends WatchUi.BehaviorDelegate", self.ui)
+        self.assertNotIn("CGIQWatchMenu(", self.field)
+        self.assertNotIn("WatchUi.pushView(", self.ui)
 
-    def test_base64_values_are_never_menu_items_on_the_watch(self):
-        # The menu necessarily READS Block1/2/3 to find CP names. It must
-        # never expose those long strings as an on-device editor.
-        self.assertIn('Properties.getValue("Block1")', self.menu)
-        self.assertNotIn('new WatchUi.MenuItem("Bloc 1"', self.menu)
-        self.assertNotIn('new WatchUi.MenuItem("Block1"', self.menu)
-        self.assertNotIn("TextPicker", self.menu)
+    def test_button_navigation_for_datafield_settings(self):
+        for method in ["onNextPage()", "onPreviousPage()", "onSelect()", "onBack()"]:
+            self.assertIn(method, self.ui)
+        for label in [
+            "DEPART EN VAGUE", "CONSULTER UN CP",
+            "CHANGER PROCHAIN CP", "RETOUR SUIVI LIVE",
+        ]:
+            self.assertIn(label, self.ui)
 
-    def test_browsing_does_not_mutate_the_real_progress(self):
+    def test_no_base64_editor_on_watch(self):
+        self.assertIn('Properties.getValue("Block1")', self.helpers)
+        for source in [self.ui, self.helpers]:
+            self.assertNotIn("TextPicker", source)
+            self.assertNotIn("setValue(\"Block1\"", source)
+
+    def test_preview_remains_separate_from_live_progress(self):
         preview = self.field.split("function drawPointPreview(", 1)[1].split(
             "function onUpdate(", 1
         )[0]
         self.assertNotIn("_index =", preview)
         self.assertNotIn("Storage.setValue(", preview)
-        self.assertIn('Storage.setValue("previewCpIndex", previewId)', self.menu)
-        self.assertIn('Storage.setValue("previewCpIndex", -1)', self.menu)
+        self.assertIn('Storage.setValue("previewCpIndex", _target)', self.ui)
+        self.assertIn('Storage.setValue("previewCpIndex", -1)', self.ui)
 
-    def test_manual_retarget_requires_confirmation_and_plan_identity(self):
-        self.assertIn('next("confirm", jumpId)', self.menu)
-        self.assertIn('if (id == "apply")', self.menu)
-        self.assertIn('Storage.setValue("manualCpPlanSig", validPlan.signature)', self.menu)
+    def test_manual_retarget_requires_explicit_confirmation(self):
+        self.assertIn('setPage(_page == "browse" ? "details" : "confirm")', self.ui)
+        self.assertIn('if (_page == "confirm")', self.ui)
+        self.assertIn('if (_cursor == 0 && _target >= 0', self.ui)
+        self.assertIn('Storage.setValue("manualCpPlanSig", _plan.signature)', self.ui)
         self.assertIn("requestPlan == _plan.signature", self.field)
-        self.assertIn('Storage.setValue("manualCpRequestId"', self.menu)
+        self.assertIn('Storage.setValue("manualCpRequestId"', self.ui)
         self.assertIn('Storage.setValue("manualCpAppliedId", req)', self.field)
 
-    def test_menu_ids_are_narrowed_before_numeric_comparison(self):
-        self.assertIn("if (!(id instanceof Lang.Number)) { return; }", self.menu)
-        self.assertEqual(
-            self.menu.count("if (!(id instanceof Lang.Number)) { return; }"), 3
-        )
-        self.assertIn("var choice = id as Lang.Number;", self.menu)
-        self.assertIn("var previewId = id as Lang.Number;", self.menu)
-        self.assertIn("var jumpId = id as Lang.Number;", self.menu)
-        self.assertNotIn("id >= 0", self.menu)
-        self.assertNotIn("choice = id;", self.menu)
-
-    def test_wave_delay_override_and_phone_fallback(self):
-        self.assertIn('Storage.getValue("watchStartDelayMin")', self.menu)
-        self.assertIn('Storage.deleteValue("watchStartDelayMin")', self.menu)
-        self.assertIn('Properties.getValue("StartDelay")', self.menu)
+    def test_wave_settings_override_phone_only_when_chosen(self):
+        self.assertIn('Storage.getValue("watchStartDelayMin")', self.helpers)
+        self.assertIn('Storage.deleteValue("watchStartDelayMin")', self.ui)
+        self.assertIn('Properties.getValue("StartDelay")', self.helpers)
         self.assertIn("_delayMin = cgiqWatchStartDelay()", self.field)
+
+    def test_layout_reserves_footer_before_upper_rows(self):
+        self.assertIn("var footerY = (height * 0.807).toNumber();", self.field)
+        self.assertIn("var descentValueY = footerY - hSecond - 5;", self.field)
+        self.assertIn("var headerY = nameY - hHead - 4;", self.field)
+        self.assertIn("if (headerY < height * 0.080)", self.field)
 
 
 if __name__ == "__main__":
