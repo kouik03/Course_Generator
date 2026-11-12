@@ -51,6 +51,10 @@ class CourseGeneratorIQField extends WatchUi.DataField {
     var _manualLap = true;
     var _radiusM = 100;
     var _paused = false;
+    var _b1len = 0;
+    var _b2len = 0;
+    var _b3len = 0;
+    var _decoderTest = "NON TESTE";
 
     function initialize() {
         DataField.initialize();
@@ -61,10 +65,13 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var first = Properties.getValue("Block1");
         var second = Properties.getValue("Block2");
         var third = Properties.getValue("Block3");
-        var data = "";
-        if (first != null) { data += first.toString(); }
-        if (second != null) { data += second.toString(); }
-        if (third != null) { data += third.toString(); }
+        var b1 = first == null ? "" : first.toString();
+        var b2 = second == null ? "" : second.toString();
+        var b3 = third == null ? "" : third.toString();
+        _b1len = b1.length();
+        _b2len = b2.length();
+        _b3len = b3.length();
+        var data = b1 + b2 + b3;
 
         var nextPlan = new CGIQPlan();
         if (data.length() == 0) {
@@ -73,6 +80,21 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             nextPlan.load(data);
         }
         _plan = nextPlan;
+
+        // Diagnostic is run only on failed imports. It separates a broken
+        // decoder from a corruption in Garmin's property transfer/editing.
+        _decoderTest = "NON TESTE";
+        if (_plan.error.length() != 0) {
+            var reference = new CGIQPlan();
+            var check = "Q0dJUQEDwgH0AbQAZAAwAAUIAgEAAAAAAAAHUjEg" +
+                        "REVNT0wEzAFeAXMACFMCAQAAAAAAAAdSMiBERU1P" +
+                        "CAfQArICyAAArQIAAAAAAAAACEZJTiBERU1Ppg==";
+            if (reference.load(check)) {
+                _decoderTest = "DECODEUR OK";
+            } else {
+                _decoderTest = "DECODEUR: " + reference.error;
+            }
+        }
 
         var delay = Properties.getValue("StartDelay");
         if (delay != null) { _delayMin = delay; }
@@ -431,10 +453,34 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var green = Graphics.COLOR_GREEN;
 
         if (_plan == null || _plan.error.length() != 0) {
-            txt(dc, height * 0.26, medium, "COURSE GENERATOR", white);
-            txt(dc, height * 0.48, medium,
+            txt(dc, height * 0.14, tiny, "CG IQ / DIAGNOSTIC", pale);
+            txt(dc, height * 0.28, small,
                 _plan == null ? "AUCUN PLAN" : _plan.error, red);
-            txt(dc, height * 0.69, tiny, "Verifier les blocs Base64", pale);
+            var detail = "AUCUN CARACTERE DETECTE";
+            if (_plan != null && _plan.errorPos > 0) {
+                var index = _plan.errorPos;
+                var block = 1;
+                if (index > _b1len) {
+                    index -= _b1len;
+                    block = 2;
+                    if (index > _b2len) {
+                        index -= _b2len;
+                        block = 3;
+                    }
+                }
+                detail = "BLOC " + block.format("%d") +
+                    "  POS " + index.format("%d");
+            }
+            txt(dc, height * 0.43, small, detail, white);
+            if (_plan != null && _plan.errorCode >= 0) {
+                txt(dc, height * 0.53, small,
+                    "CHAR U+" + _plan.errorCode.format("%04X"), gold);
+            }
+            txt(dc, height * 0.66, tiny,
+                "LONGUEURS " + _b1len.format("%d") +
+                "/" + _b2len.format("%d") +
+                "/" + _b3len.format("%d"), pale);
+            txt(dc, height * 0.78, tiny, _decoderTest, aqua);
             return;
         }
 
