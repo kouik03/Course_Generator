@@ -34,6 +34,28 @@ class RoadbookTests(unittest.TestCase):
         self.assertEqual(restored["points"][1]["cutoff_min"], 1605)
         self.assertEqual(restored["points"][1]["cutoff_after_pause"], False)
 
+    def test_checkpoint_service_flags_roundtrip(self):
+        self.model["points"][0]["services"] = "WF"
+        self.model["points"][1]["services"] = "W"
+        restored = decode(encode(self.model))
+        self.assertEqual(restored["points"][0]["services"], "WF")
+        self.assertEqual(restored["points"][1]["services"], "W")
+        self.assertEqual(restored["points"][0]["descent_m"], 210)
+        self.assertEqual(restored["points"][0]["cutoff_after_pause"], True)
+        self.assertEqual(restored["points"][1]["cutoff_after_pause"], False)
+
+    def test_service_flags_backward_compatible(self):
+        restored = decode(encode(self.model))
+        self.assertEqual([p["services"] for p in restored["points"]], ["", ""])
+
+    def test_bad_services_rejected(self):
+        self.model["points"][0]["services"] = "WW"
+        with self.assertRaises(ValueError):
+            encode(self.model)
+        self.model["points"][0]["services"] = "X"
+        with self.assertRaises(ValueError):
+            encode(self.model)
+
     def test_exact_simulator_base64_and_padding(self):
         # The exact three 40-character blocks reported by the simulator user.
         # They contain two legal '=' padding characters at the end.
