@@ -429,9 +429,65 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             (seconds % 60).format("%02d");
     }
 
+    // Garmin round displays have less horizontal room near the top and
+    // bottom. Measure each string against the actual safe chord of the dial.
+    // Smaller rectangular data fields use their full rectangular bounds.
+    function usableTextWidth(dc, y, font) {
+        var width = dc.getWidth();
+        var height = dc.getHeight();
+        var allowed = width * 0.91;
+        if (width >= 230 && height >= 230 &&
+            width * 100 / height >= 87 &&
+            width * 100 / height <= 113) {
+            var diameter = width < height ? width : height;
+            var radius = diameter * 0.468;
+            var centerY = y + dc.getFontHeight(font) / 2;
+            var offsetY = Math.abs(centerY - height / 2);
+            if (offsetY >= radius) {
+                return width * 0.18;
+            }
+            var chord = 2.0 * Math.sqrt(
+                radius * radius - offsetY * offsetY) - 14;
+            if (chord < allowed) {
+                allowed = chord;
+            }
+        }
+        return allowed;
+    }
+
+    // Keep important values visible: lower the font when necessary and
+    // truncate only as a last resort. No label can bleed outside the dial.
     function txt(dc, y, font, value, color) {
+        var drawFont = font;
+        var allowed = usableTextWidth(dc, y, drawFont);
+        if (dc.getTextWidthInPixels(value, drawFont) > allowed &&
+            drawFont == Graphics.FONT_LARGE) {
+            drawFont = Graphics.FONT_MEDIUM;
+            allowed = usableTextWidth(dc, y, drawFont);
+        }
+        if (dc.getTextWidthInPixels(value, drawFont) > allowed &&
+            drawFont == Graphics.FONT_MEDIUM) {
+            drawFont = Graphics.FONT_SMALL;
+            allowed = usableTextWidth(dc, y, drawFont);
+        }
+        if (dc.getTextWidthInPixels(value, drawFont) > allowed &&
+            drawFont == Graphics.FONT_SMALL) {
+            drawFont = Graphics.FONT_XTINY;
+            allowed = usableTextWidth(dc, y, drawFont);
+        }
+
+        var shown = value;
+        if (dc.getTextWidthInPixels(shown, drawFont) > allowed) {
+            var endIndex = shown.length();
+            while (endIndex > 0 &&
+                dc.getTextWidthInPixels(
+                    value.substring(0, endIndex) + "..", drawFont) > allowed) {
+                endIndex--;
+            }
+            shown = endIndex > 0 ? value.substring(0, endIndex) + ".." : "";
+        }
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(dc.getWidth() / 2, y, font, value,
+        dc.drawText(dc.getWidth() / 2, y, drawFont, shown,
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
 
@@ -484,7 +540,7 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             return;
         }
 
-        var title = _plan.demo ? "CG IQ / DEMO" : "COURSE GENERATOR IQ";
+        var title = _plan.demo ? "CG IQ / DEMO" : "COURSE GENERATOR";
         if (_index >= _plan.points.size()) {
             txt(dc, height * 0.19, small, title, aqua);
             txt(dc, height * 0.42, large, "ARRIVEE", green);
@@ -521,13 +577,9 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             }
         }
 
-        var prefix = (_index == _plan.points.size() - 1) ? "FIN" :
-            "R" + (_index + 1).format("%d");
-        var name = point.name;
-        if (name.length() > (compact ? 11 : 17)) {
-            name = name.substring(0, compact ? 11 : 17);
-        }
-        var label = prefix + " " + name;
+        // Point names already contain their roadbook number (e.g. R1 DEMO).
+        // Prepending another number made "R1 R1 DEMO" on the watch.
+        var label = point.name;
         var etaSec = _elapsedSec + remainingLegSec();
         var etaClock = targetClock(_plan.officialStartMin +
             _delayMin + (etaSec / 60).toNumber());
@@ -550,30 +602,32 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             return;
         }
 
-        txt(dc, height * 0.075, tiny, title, aqua);
-        txt(dc, height * 0.190, medium, label, white);
+        // Deliberately move the first and last lines toward the middle of
+        // the round AMOLED screen; font fitting handles remaining widths.
+        txt(dc, height * 0.145, tiny, title, aqua);
+        txt(dc, height * 0.235, medium, label, white);
 
         if (_atStation) {
-            txt(dc, height * 0.32, small, "RAVITAILLEMENT", gold);
+            txt(dc, height * 0.335, small, "RAVITAILLEMENT", gold);
             var left = restRemainingSec(_index);
-            txt(dc, height * 0.42, large,
+            txt(dc, height * 0.445, large,
                 left > 0 ? formatDuration(left) : "DEPART !",
                 left > 0 ? white : gold);
-            txt(dc, height * 0.59, small, "LAP = DEPART", pale);
+            txt(dc, height * 0.570, small, "LAP = DEPART", pale);
         } else {
-            txt(dc, height * 0.32, small, "DISTANCE RESTANTE", pale);
-            txt(dc, height * 0.42, large,
+            txt(dc, height * 0.335, small, "DISTANCE RESTANTE", pale);
+            txt(dc, height * 0.445, large,
                 (remainingM / 1000.0).format("%.2f") + " km", white);
-            txt(dc, height * 0.59, small, "ETA " + etaClock +
-                "  |  CIBLE " + targetClock(
+            txt(dc, height * 0.570, small, "ETA " + etaClock +
+                " / PLAN " + targetClock(
                     _plan.officialStartMin + _delayMin + point.targetMin),
                 pale);
         }
 
         var bhText = goal >= 0 ? "BH " + cutoffClock :
             "AUCUNE BARRIERE";
-        txt(dc, height * 0.680, small, bhText, pale);
-        txt(dc, height * 0.757, medium,
+        txt(dc, height * 0.657, small, bhText, pale);
+        txt(dc, height * 0.726, medium,
             goal >= 0 ? "MARGE " +
                 (margin < 0 ? "-" : "+") + formatDuration(margin) :
                 "MARGE --",
@@ -586,8 +640,8 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             remainingM / legLengthM : 0.0;
         if (remainPart > 1.0) { remainPart = 1.0; }
         var upRemaining = ((point.ascentM - previousUp) * remainPart).toNumber();
-        txt(dc, height * 0.864, tiny,
+        txt(dc, height * 0.823, tiny,
             "D+ ~" + upRemaining.format("%d") +
-            "m  |  REQUIS " + requiredPace + "/km", pale);
+            "m  /  REQUIS " + requiredPace + "/km", pale);
     }
 }
