@@ -823,7 +823,7 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var elapsedText = raceHours.format("%02d") + ":" +
                           raceMinutes.format("%02d");
         txt(dc, height * 0.865, Graphics.FONT_XTINY,
-            "HEURE " + nowText + "  /  COURSE " + elapsedText,
+            "H " + nowText + "  /  T " + elapsedText,
             muted);
     }
 }
