@@ -10,4 +10,8 @@
     <string id="AutoGpsTitle">Detection auto GPS ravito</string>
     <string id="ManualLapTitle">LAP manuel : arrivee / depart</string>
     <string id="GpsRadiusTitle">Rayon GPS ravito (metres)</string>
+    <string id="ProgressModeTitle">Barre de progression</string>
+    <string id="ProgressWholeCourse">Parcours entier</string>
+    <string id="ProgressSegment">Entre ravitaillements</string>
+    <string id="ProgressAutomatic">Automatique (zoom dernier km)</string>
 </strings>
