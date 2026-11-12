@@ -799,7 +799,6 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var white = Graphics.COLOR_WHITE;
         var muted = 0xB7BBC4;
         var accent = 0x18B8F3;
-        var orange = 0xFF9800;
         var amber = 0xFFBD38;
         var red = 0xFF3737;
         var green = 0x24DD53;
@@ -886,11 +885,6 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             }
         }
 
-        var eta = _elapsedSec + remainingLegSec();
-        var etaClock = targetClock(_plan.officialStartMin +
-            _delayMin + (eta / 60).toNumber());
-        var plannedClock = targetClock(_plan.officialStartMin +
-            _delayMin + point.targetMin);
         var signedMargin = (margin < 0 ? "-" : "+") +
             formatDuration(margin);
         var finishClock = targetClock(_plan.officialStartMin +
