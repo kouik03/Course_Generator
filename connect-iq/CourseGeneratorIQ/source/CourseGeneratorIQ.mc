@@ -525,13 +525,6 @@ class CourseGeneratorIQField extends WatchUi.DataField {
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    function maxSafeColumnWidth(dc, y, proposed) {
-        var allowed = usableTextWidth(dc, y, Graphics.FONT_SMALL);
-        // Columns share the middle of the same safe circular chord.
-        var half = allowed * 0.48;
-        return proposed < half ? proposed : half;
-    }
-
     function remainingFinishSeconds() {
         if (_plan == null || _index >= _plan.points.size()) { return 0; }
         var result = remainingLegSec();
