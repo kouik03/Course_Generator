@@ -1,0 +1,39 @@
+{
+  "name": "DEMO AVEC SERVICES - FICTIF",
+  "official_start": "07:30",
+  "points": [
+    {
+      "name": "R1 DEMO",
+      "km": 5,
+      "ascent_m": 180,
+      "descent_m": 100,
+      "target_elapsed": "00:48",
+      "pause_min": 5,
+      "cutoff": "08:40",
+      "cutoff_after_pause": true,
+      "services": "WF"
+    },
+    {
+      "name": "R2 DEMO",
+      "km": 11,
+      "ascent_m": 460,
+      "descent_m": 350,
+      "target_elapsed": "01:55",
+      "pause_min": 8,
+      "cutoff": "09:55",
+      "cutoff_after_pause": true,
+      "services": "W"
+    },
+    {
+      "name": "FIN DEMO",
+      "km": 18,
+      "ascent_m": 720,
+      "descent_m": 690,
+      "target_elapsed": "03:20",
+      "pause_min": 0,
+      "cutoff": "11:25",
+      "cutoff_after_pause": false,
+      "services": ""
+    }
+  ]
+}
