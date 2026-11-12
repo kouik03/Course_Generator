@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <strings>
     <string id="AppName">Course Generator IQ</string>
+    <string id="Block1Title">Roadbook Base64 - bloc 1</string>
+    <string id="Block2Title">Roadbook Base64 - bloc 2</string>
+    <string id="Block3Title">Roadbook Base64 - bloc 3</string>
+    <string id="PasteBlock">Coller le bloc donne par Course Generator IQ</string>
+    <string id="StartDelayTitle">Depart retarde (minutes)</string>
+    <string id="RestAlertTitle">Alerte avant fin de pause (min)</string>
+    <string id="AutoGpsTitle">Detection auto GPS ravito</string>
+    <string id="ManualLapTitle">LAP manuel : arrivee / depart</string>
+    <string id="GpsRadiusTitle">Rayon GPS ravito (metres)</string>
 </strings>
