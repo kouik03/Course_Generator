@@ -59,6 +59,32 @@ class OnDeviceSettingsContractTests(unittest.TestCase):
         self.assertIn('Storage.setValue("manualCpRequestId"', self.ui)
         self.assertIn('Storage.setValue("manualCpAppliedId", req)', self.field)
 
+    def test_manual_next_cp_anchors_distance_at_last_confirmed_cp(self):
+        # Selecting the FIN as the NEXT CP implies that previous aid
+        # stations were passed, even if the simulator supplies 0 GPS km.
+        self.assertIn('var previousM = target == 0 ? 0.0 :', self.field)
+        self.assertIn('_plan.points[target - 1].distanceM;', self.field)
+        self.assertIn('var routeBeforeM = currentRouteM();', self.field)
+        self.assertIn('if (target < _index || routeBeforeM < previousM)', self.field)
+        self.assertIn('_offsetM = previousM - _rawDistanceM;', self.field)
+        self.assertIn('saveState();', self.field)
+        self.assertIn('var isPassed = km <= routeM;', self.field)
+        self.assertNotIn('var isPassed = i < _index', self.field)
+
+        # Worked example using the demonstration roadbook: FIN at 18 km,
+        # R2 at 11 km. The minimum virtual progress is 11/18 (61.1%).
+        km_r2, km_finish, gps_activity_m = 11.0, 18.0, 0.0
+        offset_m = km_r2 * 1000 - gps_activity_m
+        virtual_m = gps_activity_m + offset_m
+        self.assertAlmostEqual(virtual_m / (km_finish * 1000), 11 / 18)
+        self.assertAlmostEqual((km_finish * 1000 - virtual_m) / 1000, 7.0)
+
+    def test_confirmed_cp_anchor_preserves_more_advanced_route_distance(self):
+        # If Garmin has already advanced beyond R2, selecting FIN must
+        # not roll the position backwards to exactly R2.
+        previous_cp_m, current_route_m = 11000, 12500
+        self.assertFalse(current_route_m < previous_cp_m)
+
     def test_page_state_is_numeric_and_menu_has_four_entries(self):
         self.assertIn("var _page = 0;", self.ui)
         self.assertIn("if (_page == 0) { return 4; }", self.ui)
