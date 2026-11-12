@@ -141,6 +141,9 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             var offset = Storage.getValue("routeOffsetM");
             if (offset != null) { _offsetM = offset; }
         } else {
+            // A fresh roadbook must not inherit a CP preview from an older
+            // event. Only the wave delay is intentionally shared.
+            Storage.setValue("previewCpIndex", -1);
             clearState();
         }
         applyDeviceSettings();
@@ -166,7 +169,9 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             return;
         }
         var target = Storage.getValue("manualCpIndex");
-        if (target != null && target >= 0 && target < _plan.points.size()) {
+        var requestPlan = Storage.getValue("manualCpPlanSig");
+        if (requestPlan == _plan.signature && target != null &&
+            target >= 0 && target < _plan.points.size()) {
             // Never pretend the GPS has reached the selected CP: retain
             // measured route distance. Only the NEXT target changes.
             _index = target;
