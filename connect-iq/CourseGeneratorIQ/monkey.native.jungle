@@ -1,0 +1,5 @@
+project.manifest = manifest.xml
+base.sourcePath = source
+base.resourcePath = resources
+# Explicit real-device Menu2 build. Also testable in Garmin simulator.
+base.excludeAnnotations = cgiqSimulatorSettings
