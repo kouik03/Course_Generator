@@ -231,7 +231,8 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             _hasGps = true;
         }
         applyDeviceSettings();
-        if (_elapsedSec >= 30) {
+        if (_elapsedSec >= 30 &&
+            Storage.getValue("manualCpKeepAtStart") == true) {
             Storage.setValue("manualCpKeepAtStart", false);
         }
         if (_plan == null || _plan.error.length() != 0 ||
