@@ -11,7 +11,9 @@ import Toybox.System;
 // Navigation: UP/DOWN chooses a line; START selects; BACK goes to main,
 // and BACK again exits the system's settings mode.
 class CGIQDeviceSettingsView extends WatchUi.View {
-    var _page = "main";
+    // Numeric state IDs deliberately avoid reference-based String equality.
+    // 0=main, 1=wave, 2=browse, 3=jump, 4=details, 5=confirm.
+    var _page = 0;
     var _cursor = 0;
     var _target = 0;
     var _plan = null;
@@ -23,20 +25,20 @@ class CGIQDeviceSettingsView extends WatchUi.View {
     }
 
     function itemCount() {
-        if (_page == "main") { return 4; }
-        if (_page == "wave") { return _waveChoices.size(); }
-        if (_page == "browse" || _page == "jump") {
+        if (_page == 0) { return 4; }
+        if (_page == 1) { return _waveChoices.size(); }
+        if (_page == 2 || _page == 3) {
             return _plan.error.length() == 0 ? _plan.points.size() : 0;
         }
-        if (_page == "confirm") { return 2; }
-        if (_page == "details") { return 1; }
+        if (_page == 5) { return 2; }
+        if (_page == 4) { return 1; }
         return 0;
     }
 
     function move(delta) {
         var count = itemCount();
         if (count <= 0) { return; }
-        if (_page == "details") {
+        if (_page == 4) {
             _target += delta;
             if (_target < 0) { _target = 0; }
             if (_target >= _plan.points.size()) {
@@ -57,17 +59,17 @@ class CGIQDeviceSettingsView extends WatchUi.View {
     }
 
     function goBack() {
-        if (_page == "main") {
+        if (_page == 0) {
             return false;  // Let Garmin close the settings view.
         }
-        if (_page == "details") {
-            _page = "browse";
+        if (_page == 4) {
+            _page = 2;
             _cursor = _target;
-        } else if (_page == "confirm") {
-            _page = "jump";
+        } else if (_page == 5) {
+            _page = 3;
             _cursor = _target;
         } else {
-            _page = "main";
+            _page = 0;
             _cursor = 0;
         }
         WatchUi.requestUpdate();
@@ -75,13 +77,13 @@ class CGIQDeviceSettingsView extends WatchUi.View {
     }
 
     function select() {
-        if (_page == "main") {
+        if (_page == 0) {
             if (_cursor == 0) {
-                setPage("wave");
+                setPage(1);
             } else if (_cursor == 1) {
-                setPage("browse");
+                setPage(2);
             } else if (_cursor == 2) {
-                setPage("jump");
+                setPage(3);
             } else {
                 Storage.setValue("previewCpIndex", -1);
                 _plan = cgiqLoadWatchPlan();
@@ -89,7 +91,7 @@ class CGIQDeviceSettingsView extends WatchUi.View {
             }
             return;
         }
-        if (_page == "wave") {
+        if (_page == 1) {
             var selected = _waveChoices[_cursor];
             var current = cgiqWatchStartDelay();
             if (selected == -10) {
@@ -104,25 +106,25 @@ class CGIQDeviceSettingsView extends WatchUi.View {
                 if (current > 180) { current = 180; }
                 Storage.setValue("watchStartDelayMin", current);
             }
-            setPage("main");
+            setPage(0);
             return;
         }
-        if (_page == "browse" || _page == "jump") {
+        if (_page == 2 || _page == 3) {
             if (_plan.error.length() != 0 ||
                 _cursor < 0 || _cursor >= _plan.points.size()) {
                 return;
             }
             _target = _cursor;
-            setPage(_page == "browse" ? "details" : "confirm");
+            setPage(_page == 2 ? 4 : 5);
             return;
         }
-        if (_page == "details") {
+        if (_page == 4) {
             // Browse only; the actual following CP and its timer stay intact.
             Storage.setValue("previewCpIndex", _target);
-            setPage("main");
+            setPage(0);
             return;
         }
-        if (_page == "confirm") {
+        if (_page == 5) {
             if (_cursor == 0 && _target >= 0 &&
                 _target < _plan.points.size() &&
                 _plan.error.length() == 0) {
@@ -137,7 +139,7 @@ class CGIQDeviceSettingsView extends WatchUi.View {
                 Storage.setValue("manualCpRequestId", sequence + 1);
                 Storage.setValue("previewCpIndex", -1);
             }
-            setPage("main");
+            setPage(0);
         }
     }
 
@@ -156,13 +158,13 @@ class CGIQDeviceSettingsView extends WatchUi.View {
     }
 
     function menuName(index) {
-        if (_page == "main") {
+        if (_page == 0) {
             if (index == 0) { return "DEPART EN VAGUE"; }
             if (index == 1) { return "CONSULTER UN CP"; }
             if (index == 2) { return "CHANGER PROCHAIN CP"; }
             return "RETOUR SUIVI LIVE";
         }
-        if (_page == "wave") {
+        if (_page == 1) {
             var amount = _waveChoices[index];
             if (amount == -10) { return "REGLAGE TELEPHONE"; }
             if (amount == -1) { return "AJOUTER 1 MIN"; }
@@ -171,24 +173,24 @@ class CGIQDeviceSettingsView extends WatchUi.View {
             if (amount == -4) { return "RETIRER 5 MIN"; }
             return "+" + amount.format("%d") + " MINUTES";
         }
-        if (_page == "browse" || _page == "jump") {
+        if (_page == 2 || _page == 3) {
             var cp = _plan.points[index];
             return (index == _plan.points.size() - 1 ?
                     "FIN " : "CP" + (index + 1).format("%d") + " ") + cp.name;
         }
-        if (_page == "confirm") {
+        if (_page == 5) {
             return index == 0 ? "CONFIRMER LE CP" : "ANNULER";
         }
         return "";
     }
 
     function screenHeading() {
-        if (_page == "main") { return "COURSE GENERATOR"; }
-        if (_page == "wave") { return "DEPART EN VAGUE"; }
-        if (_page == "browse") { return "CONSULTER CP"; }
-        if (_page == "jump") { return "PROCHAIN CP"; }
-        if (_page == "details") { return "DETAILS CP"; }
-        if (_page == "confirm") { return "CONFIRMER CP"; }
+        if (_page == 0) { return "COURSE GENERATOR"; }
+        if (_page == 1) { return "DEPART EN VAGUE"; }
+        if (_page == 2) { return "CONSULTER CP"; }
+        if (_page == 3) { return "PROCHAIN CP"; }
+        if (_page == 4) { return "DETAILS CP"; }
+        if (_page == 5) { return "CONFIRMER CP"; }
         return "REGLAGES";
     }
 
@@ -203,7 +205,7 @@ class CGIQDeviceSettingsView extends WatchUi.View {
         textFit(dc, w / 2, h * 0.115, Graphics.FONT_SMALL,
                 screenHeading(), w * 0.72, cyan);
 
-        if (_page == "details" && _plan.error.length() == 0) {
+        if (_page == 4 && _plan.error.length() == 0) {
             var cp = _plan.points[_target];
             var beforeKm = _target == 0 ? 0.0 :
                            _plan.points[_target - 1].distanceM;
@@ -266,13 +268,13 @@ class CGIQDeviceSettingsView extends WatchUi.View {
                     item == _cursor ? Graphics.COLOR_WHITE : muted);
         }
         var footer = "HAUT/BAS  OK  RETOUR";
-        if (_page == "wave") {
+        if (_page == 1) {
             footer = "DECALAGE ACTUEL +" +
                      cgiqWatchStartDelay().format("%d") + " MIN";
-        } else if (_page == "confirm") {
+        } else if (_page == 5) {
             footer = "CP" + (_target + 1).format("%d") +
                      " : CONFIRMER OU ANNULER";
-        } else if (_page == "main") {
+        } else if (_page == 0) {
             footer = "CP LIVE / PARAMETRES MONTRE";
         }
         textFit(dc, w / 2, h * 0.842, Graphics.FONT_XTINY,
