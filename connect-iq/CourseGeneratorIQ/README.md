@@ -139,7 +139,7 @@ La vue plein écran est inspirée des **principes d'ergonomie** des champs de do
 - **En-tête** : nom du prochain point de contrôle, sans préfixe doublé.
 - **Deux grandes valeurs** : distance en km jusqu'au prochain point (à gauche) ; **marge prévisionnelle** avec couleur verte/ambre/rouge (à droite). La barrière horaire affichée au-dessus reste une heure **officielle**, inchangée par un départ personnel retardé.
 - **Ligne ETA / PLAN** : ETA recalculée par le moteur actuel, face au passage cible du roadbook.
-- **Barre de progression** : section orange déjà parcourue, points pour les ravitaillements et l'arrivée, petit point blanc pour la position courante.
+- **Barre de progression** : section bleu clair déjà parcourue, points pour les ravitaillements et l'arrivée, petit point blanc pour la position courante.
 - **Deux lignes de prochains points** : noms et distances restant à parcourir depuis la position actuelle, et non les distances cumulées.
 - **Bas** : allure moyenne du tronçon (elle reste inconnue avant 400 m parcourus) et allure requise jusqu'à la prochaine barrière, puis D+ restant approximatif / ETA arrivée.
 - **Pause au ravito** : le grand chiffre gauche devient la durée de pause restante ; la ligne ETA devient une indication du bouton LAP pour repartir.
@@ -161,7 +161,7 @@ La barre utilise la distance **de l'activité Garmin recalée au passage des rav
 1. Charger les trois blocs de démonstration existants, sans les modifier.
 2. Vérifier la nouvelle présentation : **R1 DEMO**, 5,00 km, +17 min, ETA 08:18, BH 08:40, points R1 / R2 / FIN et point blanc au départ.
 3. Dans les réglages du simulateur, changer **Barre de progression** entre les trois modes. Le mode automatique doit être visible en simulant moins de 1 km avant R1 (ex. position 4,5 km).
-4. Simuler une activité qui avance : le remplissage orange et le point blanc progressent, les distances des deux lignes diminuent.
+4. Simuler une activité qui avance : le remplissage bleu clair et le point blanc progressent, les distances des deux lignes diminuent.
 5. Simuler un LAP manuel d'arrivée au R1, puis le suivant pour repartir : le grand chiffre gauche affiche la pause, puis le prochain R2.
 6. Vérifier le cadran rond mais aussi un écran 1/2 champ (affichage compact simplifié).
 7. Vérifier qu'aucune valeur ne se coupe contre le bord du cadran.
@@ -203,7 +203,7 @@ L'ecran plein champ n'affiche desormais **qu'un seul ravitaillement textuel** : 
 Du haut vers le bas :
 1. Nom du prochain CP.
 2. Distance restante / marge face a l'heure de barriere officielle (deux grandes valeurs).
-3. Progression orange de la course, marqueurs de CP, position blanche.
+3. Progression bleu clair de la course, marqueurs de CP, position blanche.
 4. ETA recalculee et heure cible du plan, ou indication LAP pendant la pause.
 5. Moyenne du troncon / allure requise pour la prochaine barriere.
 6. D+ approximatif restant au prochain CP / heure estimee de fin.
@@ -445,3 +445,83 @@ maintenant a la distance du roadbook confirmee plutot qu'au seul
 numero du CP selectionne. L'effet est visible dans le mode de barre
 **Parcours entier** (ou Automatique hors du zoom a 1 km) ; le mode
 **Entre ravitaillements** affiche seulement le troncon courant.
+
+## Deux moteurs de menus et vraie sortie des reglages (12 novembre 2026)
+
+### Deux commandes pour le simulateur
+
+```bash
+CGIq
+CGIq menu2
+```
+
+- **`CGIq`** : compile `monkey.jungle` avec l'interface personnalisee
+  `WatchUi.View + BehaviorDelegate`, deja validee pour l'affichage dans
+  le simulateur fenix9pro51mm.
+- **`CGIq menu2`** : compile `monkey.native.jungle` avec l'interface
+  native **`WatchUi.Menu2 + Menu2InputDelegate`** et l'execute dans le
+  **meme simulateur**, pour pouvoir comparer les deux avant installation.
+  Sur la Fenix reelle, la variante a utiliser est le Jungle
+  `monkey.native.jungle`.
+
+**Pourquoi un choix de compilation et non une detection automatique ?**
+L'API publique Garmin n'expose pas de propriete fiable
+`System.isSimulator`. Les anciennes astuces basees sur la version
+du firmware ne sont pas fiables sur le SDK recent. Les annotations
+d'exclusion de Jungle choisissent donc exactement une implementation
+de `getSettingsView()` a la compilation.
+
+### Fonctionnement du menu
+
+Les deux menus utilisent **les memes donnees persistees** :
+
+- Depart en vague (choix de la montre prioritaire sur celui du telephone).
+- Consulter un CP, sans changer le suivi reel.
+- Choisir le prochain CP avec confirmation.
+- Retour au suivi : efface la consultation et demande la fermeture de
+  l'ecran de reglages.
+
+**Confirmer le nouveau CP** ou **consulter un CP pour l'afficher** demande
+egalement la sortie des reglages. Nous utilisons `WatchUi.popView()`,
+methode de navigation systeme. Si le firmware refuse cette action,
+le probleme est inscrit dans le journal du simulateur, sans utiliser
+`System.exit()` qui arreterait le champ de donnees. La fermeture du
+menu sur l'appareil reste **a valider** : les tests Python de CI
+n'executent pas le simulateur Garmin.
+
+### Corrections ergonomiques
+
+Le tableau de bord utilise maintenant une barre bleu-gris, un trait
+bleu clair pour la distance deja parcourue, des **cercles bleus vides**
+pour les CP a venir, des **cercles pleins** pour les CP franchis et un
+curseur blanc pour la progression virtuelle du roadbook. Les CP
+selectionnes manuellement comme deja passes sont inclus.
+
+L'en-tete CP / nom / BH commence **dans la zone visible en haut** du
+cadran. Les informations du bas conservent leur place en reduisant
+les polices secondaires si besoin ; la distance et le delai officiel
+restent prioritaires.
+
+Les menus ont des titres et des pieds raccourcis :
+`CG IQ REGLAGES`, `CONSULTER CP`, `CHOISIR CP SUIVANT`,
+`RETOUR AU SUIVI`. Les noms du roadbook ne sont plus precedes
+d'un numero CP redondant : `R1 DEMO` au lieu de `CP1 R1 DEMO`.
+Les textes reellement trop longs reçoivent une troncature explicite
+en `..` au lieu de disparaitre silencieusement.
+
+### Essai d'acceptation
+
+1. `CGIq`, puis **Settings > Trigger App Settings**.
+2. Regarder les quatre titres de menu : aucun nom ne doit etre coupe.
+3. Consulter R2, puis Retour/Back, puis **Retour au suivi** :
+   le champ normal doit reaparaitre, avec le bon CP actif.
+4. Changer prochain CP vers FIN et confirmer : l'ecran des reglages
+   doit se fermer et la barre afficher 11/18 km (61 %) et 7 km restants.
+5. `CGIq menu2`, puis refaire les tests 2 a 4 avec le **Menu2 natif**.
+6. Sur un vrai appareil, compiler avec `monkey.native.jungle` et
+   verifier les memes comportements. Ne pas supposer l'execution reelle
+   validee par le simulateur.
+
+La distance reste **la progression virtuelle du roadbook**, differente
+de la distance mesuree et enregistree dans le FIT Garmin.
+
