@@ -216,3 +216,47 @@ Le champ **ne deplace pas les barrieres officielles** si le depart est retarde. 
 ### Correction du chevauchement ETA / barre et de l'horloge (Fenix 9 Pro)
 
 Le simulateur du 12 novembre montrait la legende `0.0 / 18.0 km` superposee a `ETA 08:18 / PLAN 08:18`, ainsi qu'une heure de course tronquee et des titres D+/FIN trop longs. La disposition est maintenant en lignes distinctes : ETA au-dessus de la barre ; kilometre parcouru sous la barre ; deux allures ; D+ et FIN simplifies sur une seule ligne ; heure de la montre et temps de course remontes dans le cadran. Le rendu reste a valider sur le simulateur local avec `CGIq`.
+
+## Nouvelle interface basee sur la photo reelle de TrailRace+ PRO (novembre 2026)
+
+L'ecran plein format Fenix 9 Pro suit desormais la hierarchie visuelle fournie dans la photo : numero de CP, services eventuels, nom du ravitaillement et heure limite, **distance** et **temps restant avant barriere** en grands chiffres, progression et marge, allure / requis, denivele descendant au CP / estimation d'arrivee, heure actuelle et chronometre.
+
+**Important :** le grand temps affiche a droite n'est **plus la marge previsionnelle**. La montre calcule le temps restant a la BH depuis le depart officiel, le retard de depart configure et le temps ecoule de l'activite. La *marge* estimee, deduisant les temps de progression et de pause necessaires, apparait sous la barre. Les deux notions sont volontairement distinctes.
+
+Les barres affichent des pastilles pleines pour les CP deja passes et des cercles vides pour les prochains CP. Les icones de services ne sont affichees que lorsqu'elles sont declarees dans le roadbook, jamais devinees a partir du nom.
+
+### Services des points : extension compatible CGIQ v1
+
+Ajouter facultativement dans les objets `points` du JSON :
+
+```json
+"services": "WF"
+```
+
+- `W` = point d'eau (icone goutte).
+- `F` = nourriture (icone couverts).
+- `WF` = eau et nourriture, `""` = aucun service renseigne.
+
+Le protocole binaire CGIQ v1 utilisait deja un octet de drapeaux : bit 0 = cutoff apres pause ; bit 1 = eau ; bit 2 = nourriture. Les blocs precedents restent valides et sont lus sans modification, mais **ils ne contiennent pas les services** et ne peuvent donc pas afficher les icones.
+
+Pour comparer directement avec la nouvelle photo, un deuxieme roadbook fictif est fourni :
+
+```bash
+python3 tools/encode_roadbook.py tools/demo-services.json
+```
+
+Copier les nouvelles valeurs Bloc 1 / Bloc 2 / Bloc 3 dans les reglages Connect IQ. Pour voir rapidement les icones sans regeneration, vider les trois blocs : le mode `CG IQ / DEMO` integre contient de faux ravitaillements avec eau et nourriture, explicitement fictifs.
+
+### Test visuel a realiser
+
+Lancer `CGIq`, avec `fenix9pro51mm`. Verifier sur le simulateur :
+1. En-tete CP1 et nom R1 DEMO au-dessus des grands chiffres.
+2. **5,00 km** a gauche, **1:10 h** a droite (70 min avant BH 08:40 depuis le depart fictif 07:30), et **MARGE +17m** distincte sous la barre.
+3. Barre de progression et marqueurs de ravitos, sans liste de noms.
+4. **ALLURE** / **REQUIS**, puis **D- CP** / **ARRIVEE**.
+5. Heure Garmin et chronometre de l'activite en bas.
+6. Aucune information tronquee ou superposee. Tester aussi le cadran compact.
+
+La demo a un depart officiel fictif a 07:30 : si le simulateur est lance a 20h, le compteur de BH reste exprime depuis le depart fictif et ne concorde pas avec l'horloge courante. En course reelle, il faut configurer exactement l'heure de depart et son decalage. **La compilation Monkey C et le rendu final de ce lot ne sont pas verifies par les workflows Python : ils restent a valider dans le simulateur macOS.**
+
+Le D- CP est encore une **approximation lineaire sur le troncon**, et non le D- restant extrait de la geometrie GPX. Les pictogrammes et l'ergonomie sont une implementation propre a Course Generator IQ, sans reutilisation de graphismes TrailRace+ PRO.
