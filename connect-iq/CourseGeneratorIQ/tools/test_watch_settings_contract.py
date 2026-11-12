@@ -140,7 +140,7 @@ class OnDeviceSettingsContractTests(unittest.TestCase):
         matches = re.findall(
             r"var (headerY|nameY|numberY|progressY|marginY|paceTitleY|"
             r"paceValueY|descentTitleY|descentValueY|footerY)"
-            r" = \\(height \\* (0\\.\\d+)\\)\\.toNumber\\(\\);",
+            r" = \(height \* (0\.\d+)\)\.toNumber\(\);",
             self.field,
         )
         anchors = dict((name, float(pct)) for name, pct in matches)
