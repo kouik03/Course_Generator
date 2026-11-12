@@ -47,6 +47,17 @@ class OnDeviceSettingsContractTests(unittest.TestCase):
         self.assertIn('Storage.setValue("manualCpRequestId"', self.menu)
         self.assertIn('Storage.setValue("manualCpAppliedId", req)', self.field)
 
+    def test_menu_ids_are_narrowed_before_numeric_comparison(self):
+        self.assertIn("if (!(id instanceof Lang.Number)) { return; }", self.menu)
+        self.assertEqual(
+            self.menu.count("if (!(id instanceof Lang.Number)) { return; }"), 3
+        )
+        self.assertIn("var choice = id as Lang.Number;", self.menu)
+        self.assertIn("var previewId = id as Lang.Number;", self.menu)
+        self.assertIn("var jumpId = id as Lang.Number;", self.menu)
+        self.assertNotIn("id >= 0", self.menu)
+        self.assertNotIn("choice = id;", self.menu)
+
     def test_wave_delay_override_and_phone_fallback(self):
         self.assertIn('Storage.getValue("watchStartDelayMin")', self.menu)
         self.assertIn('Storage.deleteValue("watchStartDelayMin")', self.menu)
