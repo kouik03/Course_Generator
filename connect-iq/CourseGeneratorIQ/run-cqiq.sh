@@ -25,7 +25,7 @@ case "$MENU_MODE" in
         exit 2
         ;;
 esac
-OUTPUT="$PROJECT/bin/CourseGeneratorIQ.prg"
+OUTPUT="$PROJECT/bin/CourseGeneratorIQ-${MENU_MODE}.prg"
 KEY="$HOME/Library/Mobile Documents/com~apple~CloudDocs/garmin/developer_key"
 SDK_HOME="$HOME/Library/Application Support/Garmin/ConnectIQ/Sdks"
 
@@ -67,6 +67,7 @@ fi
 
 printf '\n[2/4] Compilation (%s)...\n' "$DEVICE"
 printf 'SDK : %s\n' "$SDK"
+printf 'Menu : %s | Jungle : %s\n' "$MENU_MODE" "$JUNGLE"
 mkdir -p "$PROJECT/bin"
 "$SDK/bin/monkeyc" \
     -f "$JUNGLE" \
@@ -76,6 +77,12 @@ mkdir -p "$PROJECT/bin"
     -w
 [[ -s "$OUTPUT" ]] || fail "La compilation n'a pas produit le fichier PRG."
 printf 'Compilation OK : %s\n' "$OUTPUT"
+shasum -a 256 "$OUTPUT" | awk '{printf "SHA-256 PRG : %.16s...\n", $1}'
+if [[ "$MENU_MODE" == "menu2" ]]; then
+    printf 'DIAGNOSTIC : le titre des reglages doit etre MENU2 NATIF.\n'
+else
+    printf 'DIAGNOSTIC : le titre des reglages doit etre CG IQ REGLAGES.\n'
+fi
 
 printf '\n[3/4] Fermeture de tous les simulateurs Garmin existants...\n'
 # Do not close the old simulator unless the new build succeeded.
