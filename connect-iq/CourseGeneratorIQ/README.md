@@ -167,3 +167,31 @@ La barre utilise la distance **de l'activité Garmin recalée au passage des rav
 7. Vérifier qu'aucune valeur ne se coupe contre le bord du cadran.
 
 **Ce lot d'affichage reste à compiler et vérifier dans le simulateur SDK 9.3.0**. Les GitHub Actions existantes ne compilent pas le code Monkey C.
+
+
+## Une seule commande macOS : CGIq
+
+Le script **run-cqiq.sh** est versionne avec les sources. Il utilise le depot existant sur `experiment/terrain-debiased-curve-v1` et cible `fenix9pro51mm`.
+
+Installation unique dans zsh :
+
+```bash
+cd ~/Desktop/Course_Generator
+git pull --ff-only origin experiment/terrain-debiased-curve-v1
+bash connect-iq/CourseGeneratorIQ/install-cqiq.sh
+source ~/.zshrc
+```
+
+Ensuite, **dans n'importe quel dossier** :
+
+```bash
+CGIq
+```
+
+La commande enchaine :
+1. Verification de la branche courante, puis `git pull --ff-only` (aucun `reset --hard`, aucune suppression des modifications locales).
+2. Recherche du SDK Garmin macOS installe et de la cle `~/Library/Mobile Documents/com~apple~CloudDocs/garmin/developer_key`.
+3. Compilation de `CourseGeneratorIQ.prg` avec `monkeyc` pour la Fenix 9 Pro 51 mm.
+4. **Uniquement si la compilation reussit**, fermeture des anciennes instances de ConnectIQ.app, lancement d'un simulateur neuf et execution avec `monkeydo`.
+
+Le SDK peut etre force avec la variable `CGIQ_SDK=/chemin/du/SDK` si besoin. La commande ne modifie pas volontairement le stockage persistant des blocs Base64 du simulateur. Les fichiers d'installation shell sont lus par `bash`, donc les commentaires `#` n'entrainent pas l'erreur `zsh: command not found: #`.
