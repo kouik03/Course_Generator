@@ -767,20 +767,26 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             (point.descentM - oldDown).format("%d") + " m",
             width * 0.35, blue);
 
-        txt(dc, height * 0.659, Graphics.FONT_XTINY,
-            "RESTE " + (remaining / 1000.0).format("%.1f") +
-            " km / PAUSE " + point.pauseMin.format("%d") + " min",
-            muted);
+        txt(dc, height * 0.632, Graphics.FONT_XTINY,
+            "CUMULE D+ " + point.ascentM.format("%d") +
+            " / D- " + point.descentM.format("%d"), muted);
+
+        var fromCurrent = remaining < 0 ?
+            "DEPASSE " + ((-remaining) / 1000.0).format("%.1f") :
+            "RESTE " + (remaining / 1000.0).format("%.1f");
+        txt(dc, height * 0.697, Graphics.FONT_XTINY,
+            fromCurrent + " km / PAUSE " +
+            point.pauseMin.format("%d") + " min", muted);
 
         var barTime = point.cutoffMin == 65535 ?
             "BH --:--" : "BH " + targetClock(point.cutoffMin);
-        txt(dc, height * 0.744, Graphics.FONT_SMALL,
+        txt(dc, height * 0.772, Graphics.FONT_SMALL,
             barTime + " / PLAN " +
             targetClock(_plan.officialStartMin + point.targetMin),
             white);
 
-        txt(dc, height * 0.837, Graphics.FONT_XTINY,
-            "MENU > RETOUR SUIVI LIVE", blue);
+        txt(dc, height * 0.852, Graphics.FONT_XTINY,
+            "MENU > RETOUR SUIVI", blue);
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
