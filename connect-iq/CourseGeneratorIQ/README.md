@@ -378,3 +378,44 @@ rond. Les unites `km` et `h` ont des zones de texte plus larges.
 Verifier le rendu avec `CGIq`. Les tests automatises Python ne compilent
 pas Monkey C et ne peuvent pas confirmer visuellement l'absence
 de chevauchements.
+
+## Correctif menu noir et cadran coupe (fenix 9 Pro 51 mm)
+
+Si **Settings -> Trigger App Settings** ouvrait un ecran noir dans le
+simulateur, cela provenait probablement du renvoi direct d'un `Menu2` comme
+vue de reglages d'un champ de donnees. Garmin a deja documente des anomalies
+de rendu dans cette combinaison.
+
+Le menu de la montre utilise maintenant un `WatchUi.View` et un
+`WatchUi.BehaviorDelegate`, sans `pushView`. Le menu affiche une liste
+personnalisee et offre les memes fonctions qu'avant. Aucun bloc Base64
+n'est affiche ni editable depuis la montre.
+
+Touches du menu : **UP/DOWN** pour defiler, **START/ENTER** pour choisir,
+**BACK** pour revenir au menu principal puis quitter. En detail CP :
+UP/DOWN change de CP, START garde ce CP comme **consultation** sans modifier
+le CP actif. **Changer prochain CP** demande toujours une confirmation
+supplementaire avant toute modification du suivi.
+
+Le cadran de course utilise maintenant un placement **du bas vers le haut** :
+l'heure actuelle et le chronometre ont une position reservee ; D-/ARRIVEE,
+allures, marge, barre, grands chiffres et titre sont places au-dessus.
+Si les polices Garmin sont plus hautes que prevu, la taille de l'allure est
+reduite **avant** de sacrifier les donnees du bas. Il ne doit plus y avoir
+d'ecran tronque au niveau de D-/ARRIVEE.
+
+Recompiler et ouvrir le simulateur avec `CGIq`. Tester dans cet ordre :
+1. Affichage plein ecran (D- CP, ARRIVEE et horloge visibles).
+2. **Settings -> Trigger App Settings** : voir le menu personnalise plutot
+   qu'un ecran noir.
+3. Choisir **Depart en vague** +15 min puis revenir : l'heure de BH est
+   inchangee, le compteur restant et la marge diminuent de 15 min.
+4. Choisir **CONSULTER UN CP**, ouvrir CP2, passer a CP3 avec BAS, valider
+   pour le visualiser sans changer le CP de suivi reel.
+5. Choisir **CHANGER PROCHAIN CP** puis confirmer ou annuler ; valider le
+   comportement des deux branches.
+
+La validation automatique GitHub controle les fichiers de protocole, scripts
+et contrats de source, **pas la compilation ou l'interface Monkey C**. En cas
+d'ecran noir persistant, relever les traces d'execution du simulateur Garmin
+plutot que de supposer que le menu a fonctionne.
