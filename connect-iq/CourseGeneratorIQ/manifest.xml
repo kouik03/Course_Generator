@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<iq:manifest version="3" xmlns:iq="http://www.garmin.com/xml/connectiq">
+    <iq:application id="6c6a85a5c1974c5a92a9445e16f8a701"
+                    type="datafield"
+                    name="@Strings.AppName"
+                    entry="CourseGeneratorIQApp"
+                    minApiLevel="3.2.0">
+        <iq:products>
+            <iq:product id="fenix8"/>
+        </iq:products>
+        <iq:permissions/>
+        <iq:languages>
+            <iq:language>eng</iq:language>
+            <iq:language>fre</iq:language>
+        </iq:languages>
+    </iq:application>
+</iq:manifest>
