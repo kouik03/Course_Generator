@@ -425,7 +425,7 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var large = Graphics.FONT_LARGE;
         var white = Graphics.COLOR_WHITE;
         var pale = Graphics.COLOR_LT_GRAY;
-        var aqua = Graphics.COLOR_CYAN;
+        var aqua = Graphics.COLOR_BLUE;
         var gold = Graphics.COLOR_YELLOW;
         var red = Graphics.COLOR_RED;
         var green = Graphics.COLOR_GREEN;
