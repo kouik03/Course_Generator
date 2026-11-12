@@ -6,7 +6,7 @@
                     entry="CourseGeneratorIQApp"
                     minApiLevel="3.2.0">
         <iq:products>
-            <iq:product id="fenix8"/>
+            <iq:product id="fenix9pro51mm"/>
         </iq:products>
         <iq:permissions/>
         <iq:languages>
