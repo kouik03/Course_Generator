@@ -909,100 +909,108 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             return;
         }
 
-        // Compact TrailRace-style cockpit, arranged using the DEVICE'S font
-        // heights instead of arbitrary percentages for each independent row.
-        // This prevents text from overlapping on the fenix 9 Pro round panel.
-        var smallH = dc.getFontHeight(Graphics.FONT_SMALL);
-        var mediumH = dc.getFontHeight(Graphics.FONT_MEDIUM);
-        var largeH = dc.getFontHeight(Graphics.FONT_LARGE);
-        var tinyH = dc.getFontHeight(Graphics.FONT_XTINY);
+        // Screen geometry is computed BOTTOM-UP. The old top-down layout
+        // let large Garmin font metrics push D-/ARRIVEE and the clock below
+        // the round screen. Reserving a footer first prevents that.
+        var headerFont = Graphics.FONT_MEDIUM;
+        var nameFont = Graphics.FONT_SMALL;
+        var numberFont = Graphics.FONT_LARGE;
+        var paceFont = Graphics.FONT_MEDIUM;
+        var secondaryFont = Graphics.FONT_SMALL;
+        var captionFont = Graphics.FONT_XTINY;
 
-        var headerY = (height * 0.083).toNumber();
-        var nameY = (height * 0.178).toNumber();
-        if (nameY < headerY + mediumH + 3) {
-            nameY = headerY + mediumH + 3;
-        }
-        var numberY = (height * 0.262).toNumber();
-        if (numberY < nameY + smallH + 4) {
-            numberY = nameY + smallH + 4;
-        }
+        var hHead = dc.getFontHeight(headerFont);
+        var hName = dc.getFontHeight(nameFont);
+        var hNum = dc.getFontHeight(numberFont);
+        var hPace = dc.getFontHeight(paceFont);
+        var hSecond = dc.getFontHeight(secondaryFont);
+        var hTiny = dc.getFontHeight(captionFont);
 
-        var progressY = (height * 0.400).toNumber();
-        if (progressY < numberY + largeH + 6) {
-            progressY = numberY + largeH + 6;
+        var footerY = (height * 0.807).toNumber();
+        var descentValueY = footerY - hSecond - 5;
+        var descentTitleY = descentValueY - hTiny - 2;
+        var paceValueY = descentTitleY - hPace - 5;
+        var paceTitleY = paceValueY - hTiny - 2;
+        var marginY = paceTitleY - hTiny - 5;
+        var progressY = marginY - 12;
+        var numberY = progressY - hNum - 7;
+        var nameY = numberY - hName - 3;
+        var headerY = nameY - hHead - 4;
+
+        // Keep the big distance and cutoff figures when possible. If a
+        // firmware uses taller font metrics, reduce the lower pace font.
+        if (headerY < height * 0.080) {
+            paceFont = Graphics.FONT_SMALL;
+            hPace = dc.getFontHeight(paceFont);
+            paceValueY = descentTitleY - hPace - 5;
+            paceTitleY = paceValueY - hTiny - 2;
+            marginY = paceTitleY - hTiny - 5;
+            progressY = marginY - 12;
+            numberY = progressY - hNum - 7;
+            nameY = numberY - hName - 3;
+            headerY = nameY - hHead - 4;
         }
-        var marginY = progressY + 10;
-        var paceTitleY = (height * 0.506).toNumber();
-        if (paceTitleY < marginY + tinyH + 4) {
-            paceTitleY = marginY + tinyH + 4;
+        if (headerY < height * 0.054) {
+            headerFont = Graphics.FONT_SMALL;
+            hHead = dc.getFontHeight(headerFont);
+            headerY = nameY - hHead - 4;
         }
-        var paceValueY = paceTitleY + smallH + 2;
-        var descentTitleY = paceValueY + largeH + 4;
-        var descentValueY = descentTitleY + smallH + 1;
-        var footerY = descentValueY + mediumH + 4;
 
         var cpTitle = _index == _plan.points.size() - 1 ?
                       "FIN" : "CP" + (_index + 1).format("%d");
         if ((point.flags & 6) != 0) {
-            fittedText(dc, width * 0.44, headerY,
-                       Graphics.FONT_MEDIUM, cpTitle,
-                       width * 0.23, accent);
-            drawServices(dc, headerY + mediumH / 2, point.flags);
+            fittedText(dc, width * 0.43, headerY,
+                       headerFont, cpTitle, width * 0.24, accent);
+            drawServices(dc, headerY + hHead / 2, point.flags);
         } else {
-            txt(dc, headerY, Graphics.FONT_MEDIUM, cpTitle, accent);
+            txt(dc, headerY, headerFont, cpTitle, accent);
         }
 
         var colW = width * 0.39;
-        fittedText(dc, width * 0.285, nameY,
-                   Graphics.FONT_SMALL, point.name,
-                   colW, accent);
-        fittedText(dc, width * 0.718, nameY,
-                   Graphics.FONT_SMALL,
+        fittedText(dc, width * 0.285, nameY, nameFont,
+                   point.name, colW, accent);
+        fittedText(dc, width * 0.718, nameY, nameFont,
                    goal >= 0 ? "BH " + cutoffClock : "SANS BH",
                    colW, accent);
 
-        // Keep both numeric quantities prominent. The units use wider,
-        // correctly positioned cells instead of truncated "k.." or "h".
-        fittedText(dc, width * 0.266, numberY, Graphics.FONT_LARGE,
+        fittedText(dc, width * 0.265, numberY, numberFont,
                    _atStation ? formatDuration(restRemainingSec(_index)) :
                    (remainingM / 1000.0).format("%.2f"),
                    width * 0.34, _atStation ? amber : 0x80BFFF);
         if (!_atStation) {
-            fittedText(dc, width * 0.449,
-                       numberY + (largeH * 0.39).toNumber(),
-                       Graphics.FONT_XTINY, "km", width * 0.12, accent);
+            fittedText(dc, width * 0.451,
+                       numberY + (hNum * 0.40).toNumber(),
+                       captionFont, "km", width * 0.12, accent);
         }
 
         var leftToCutoff = goal >= 0 ?
                            formatCountdown(cutoffRemainingSec) : "--:--";
-        fittedText(dc, width * 0.697, numberY, Graphics.FONT_LARGE,
+        fittedText(dc, width * 0.700, numberY, numberFont,
                    leftToCutoff, width * 0.36,
                    cutoffRemainingSec < 0 ? red : 0x00E8C0);
         if (goal >= 0) {
-            fittedText(dc, width * 0.884,
-                       numberY + (largeH * 0.39).toNumber(),
-                       Graphics.FONT_XTINY, "h", width * 0.10,
+            fittedText(dc, width * 0.885,
+                       numberY + (hNum * 0.40).toNumber(),
+                       captionFont, "h", width * 0.10,
                        cutoffRemainingSec < 0 ? red : 0x00E8C0);
         }
 
-        // The bar itself displays checkpoint positions; there is no
-        // redundant mileage-caption row or list of aid stations beneath it.
         drawRoadbookBar(dc, progressY, routeM, remainingM, false);
-        fittedText(dc, width / 2, marginY, Graphics.FONT_XTINY,
+        fittedText(dc, width / 2, marginY, captionFont,
                    goal >= 0 ? "MARGE " + signedMargin : "PAS DE BH",
-                   width * 0.67, marginColor);
+                   width * 0.66, marginColor);
 
-        fittedText(dc, width * 0.285, paceTitleY,
-                   Graphics.FONT_SMALL, "ALLURE", colW, muted);
-        fittedText(dc, width * 0.715, paceTitleY,
-                   Graphics.FONT_SMALL, "REQUIS", colW, muted);
-        fittedText(dc, width * 0.285, paceValueY,
-                   Graphics.FONT_LARGE, segmentPace(), colW,
-                   0x80BFFF);
-        fittedText(dc, width * 0.715, paceValueY,
-                   Graphics.FONT_LARGE, requiredPace, colW,
-                   marginColor);
+        fittedText(dc, width * 0.285, paceTitleY, captionFont,
+                   "ALLURE", colW, muted);
+        fittedText(dc, width * 0.715, paceTitleY, captionFont,
+                   "REQUIS", colW, muted);
+        fittedText(dc, width * 0.285, paceValueY, paceFont,
+                   segmentPace(), colW, 0x80BFFF);
+        fittedText(dc, width * 0.715, paceValueY, paceFont,
+                   requiredPace, colW, marginColor);
 
+        // D- is still an estimate distributed proportionally within the
+        // current segment (until we export the full GPX elevation profile).
         var previousDown = _index == 0 ? 0 :
                            _plan.points[_index - 1].descentM;
         var begin = _index == 0 ? 0.0 :
@@ -1013,20 +1021,17 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var downRemaining =
             ((point.descentM - previousDown) * share).toNumber();
 
-        fittedText(dc, width * 0.285, descentTitleY,
-                   Graphics.FONT_SMALL, "D- CP", colW, muted);
-        fittedText(dc, width * 0.715, descentTitleY,
-                   Graphics.FONT_SMALL, "ARRIVEE", colW, muted);
-        fittedText(dc, width * 0.285, descentValueY,
-                   Graphics.FONT_MEDIUM,
-                   downRemaining.format("%d") + " m", colW,
-                   0x80BFFF);
-        fittedText(dc, width * 0.715, descentValueY,
-                   Graphics.FONT_MEDIUM, finishClock, colW,
-                   accent);
+        fittedText(dc, width * 0.285, descentTitleY, captionFont,
+                   "D- CP", colW, muted);
+        fittedText(dc, width * 0.715, descentTitleY, captionFont,
+                   "ARRIVEE", colW, muted);
+        fittedText(dc, width * 0.285, descentValueY, secondaryFont,
+                   downRemaining.format("%d") + " m", colW, 0x80BFFF);
+        fittedText(dc, width * 0.715, descentValueY, secondaryFont,
+                   finishClock, colW, accent);
 
-        // One centred, compact footer retains both the real device clock
-        // and ultra elapsed time. It fits the round dial's narrower bottom.
+        // The footer stays near the widest lower part of the round screen.
+        // Do not shift it downward when Garmin changes font metrics.
         var clock = System.getClockTime();
         var nowText = clock.hour.format("%02d") + ":" +
                       clock.min.format("%02d");
@@ -1036,8 +1041,8 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var elapsedText = raceHours.format("%d") + ":" +
                           raceMinutes.format("%02d") + ":" +
                           raceSeconds.format("%02d");
-        fittedText(dc, width / 2, footerY, Graphics.FONT_XTINY,
+        fittedText(dc, width / 2, footerY, captionFont,
                    nowText + "  |  " + elapsedText,
-                   width * 0.66, 0x80BFFF);
+                   width * 0.64, 0x80BFFF);
     }
 }
