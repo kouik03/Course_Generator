@@ -120,3 +120,14 @@ Tests à réaliser sur le simulateur / la montre :
 - La vibration doit être testée lors de la mise en veille/changement d'écran.
 - **L'export direct JSON/Base64 depuis l'éditeur Java Course Generator reste à intégrer.** Pour cette tranche, l'encodeur Python fournit un protocole stable et testable, sans supposer le contenu du roadbook réel.
 - Le mode démo est fictif, jamais un plan officiel. Ne pas utiliser la marge affichée comme garantie de passage.
+
+## Diagnostic de lecture Base64 (simulateur Garmin)
+
+En cas de chaine non reconnue, l'ecran affiche :
+
+- **BLOC n / POS m** : bloc et position du premier caractere invalide (a partir de 1).
+- **CHAR U+XXXX** : code Unicode du caractere effectivement lu par la montre (par ex. U+0022 = guillemet, U+005B = crochet, U+00A0 = espace insecable).
+- **LONGUEURS 40/40/40** : tailles des trois valeurs effectivement recues depuis les parametres.
+- **DECODEUR OK** : le decodeur a accepte un vecteur de test integre de 120 caracteres / 88 octets, identique au roadbook demo genere. Si ce test est OK et les valeurs utilisateur sont refusees, le probleme se situe dans la transmission/saisie des reglages.
+
+L'application refuse le plan si sa somme de controle n'est pas bonne : **aucune extrapolation sur un roadbook endommage**. Les deux alphabets Base64 standard et URL-safe sont acceptes.
