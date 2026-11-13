@@ -135,10 +135,57 @@ class OnWatchContractTests(unittest.TestCase):
         self.assertGreater(positions["descentTitleY"] - positions["paceValueY"], .08)
         self.assertGreater(positions["descentValueY"] - positions["descentTitleY"], .05)
         self.assertLess(positions["footerY"], .88)
-        self.assertIn("roundColumnText(dc, width * 0.285, nameY", self.field)
-        self.assertIn("roundColumnText(dc, width * 0.718, nameY", self.field)
+        self.assertIn("roundColumnText(dc, width * 0.303, nameY", self.field)
+        self.assertIn("roundColumnText(dc, width * 0.715, nameY", self.field)
         self.assertIn("var numberFont = Graphics.FONT_LARGE;", self.field)
         self.assertIn("function drawPrimaryMetric(", self.field)
+
+    def test_compact_cp_header_and_checkpoint_cut_row(self):
+        # First row = CP code followed by real service pictograms.
+        # Second row = name at left, official CUT clock at right.
+        self.assertIn("function drawCheckpointHeader(", self.field)
+        self.assertIn("drawCheckpointHeader(dc, headerY,", self.field)
+        self.assertIn("nameY - headerY - 5, cpTitle,", self.field)
+        self.assertIn('goal >= 0 ? "CUT " + cutoffClock : "SANS CUT"', self.field)
+        self.assertIn("var topColW = width * 0.42;", self.field)
+        self.assertIn("roundColumnText(dc, width * 0.303, nameY", self.field)
+        self.assertIn("roundColumnText(dc, width * 0.715, nameY", self.field)
+        self.assertIn("var headerY = (height * 0.105).toNumber();", self.field)
+        self.assertIn("var nameY = (height * 0.182).toNumber();", self.field)
+        self.assertNotIn('function drawServices(', self.field)
+
+    def test_five_icon_slots_are_reserved_without_invented_services(self):
+        self.assertIn("var serviceBits = [2, 4, 8, 16, 32];", self.field)
+        self.assertIn("var iconCapacity = serviceBits.size();", self.field)
+        self.assertIn("if ((flags & serviceBits[i]) != 0)", self.field)
+        self.assertIn("if ((flags & serviceBits[j]) != 0)", self.field)
+        self.assertIn("drawCheckpointSymbol(dc, cursor + step / 2, centerY, j);",
+                      self.field)
+        self.assertIn("function drawCheckpointSymbol(", self.field)
+        self.assertIn("if (kind == 0)", self.field)
+        self.assertIn("if (kind == 1)", self.field)
+        self.assertIn("if (kind == 2)", self.field)
+        self.assertIn("if (kind == 3)", self.field)
+        self.assertIn("if (kind == 4)", self.field)
+        self.assertIn("var cpFont = fontForSlot(dc, Graphics.FONT_MEDIUM, maxHeight);",
+                      self.field)
+
+    def test_top_slot_respects_round_screen_chord(self):
+        # For 454x454 Fenix 9 Pro, even a 5-icon first row must fit
+        # inside the upper chord rather than drawing against the bezel.
+        import math
+        size = 454
+        radius = size * .468
+        header_y = size * .105
+        measured_small_font_h = 32
+        dy = abs(header_y + measured_small_font_h / 2 - size / 2)
+        chord = 2 * math.sqrt(radius * radius - dy * dy) - 14
+        # Conservative stand-in for a four-character CP label width.
+        four_char_cp_width = 86
+        five_icon_group_width = four_char_cp_width + 12 + 25 * 5
+        self.assertGreater(chord, five_icon_group_width)
+        # There must be a gap before the subsequent name/CUT row.
+        self.assertGreater((.182 - .105) * size, measured_small_font_h + 2)
 
     def test_primary_metric_pairs_unit_with_number(self):
         # Primary metric numerals and units must share measured horizontal
