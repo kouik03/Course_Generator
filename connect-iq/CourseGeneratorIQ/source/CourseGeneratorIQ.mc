@@ -653,6 +653,48 @@ class CourseGeneratorIQField extends WatchUi.DataField {
                    roundWidth < maxW ? roundWidth : maxW, color);
     }
 
+    // The OFFICIAL cutoff clock is the priority in this header row.
+    // Reserve its full measured width at the RIGHT edge of the usable
+    // circular chord. Only the checkpoint name is eligible for truncation.
+    function drawCheckpointNameAndCut(dc, y, name, cutText, color) {
+        var font = Graphics.FONT_XTINY;
+        var chord = usableTextWidth(dc, y, font);
+        var left = (dc.getWidth() - chord) / 2 + 3;
+        var right = dc.getWidth() - left;
+        var cutoffWidth = dc.getTextWidthInPixels(cutText, font);
+        var gap = 9;
+
+        // Never truncate or abbreviate CUT HH:MM. In the extremely narrow
+        // upper chord, give it the entire line and omit the CP name.
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        if (cutoffWidth + 2 >= right - left) {
+            dc.drawText(dc.getWidth() / 2, y, font, cutText,
+                        Graphics.TEXT_JUSTIFY_CENTER);
+            return;
+        }
+
+        dc.drawText(right, y, font, cutText,
+                    Graphics.TEXT_JUSTIFY_RIGHT);
+
+        var nameSpace = right - cutoffWidth - gap - left;
+        if (nameSpace <= 0) { return; }
+        var shownName = name;
+        if (dc.getTextWidthInPixels(shownName, font) > nameSpace) {
+            var count = shownName.length();
+            while (count > 0 &&
+                   dc.getTextWidthInPixels(
+                       name.substring(0, count) + "..", font) > nameSpace) {
+                count--;
+            }
+            shownName = count > 0 ?
+                        name.substring(0, count) + ".." : "";
+        }
+        if (shownName.length() > 0) {
+            dc.drawText(left, y, font, shownName,
+                        Graphics.TEXT_JUSTIFY_LEFT);
+        }
+    }
+
     // Guard each row against the actual font metrics published by the
     // device SDK. The slot positions below remain stable even when a
     // font must shrink, so adjusting the header cannot move the footer.
@@ -1089,8 +1131,10 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         // Spread the lower rows and make use of the unused space above
         // the header. On the 51 mm watch the old rows crowded margin,
         // pace and descent together despite a large unused lower margin.
-        var headerY = (height * 0.099).toNumber();
-        var nameY = (height * 0.192).toNumber();
+        // Both compact header rows are lifted ~20 device pixels. The
+        // wider second row reserves the CUT clock before the CP name.
+        var headerY = (height * 0.055).toNumber();
+        var nameY = (height * 0.150).toNumber();
         var numberY = (height * 0.283).toNumber();
         var progressY = (height * 0.457).toNumber();
         var marginY = (height * 0.494).toNumber();
@@ -1106,7 +1150,6 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         // sacrificing the large primary metrics.
         // Uniformly smaller checkpoint-name/CUT typography keeps the
         // header tight and leaves CP + service icons as the visual title.
-        var nameFont = Graphics.FONT_XTINY;
         var paceFont = fontForSlot(dc, Graphics.FONT_MEDIUM,
                                    descentTitleY - paceValueY - 5);
         var secondaryFont = fontForSlot(dc, Graphics.FONT_SMALL,
@@ -1119,14 +1162,11 @@ class CourseGeneratorIQField extends WatchUi.DataField {
                              nameY - headerY - 5, cpTitle,
                              point.flags, white);
 
-        // Separate fields fit within the actual round-screen chord.
-        // Long names are allowed to use the smaller X-TINY Garmin font.
-        var topColW = width * 0.42;
-        roundColumnText(dc, width * 0.303, nameY, nameFont,
-                        point.name, topColW, white);
-        roundColumnText(dc, width * 0.715, nameY, nameFont,
-                        goal >= 0 ? "CUT " + cutoffClock : "SANS CUT",
-                        topColW, white);
+        // CUT is ALWAYS drawn in full (right justified). The checkpoint
+        // name uses only the remaining space and may be shortened.
+        drawCheckpointNameAndCut(dc, nameY, point.name,
+                                goal >= 0 ? "CUT " + cutoffClock :
+                                "SANS CUT", white);
 
         var colW = width * 0.39;
         // Keep both quantities visibly dominant, as on the reference
