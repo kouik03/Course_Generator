@@ -801,6 +801,21 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             }
         }
 
+        // The departure is a genuine timeline checkpoint too. It is
+        // not included in _plan.points (the first item is R1), so draw its
+        // blue circle explicitly whenever this view begins at km 0.
+        // Once the athlete leaves the start, its marker becomes filled.
+        if (fromM == 0.0) {
+            dc.setColor(0x86D7FF, Graphics.COLOR_TRANSPARENT);
+            if (viewM > 0.0) {
+                dc.fillCircle(x, y, 5);
+            } else {
+                dc.fillCircle(x, y, 7);
+                dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(x, y, 4);
+            }
+        }
+
         // All roadbook checkpoints visible in full-course view.
         for (var i = 0; i < _plan.points.size(); i++) {
             var km = _plan.points[i].distanceM;
@@ -821,16 +836,15 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             }
         }
 
-        // Keep the same outer BLUE RING even when the runner is exactly
-        // on a CP marker. The WHITE CENTRE, not a blank white dot, clearly
-        // distinguishes the current position from future hollow markers.
+        // Current position: a PLAIN WHITE DOT with NO blue outline.
+        // Cover any underlying CP/start ring at the exact same position,
+        // so two overlapping symbols never look like an outlined runner.
+        // The departure ring becomes visible once the runner advances.
         var hereX = x + doneW;
-        dc.setColor(0x86D7FF, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(hereX, y, 9);
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(hereX, y, 6);
+        dc.fillCircle(hereX, y, 8);
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(hereX, y, 4);
+        dc.fillCircle(hereX, y, 5);
 
 
     }
