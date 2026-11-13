@@ -801,28 +801,13 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             }
         }
 
-        // Does the white runner dot overlap a checkpoint circle? A small
-        // course-distance tolerance AND a pixel tolerance are both required:
-        // on an 87 km timeline, being visually close alone can still mean
-        // kilometres away from an aid station.
-        var hereX = x + doneW;
-        var onCheckpoint = false;
-        if (fromM == 0.0 &&
-            Math.abs(viewM) <= 100.0 &&
-            Math.abs(hereX - x) <= 8) {
-            onCheckpoint = true;
-        }
-
-        // The departure is a genuine timeline checkpoint too. It is
-        // not included in _plan.points (the first item is R1), so draw its
-        // blue circle explicitly whenever this view begins at km 0.
-        // Once the athlete leaves the start, its marker becomes filled.
+        // START is a checkpoint even though it is not in _plan.points.
+        // Draw it BEFORE the white athlete dot: at departure it is
+        // hollow; once passed it remains a FULL-SIZE FILLED BLUE CIRCLE.
         if (fromM == 0.0) {
             dc.setColor(0x86D7FF, Graphics.COLOR_TRANSPARENT);
-            if (viewM > 0.0) {
-                dc.fillCircle(x, y, 5);
-            } else {
-                dc.fillCircle(x, y, 7);
+            dc.fillCircle(x, y, 7);
+            if (viewM <= 0.0) {
                 dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
                 dc.fillCircle(x, y, 4);
             }
@@ -834,34 +819,22 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             if (km < fromM || km > toM) { continue; }
             var markerX = x +
                 ((km - fromM) / (toM - fromM) * span).toNumber();
-            if (Math.abs(viewM - km) <= 100.0 &&
-                Math.abs(hereX - markerX) <= 8) {
-                onCheckpoint = true;
-            }
-            // Upcoming aid stations have a clear hollow blue ring;
-            // completed checkpoints remain filled blue.
+            // CPs are always drawn first and remain visible even while
+            // the athlete dot is entering/leaving them. Passed stations
+            // have the SAME radius as future ones but are FILLED BLUE.
             var isPassed = km <= routeM;
-            if (isPassed) {
-                dc.setColor(0x86D7FF, Graphics.COLOR_TRANSPARENT);
-                dc.fillCircle(markerX, y, 5);
-            } else {
-                dc.setColor(0x86D7FF, Graphics.COLOR_TRANSPARENT);
-                dc.fillCircle(markerX, y, 7);
+            dc.setColor(0x86D7FF, Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(markerX, y, 7);
+            if (!isPassed) {
                 dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
                 dc.fillCircle(markerX, y, 4);
             }
         }
 
-        // White dot alone while between points; at the departure or at
-        // an aid/CP, retain the BLUE CHECKPOINT RING around the white dot
-        // so it is clear that the runner is at a checkpoint. Paint on top
-        // of the original aid circle to prevent overlapping blue discs.
-        if (onCheckpoint) {
-            dc.setColor(0x86D7FF, Graphics.COLOR_TRANSPARENT);
-            dc.fillCircle(hereX, y, 8);
-            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-            dc.fillCircle(hereX, y, 5);
-        }
+        // Last layer: ONLY the WHITE athlete dot, without black masking.
+        // The blue start/CP circle underneath stays visible during entry,
+        // overlap and departure; between CPs the dot remains plain white.
+        var hereX = x + doneW;
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(hereX, y, 4);
 
