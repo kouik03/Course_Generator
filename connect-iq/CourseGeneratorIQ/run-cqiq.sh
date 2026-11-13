@@ -38,7 +38,7 @@ CURRENT_BRANCH="$(git -C "$REPO_ROOT" branch --show-current)"
 # Bash has already loaded the running script into memory. A git pull may
 # replace this very file (or remove an old Jungle file) during the run.
 # Re-exec the freshly updated script once after the pull, so stale variables
-# such as an old monkey.native.jungle path can never be used for compilation.
+# such as a deleted former Jungle path can never be used for compilation.
 if [[ "${CGIQ_POST_PULL:-0}" != "1" ]]; then
     printf '\n[1/4] Synchronisation GitHub (sans ecraser tes modifications locales)...\n'
     git -C "$REPO_ROOT" pull --ff-only origin "$BRANCH"
