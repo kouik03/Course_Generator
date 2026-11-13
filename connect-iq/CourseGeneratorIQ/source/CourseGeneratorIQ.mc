@@ -21,20 +21,8 @@ class CourseGeneratorIQApp extends Application.AppBase {
         return [gCourseGeneratorField];
     }
 
-    // Garmin activity settings -> Connect IQ Fields -> Course Generator IQ.
-    // Both menu engines share their Storage data and neither edits Base64.
-    // The build's Jungle exclusions choose precisely one implementation.
-    // CLI "CGIq" uses this custom View for simulator regression tests.
-    (:cgiqSimulatorSettings)
-    function getSettingsView() {
-        System.println("CGIQ: open custom settings View");
-        var settings = new CGIQDeviceSettingsView();
-        return [settings, new CGIQDeviceSettingsDelegate(settings)];
-    }
-
-    // Build with monkey.native.jungle (or "CGIq menu2") for genuine Menu2.
-    // Garmin permits a Menu2InputDelegate directly from getSettingsView.
-    (:cgiqNativeSettings)
+    // One native Garmin Menu2 for the watch AND the simulator.
+    // Neither Base64 configuration nor phone settings are shown here.
     function getSettingsView() {
         System.println("CGIQ: open native Menu2 settings");
         var menu = new CGIQNativeMenu();
@@ -731,8 +719,8 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             if (km < fromM || km > toM) { continue; }
             var markerX = x +
                 ((km - fromM) / (toM - fromM) * span).toNumber();
-            // Larger contrasting checkpoints: filled blue = passed,
-            // hollow ring = ahead. The runner is the only white marker.
+            // Upcoming aid stations have a clear hollow blue ring;
+            // completed checkpoints remain filled blue.
             var isPassed = km <= routeM;
             if (isPassed) {
                 dc.setColor(0x86D7FF, Graphics.COLOR_TRANSPARENT);
@@ -745,12 +733,16 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             }
         }
 
-        // Current athlete position, deliberately bigger than CP markers.
+        // Keep the same outer BLUE RING even when the runner is exactly
+        // on a CP marker. The WHITE CENTRE, not a blank white dot, clearly
+        // distinguishes the current position from future hollow markers.
         var hereX = x + doneW;
+        dc.setColor(0x86D7FF, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(hereX, y, 9);
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(hereX, y, 8);
+        dc.fillCircle(hereX, y, 6);
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(hereX, y, 5);
+        dc.fillCircle(hereX, y, 4);
 
 
     }
@@ -978,16 +970,19 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         // screenshot showed only "..MO" and "BH.." while CP1 vanished.
         // Each row now has its own screen slot; the rest of the dashboard
         // and the footer cannot be displaced by a larger firmware font.
-        var headerY = (height * 0.145).toNumber();
-        var nameY = (height * 0.240).toNumber();
-        var numberY = (height * 0.335).toNumber();
-        var progressY = (height * 0.465).toNumber();
-        var marginY = (height * 0.492).toNumber();
-        var paceTitleY = (height * 0.553).toNumber();
-        var paceValueY = (height * 0.609).toNumber();
-        var descentTitleY = (height * 0.703).toNumber();
-        var descentValueY = (height * 0.752).toNumber();
-        var footerY = (height * 0.835).toNumber();
+        // Spread the lower rows and make use of the unused space above
+        // the header. On the 51 mm watch the old rows crowded margin,
+        // pace and descent together despite a large unused lower margin.
+        var headerY = (height * 0.130).toNumber();
+        var nameY = (height * 0.215).toNumber();
+        var numberY = (height * 0.314).toNumber();
+        var progressY = (height * 0.438).toNumber();
+        var marginY = (height * 0.483).toNumber();
+        var paceTitleY = (height * 0.563).toNumber();
+        var paceValueY = (height * 0.635).toNumber();
+        var descentTitleY = (height * 0.731).toNumber();
+        var descentValueY = (height * 0.790).toNumber();
+        var footerY = (height * 0.869).toNumber();
 
         var headerFont = fontForSlot(dc, Graphics.FONT_SMALL,
                                      nameY - headerY - 4);
