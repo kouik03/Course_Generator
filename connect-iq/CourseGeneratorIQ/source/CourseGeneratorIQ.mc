@@ -600,6 +600,43 @@ class CourseGeneratorIQField extends WatchUi.DataField {
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
 
+    // Draw the numeric quantity and its unit as ONE measured visual group.
+    // Independent, fixed-position labels gave a small "5.00", followed by
+    // an enormous gap before "km" (same problem with "1:10" and "h").
+    // Choose the largest number font that fits both the column and row;
+    // then bottom-align the much smaller unit against the number.
+    function drawPrimaryMetric(dc, centerX, y, numberValue, unitValue,
+                               maxWidth, maxHeight, color) {
+        var numberFont = Graphics.FONT_LARGE;
+        var unitFont = Graphics.FONT_XTINY;
+        var unitH = dc.getFontHeight(unitFont);
+        var gap = 5;
+        var numberW = dc.getTextWidthInPixels(numberValue, numberFont);
+        var unitW = dc.getTextWidthInPixels(unitValue, unitFont);
+
+        if ((numberW + gap + unitW > maxWidth ||
+             dc.getFontHeight(numberFont) > maxHeight) &&
+            numberFont == Graphics.FONT_LARGE) {
+            numberFont = Graphics.FONT_MEDIUM;
+        }
+        numberW = dc.getTextWidthInPixels(numberValue, numberFont);
+        if ((numberW + gap + unitW > maxWidth ||
+             dc.getFontHeight(numberFont) > maxHeight) &&
+            numberFont == Graphics.FONT_MEDIUM) {
+            numberFont = Graphics.FONT_SMALL;
+        }
+        numberW = dc.getTextWidthInPixels(numberValue, numberFont);
+        var numberH = dc.getFontHeight(numberFont);
+        var totalW = numberW + gap + unitW;
+        var left = centerX - totalW / 2;
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(left, y, numberFont, numberValue,
+                    Graphics.TEXT_JUSTIFY_LEFT);
+        var unitY = y + numberH - unitH;
+        dc.drawText(left + numberW + gap, unitY,
+                    unitFont, unitValue, Graphics.TEXT_JUSTIFY_LEFT);
+    }
+
     // Fit text in one column without letting the ROUND AMOLED mask clip
     // its left or right edge. This is especially important for the CP name
     // and official BH near the top of the Fenix 9 Pro screen.
@@ -974,9 +1011,9 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         // the header. On the 51 mm watch the old rows crowded margin,
         // pace and descent together despite a large unused lower margin.
         var headerY = (height * 0.130).toNumber();
-        var nameY = (height * 0.215).toNumber();
-        var numberY = (height * 0.314).toNumber();
-        var progressY = (height * 0.438).toNumber();
+        var nameY = (height * 0.206).toNumber();
+        var numberY = (height * 0.288).toNumber();
+        var progressY = (height * 0.447).toNumber();
         var marginY = (height * 0.483).toNumber();
         var paceTitleY = (height * 0.563).toNumber();
         var paceValueY = (height * 0.635).toNumber();
@@ -988,15 +1025,12 @@ class CourseGeneratorIQField extends WatchUi.DataField {
                                      nameY - headerY - 4);
         var nameFont = fontForSlot(dc, Graphics.FONT_SMALL,
                                    numberY - nameY - 5);
-        var numberFont = fontForSlot(dc, Graphics.FONT_LARGE,
-                                     progressY - numberY - 7);
         var paceFont = fontForSlot(dc, Graphics.FONT_MEDIUM,
                                    descentTitleY - paceValueY - 5);
         var secondaryFont = fontForSlot(dc, Graphics.FONT_SMALL,
                                         footerY - descentValueY - 5);
         var captionFont = Graphics.FONT_XTINY;
         var hHead = dc.getFontHeight(headerFont);
-        var hNum = dc.getFontHeight(numberFont);
 
         var cpTitle = _index == _plan.points.size() - 1 ?
                       "FIN" : "CP" + (_index + 1).format("%d");
@@ -1016,27 +1050,22 @@ class CourseGeneratorIQField extends WatchUi.DataField {
                         goal >= 0 ? "BH " + cutoffClock : "SANS BH",
                         colW, accent);
 
-        fittedText(dc, width * 0.265, numberY, numberFont,
-                   _atStation ? formatDuration(restRemainingSec(_index)) :
-                   (remainingM / 1000.0).format("%.2f"),
-                   width * 0.34, _atStation ? amber : 0x80BFFF);
-        if (!_atStation) {
-            fittedText(dc, width * 0.451,
-                       numberY + (hNum * 0.40).toNumber(),
-                       captionFont, "km", width * 0.12, accent);
-        }
+        // Keep both quantities visibly dominant, as on the reference
+        // TrailRace+ screenshot. The compact units follow the last digit.
+        var numHeight = progressY - numberY - 4;
+        drawPrimaryMetric(dc, width * 0.287, numberY,
+                          _atStation ?
+                          formatDuration(restRemainingSec(_index)) :
+                          (remainingM / 1000.0).format("%.2f"),
+                          _atStation ? "" : "km", width * 0.40,
+                          numHeight, _atStation ? amber : 0x80BFFF);
 
         var leftToCutoff = goal >= 0 ?
                            formatCountdown(cutoffRemainingSec) : "--:--";
-        fittedText(dc, width * 0.700, numberY, numberFont,
-                   leftToCutoff, width * 0.36,
-                   cutoffRemainingSec < 0 ? red : 0x00E8C0);
-        if (goal >= 0) {
-            fittedText(dc, width * 0.885,
-                       numberY + (hNum * 0.40).toNumber(),
-                       captionFont, "h", width * 0.10,
-                       cutoffRemainingSec < 0 ? red : 0x00E8C0);
-        }
+        drawPrimaryMetric(dc, width * 0.718, numberY,
+                          leftToCutoff, goal >= 0 ? "h" : "",
+                          width * 0.40, numHeight,
+                          cutoffRemainingSec < 0 ? red : 0x00E8C0);
 
         drawRoadbookBar(dc, progressY, routeM, remainingM, false);
         fittedText(dc, width / 2, marginY, captionFont,
