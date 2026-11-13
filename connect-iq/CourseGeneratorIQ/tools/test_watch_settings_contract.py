@@ -44,6 +44,22 @@ class OnWatchContractTests(unittest.TestCase):
         self.assertNotIn("monkey.native.jungle", self.runner)
         self.assertNotIn("MENU_MODE", self.runner)
 
+    def test_launcher_reexecs_after_git_pull_before_using_build_paths(self):
+        # A sync can delete an old Jungle file while the original Bash
+        # process still holds stale variables. Re-read the updated script.
+        self.assertIn('if [[ "${CGIQ_POST_PULL:-0}" != "1" ]]; then',
+                      self.runner)
+        self.assertIn('exec env CGIQ_POST_PULL=1 bash "$SCRIPT_DIR/run-cqiq.sh" "$@"',
+                      self.runner)
+        self.assertLess(
+            self.runner.index('git -C "$REPO_ROOT" pull --ff-only'),
+            self.runner.index('exec env CGIQ_POST_PULL=1 bash'),
+        )
+        self.assertLess(
+            self.runner.index('exec env CGIQ_POST_PULL=1 bash'),
+            self.runner.index('[[ -f "$JUNGLE" ]]'),
+        )
+
     def test_base64_input_is_phone_only(self):
         self.assertIn('Properties.getValue("Block1")', self.helpers)
         self.assertIn('Properties.getValue("Block2")', self.helpers)
