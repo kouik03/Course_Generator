@@ -1,5 +1,24 @@
 # Historique Course Generator IQ
 
+## 2026-11-13 — Repère de départ et curseur blanc simple
+
+- Ajout d'un **cercle au départ (km 0)** sur la barre globale, comme pour
+  les ravitaillements. Le départ est dessiné explicitement, car les points
+  du roadbook ne contiennent que les CP et l'arrivée.
+- Au départ, le repère est évidé ; une fois le coureur parti, il devient
+  bleu plein comme les CP franchis.
+- Le coureur est désormais représenté par **un point blanc simple**,
+  sans anneau bleu. Si sa position se superpose exactement à un CP ou
+  au départ, le point blanc prend la priorité visuelle, puis le repère
+  réapparaît lorsque la progression le quitte.
+- Aucun changement des distances, de la géométrie de la barre,
+  des données de course, des paramètres ou du menu Garmin natif.
+- Tests de régression ajoutés pour le repère km 0, les CP futurs évidés
+  et le curseur blanc sans entourage.
+
+**Validation :** tests GitHub réussis ; rendu Monkey C à confirmer sur
+le simulateur Fēnix 9 Pro 51 mm.
+
 ## 2026-11-13 — CUT prioritaire et première ligne remontée
 
 - Capture de référence : le groupe `CP2` + goutte d'eau pouvait remonter
