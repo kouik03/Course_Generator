@@ -1015,7 +1015,7 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var numberY = (height * 0.283).toNumber();
         var progressY = (height * 0.457).toNumber();
         var marginY = (height * 0.494).toNumber();
-        var paceTitleY = (height * 0.563).toNumber();
+        var paceTitleY = (height * 0.566).toNumber();
         var paceValueY = (height * 0.635).toNumber();
         var descentTitleY = (height * 0.731).toNumber();
         var descentValueY = (height * 0.790).toNumber();
