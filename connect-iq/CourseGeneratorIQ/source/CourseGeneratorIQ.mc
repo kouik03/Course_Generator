@@ -794,27 +794,84 @@ class CourseGeneratorIQField extends WatchUi.DataField {
 
     // Original tiny pictograms, only shown if the roadbook explicitly
     // identifies services. Bit 1 = water; bit 2 = food (bit 0 = cutoff mode).
-    function drawServices(dc, centerY, flags) {
-        var width = dc.getWidth();
-        var x = (width * 0.625).toNumber();
+    // Draw deliberately simple, original service symbols at compact size.
+    // Only water and food are currently defined by CGIQ v1. The other
+    // three symbol slots are RESERVED for future protocol extensions;
+    // no nonexistent service is displayed or assumed.
+    function drawCheckpointSymbol(dc, centerX, centerY, kind) {
+        var x = centerX.toNumber();
         var y = centerY.toNumber();
-        if ((flags & 2) != 0) {
-            dc.setColor(0x45BBFF, Graphics.COLOR_TRANSPARENT);
-            dc.fillCircle(x, y + 4, 6);
-            dc.drawLine(x - 5, y + 2, x, y - 9);
-            dc.drawLine(x, y - 9, x + 5, y + 2);
-            x += (width * 0.075).toNumber();
-        }
-        if ((flags & 4) != 0) {
-            dc.setColor(0x48C1FC, Graphics.COLOR_TRANSPARENT);
-            dc.drawLine(x - 6, y - 8, x - 6, y + 10);
-            dc.drawLine(x - 9, y - 8, x - 9, y - 2);
-            dc.drawLine(x - 3, y - 8, x - 3, y - 2);
-            dc.drawLine(x + 6, y - 8, x + 6, y + 10);
-            dc.drawLine(x + 6, y - 8, x + 10, y - 3);
+        if (kind == 0) {
+            // Water: droplet (filled tip and rounded lower body).
+            dc.setColor(0x54CCFF, Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(x, y + 4, 5);
+            dc.drawLine(x - 4, y + 1, x, y - 8);
+            dc.drawLine(x, y - 8, x + 4, y + 1);
+            dc.drawLine(x - 3, y, x + 3, y);
+        } else if (kind == 1) {
+            // Food: fork and knife, using white for contrast.
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            dc.drawLine(x - 7, y - 7, x - 7, y + 8);
+            dc.drawLine(x - 10, y - 7, x - 10, y - 1);
+            dc.drawLine(x - 4, y - 7, x - 4, y - 1);
+            dc.drawLine(x + 5, y - 7, x + 5, y + 8);
+            dc.drawLine(x + 5, y - 7, x + 9, y - 3);
+        } else {
+            // Inactive reserved slots: do not draw fictional amenities.
         }
     }
 
+    // First row: a single compact CP code followed by up to FIVE possible
+    // service icons. Center the entire GROUP, rather than dividing it into
+    // two columns. The second row (name / CUT) is much wider on a circle.
+    function drawCheckpointHeader(dc, topY, cpCode, flags, color) {
+        var w = dc.getWidth();
+        var iconCapacity = 5;
+        var cpFont = Graphics.FONT_MEDIUM;
+        var cpWidth = dc.getTextWidthInPixels(cpCode, cpFont);
+        var iconCount = 0;
+        // Bit 0 is cutoff timing, bit 1 water, bit 2 food.
+        if ((flags & 2) != 0) { iconCount++; }
+        if ((flags & 4) != 0) { iconCount++; }
+
+        // Remaining three positions are reserved but not drawn, pending
+        // explicit meaning and support in a future roadbook protocol.
+        if (iconCount > iconCapacity) { iconCount = iconCapacity; }
+
+        var gap = 12;
+        var step = 25;
+        var iconsWidth = iconCount > 0 ? gap + step * iconCount : 0;
+        var available = usableTextWidth(dc, topY, cpFont);
+        var total = cpWidth + iconsWidth;
+        if (total > available) {
+            cpFont = Graphics.FONT_SMALL;
+            cpWidth = dc.getTextWidthInPixels(cpCode, cpFont);
+            available = usableTextWidth(dc, topY, cpFont);
+            total = cpWidth + iconsWidth;
+        }
+        if (total > available && iconCount > 0) {
+            step = ((available - cpWidth - gap) / iconCount).toNumber();
+            if (step < 19) { step = 19; }
+            iconsWidth = gap + step * iconCount;
+            total = cpWidth + iconsWidth;
+        }
+
+        var left = (w - total) / 2;
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(left, topY, cpFont, cpCode,
+                    Graphics.TEXT_JUSTIFY_LEFT);
+
+        if (iconCount == 0) { return; }
+        var cursor = left + cpWidth + gap;
+        var centerY = topY + dc.getFontHeight(cpFont) / 2;
+        if ((flags & 2) != 0) {
+            drawCheckpointSymbol(dc, cursor + step / 2, centerY, 0);
+            cursor += step;
+        }
+        if ((flags & 4) != 0) {
+            drawCheckpointSymbol(dc, cursor + step / 2, centerY, 1);
+        }
+    }
 
     // Browsing is read-only: live CP, LAP, pause and GPS progress still use
     // _index. A separate preview screen prevents the CP's cutoff being
@@ -1010,8 +1067,8 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         // Spread the lower rows and make use of the unused space above
         // the header. On the 51 mm watch the old rows crowded margin,
         // pace and descent together despite a large unused lower margin.
-        var headerY = (height * 0.130).toNumber();
-        var nameY = (height * 0.206).toNumber();
+        var headerY = (height * 0.105).toNumber();
+        var nameY = (height * 0.182).toNumber();
         var numberY = (height * 0.283).toNumber();
         var progressY = (height * 0.457).toNumber();
         var marginY = (height * 0.494).toNumber();
@@ -1021,35 +1078,32 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var descentValueY = (height * 0.790).toNumber();
         var footerY = (height * 0.869).toNumber();
 
-        var headerFont = fontForSlot(dc, Graphics.FONT_SMALL,
-                                     nameY - headerY - 4);
+        // TrailRace-style two-tier header: CP + services on one narrow
+        // first row, then the checkpoint name (left) / official CUT (right)
+        // on the wider second row. More room for up to five icons without
+        // sacrificing the large primary metrics.
         var nameFont = fontForSlot(dc, Graphics.FONT_SMALL,
-                                   numberY - nameY - 5);
+                                   numberY - nameY - 6);
         var paceFont = fontForSlot(dc, Graphics.FONT_MEDIUM,
                                    descentTitleY - paceValueY - 5);
         var secondaryFont = fontForSlot(dc, Graphics.FONT_SMALL,
                                         footerY - descentValueY - 5);
         var captionFont = Graphics.FONT_XTINY;
-        var hHead = dc.getFontHeight(headerFont);
 
         var cpTitle = _index == _plan.points.size() - 1 ?
                       "FIN" : "CP" + (_index + 1).format("%d");
-        if ((point.flags & 6) != 0) {
-            roundColumnText(dc, width * 0.43, headerY,
-                            headerFont, cpTitle, width * 0.24, accent);
-            drawServices(dc, headerY + hHead / 2, point.flags);
-        } else {
-            roundColumnText(dc, width / 2, headerY,
-                            headerFont, cpTitle, width * 0.44, accent);
-        }
+        drawCheckpointHeader(dc, headerY, cpTitle, point.flags, white);
+
+        // Separate fields fit within the actual round-screen chord.
+        // Long names are allowed to use the smaller X-TINY Garmin font.
+        var topColW = width * 0.42;
+        roundColumnText(dc, width * 0.303, nameY, nameFont,
+                        point.name, topColW, white);
+        roundColumnText(dc, width * 0.715, nameY, nameFont,
+                        goal >= 0 ? "CUT " + cutoffClock : "SANS CUT",
+                        topColW, white);
 
         var colW = width * 0.39;
-        roundColumnText(dc, width * 0.285, nameY, nameFont,
-                        point.name, colW, accent);
-        roundColumnText(dc, width * 0.718, nameY, nameFont,
-                        goal >= 0 ? "BH " + cutoffClock : "SANS BH",
-                        colW, accent);
-
         // Keep both quantities visibly dominant, as on the reference
         // TrailRace+ screenshot. The compact units follow the last digit.
         var numHeight = progressY - numberY - 4;
