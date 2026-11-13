@@ -848,7 +848,8 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         // Bit 0 is cutoff timing; bit 1 water, bit 2 food.
         // Bits 3-5 are RESERVED and not currently emitted by CGIQ v1.
         for (var i = 0; i < iconCapacity; i++) {
-            if ((flags & serviceBits[i]) != 0) { iconCount++; }
+            var mask = serviceBits[i] as Lang.Number;
+            if ((flags & mask) != 0) { iconCount++; }
         }
 
         var gap = 12;
@@ -878,7 +879,8 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var cursor = left + cpWidth + gap;
         var centerY = topY + dc.getFontHeight(cpFont) / 2;
         for (var j = 0; j < iconCapacity; j++) {
-            if ((flags & serviceBits[j]) != 0) {
+            var activeMask = serviceBits[j] as Lang.Number;
+            if ((flags & activeMask) != 0) {
                 drawCheckpointSymbol(dc, cursor + step / 2, centerY, j);
                 cursor += step;
             }
@@ -1079,8 +1081,8 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         // Spread the lower rows and make use of the unused space above
         // the header. On the 51 mm watch the old rows crowded margin,
         // pace and descent together despite a large unused lower margin.
-        var headerY = (height * 0.105).toNumber();
-        var nameY = (height * 0.182).toNumber();
+        var headerY = (height * 0.099).toNumber();
+        var nameY = (height * 0.192).toNumber();
         var numberY = (height * 0.283).toNumber();
         var progressY = (height * 0.457).toNumber();
         var marginY = (height * 0.494).toNumber();
@@ -1094,8 +1096,9 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         // first row, then the checkpoint name (left) / official CUT (right)
         // on the wider second row. More room for up to five icons without
         // sacrificing the large primary metrics.
-        var nameFont = fontForSlot(dc, Graphics.FONT_SMALL,
-                                   numberY - nameY - 6);
+        // Uniformly smaller checkpoint-name/CUT typography keeps the
+        // header tight and leaves CP + service icons as the visual title.
+        var nameFont = Graphics.FONT_XTINY;
         var paceFont = fontForSlot(dc, Graphics.FONT_MEDIUM,
                                    descentTitleY - paceValueY - 5);
         var secondaryFont = fontForSlot(dc, Graphics.FONT_SMALL,
