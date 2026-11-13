@@ -1,5 +1,25 @@
 # Historique Course Generator IQ
 
+## 2026-11-13 — Dessiner les ravitos avant le coureur, sans effacement
+
+- Correction du repère de départ qui disparaissait lorsque le marqueur
+  blanc en sortait : l'ancien code peignait un cercle noir derrière le
+  coureur, ce qui masquait le départ.
+- Ordre d'affichage désormais **ligne → cercles de départ/CP →
+  point blanc**, sans aucun disque noir ajouté sous le coureur.
+- **Ravito futur :** cercle bleu évidé (centre noir).
+- **Ravito franchi :** cercle bleu plein, exactement le même diamètre
+  que les ravitos futurs ; il reste visible pendant et après le passage.
+- **Position du coureur :** simple point blanc tracé par-dessus, qui
+  laisse apparaître l'anneau bleu du ravito lorsque les deux coïncident.
+- La logique supplémentaire de proximité destinée à dessiner un faux
+  anneau autour du coureur est supprimée ; les vrais cercles des CP
+  suffisent et restent ancrés à leur position.
+- Le reste du cadran et les calculs de course ne changent pas.
+
+**Validation :** tests GitHub et rendu local Garmin à contrôler
+indépendamment.
+
 ## 2026-11-13 — Cercle conservé lorsque le coureur est au ravito
 
 - Le marqueur du coureur reste un **point blanc seul entre deux CP**.
