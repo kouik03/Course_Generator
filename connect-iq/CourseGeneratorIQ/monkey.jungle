@@ -1,5 +1,4 @@
 project.manifest = manifest.xml
 base.sourcePath = source
 base.resourcePath = resources
-# Default CGIq build for simulator: retain the self-rendered settings UI.
-base.excludeAnnotations = cgiqNativeSettings
+# One native Menu2 implementation for simulator and real Garmin device.
