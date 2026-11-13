@@ -31,7 +31,7 @@ function cgiqWatchStartDelay() {
     return phone == null ? 0 : phone;
 }
 
-// Both menu engines call this after a confirmed edit or "Return to live".
+// Native Garmin Menu2 calls this after confirming an edit or returning to live.
 // The settings view is system-owned, not the data field's ordinary View.
 function cgiqCloseSettings() {
     try {
@@ -48,4 +48,4 @@ function cgiqCloseSettings() {
     }
 }
 
-// Shared by the custom simulator View and native real-device Menu2.
+// Shared by the course data field and the native Menu2 settings view.
