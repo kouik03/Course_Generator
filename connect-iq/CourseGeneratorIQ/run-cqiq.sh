@@ -8,24 +8,18 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 PROJECT="$SCRIPT_DIR"
 BRANCH="experiment/terrain-debiased-curve-v1"
 DEVICE="fenix9pro51mm"
-# "CGIq" => custom simulator menu, "CGIq menu2" => real Menu2
-# implementation also executed inside the simulator for an A/B test.
-MENU_MODE="${1:-custom}"
-case "$MENU_MODE" in
-    custom|simulator)
-        JUNGLE="$PROJECT/monkey.jungle"
-        MENU_MODE="custom"
-        ;;
-    menu2|native|device)
-        JUNGLE="$PROJECT/monkey.native.jungle"
-        MENU_MODE="menu2"
-        ;;
+# Two independent build OUTPUT SLOTS, both using the same native Menu2.
+# CGIq builds main; CGIq alternate builds alternate without replacing main.
+BUILD_SLOT="${1:-main}"
+case "$BUILD_SLOT" in
+    main|alternate) ;;
     *)
-        printf "Usage : CGIq [custom|menu2]\n" >&2
+        printf "Usage : CGIq [alternate]\n" >&2
         exit 2
         ;;
 esac
-OUTPUT="$PROJECT/bin/CourseGeneratorIQ-${MENU_MODE}.prg"
+JUNGLE="$PROJECT/monkey.jungle"
+OUTPUT="$PROJECT/bin/CourseGeneratorIQ-${BUILD_SLOT}.prg"
 KEY="$HOME/Library/Mobile Documents/com~apple~CloudDocs/garmin/developer_key"
 SDK_HOME="$HOME/Library/Application Support/Garmin/ConnectIQ/Sdks"
 
@@ -34,7 +28,7 @@ fail() {
     exit 1
 }
 
-printf '\n=== Course Generator IQ | fenix 9 Pro 51 mm | menu %s ===\n' "$MENU_MODE"
+printf '\n=== Course Generator IQ | fenix 9 Pro 51 mm | PRG %s ===\n' "$BUILD_SLOT"
 
 [[ -d "$REPO_ROOT/.git" ]] || fail "Le depot Git est introuvable : $REPO_ROOT"
 CURRENT_BRANCH="$(git -C "$REPO_ROOT" branch --show-current)"
@@ -67,7 +61,7 @@ fi
 
 printf '\n[2/4] Compilation (%s)...\n' "$DEVICE"
 printf 'SDK : %s\n' "$SDK"
-printf 'Menu : %s | Jungle : %s\n' "$MENU_MODE" "$JUNGLE"
+printf 'Build : %s | Menu : Garmin Menu2 | Jungle : %s\n' "$BUILD_SLOT" "$JUNGLE"
 mkdir -p "$PROJECT/bin"
 "$SDK/bin/monkeyc" \
     -f "$JUNGLE" \
@@ -78,11 +72,8 @@ mkdir -p "$PROJECT/bin"
 [[ -s "$OUTPUT" ]] || fail "La compilation n'a pas produit le fichier PRG."
 printf 'Compilation OK : %s\n' "$OUTPUT"
 shasum -a 256 "$OUTPUT" | awk '{printf "SHA-256 PRG : %.16s...\n", $1}'
-if [[ "$MENU_MODE" == "menu2" ]]; then
-    printf 'DIAGNOSTIC : le titre des reglages doit etre MENU2 NATIF.\n'
-else
-    printf 'DIAGNOSTIC : le titre des reglages doit etre CG IQ REGLAGES.\n'
-fi
+printf 'Deux PRG independants : CourseGeneratorIQ-main.prg et CourseGeneratorIQ-alternate.prg\n'
+printf 'Les deux utilisent le meme menu Garmin Menu2.\n'
 
 printf '\n[3/4] Fermeture de tous les simulateurs Garmin existants...\n'
 # Do not close the old simulator unless the new build succeeded.
