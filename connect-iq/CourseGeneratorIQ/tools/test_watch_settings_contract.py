@@ -137,7 +137,8 @@ class OnWatchContractTests(unittest.TestCase):
         self.assertLess(positions["footerY"], .88)
         self.assertIn("roundColumnText(dc, width * 0.285, nameY", self.field)
         self.assertIn("roundColumnText(dc, width * 0.718, nameY", self.field)
-        self.assertIn("fontForSlot(dc, Graphics.FONT_LARGE,", self.field)
+        self.assertIn("var numberFont = Graphics.FONT_LARGE;", self.field)
+        self.assertIn("function drawPrimaryMetric(", self.field)
 
     def test_primary_metric_pairs_unit_with_number(self):
         # Primary metric numerals and units must share measured horizontal
