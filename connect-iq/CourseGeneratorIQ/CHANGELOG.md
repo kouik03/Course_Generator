@@ -1,5 +1,27 @@
 # Historique Course Generator IQ
 
+## 2026-11-13 — En-tête compact inspiré de la capture TrailRace+ PRO
+
+- En-tête principal sur **deux rangées seulement** :
+  **CP1 / CP12 / CP22 + pictogrammes** sur la première ligne compacte
+  centrée ; **nom du ravitaillement à gauche et CUT HH:MM à droite**
+  sur la ligne inférieure, plus large grâce à la forme ronde du cadran.
+- Titre CP en blanc, nom du ravito et heure limite en caractères
+  volontairement plus petits. Les deux lignes sont remontées, sans
+  toucher aux grandes valeurs, à la barre ou à l'horloge.
+- Nouveau regroupement horizontal mesuré de CP et icônes. Le code réserve
+  **cinq emplacements possibles** (y compris CP à deux chiffres) et
+  réduit la police en fonction de la corde disponible en haut du cercle.
+  Le rendu effectif reste limité aux services présents dans les drapeaux
+  du roadbook. **Seuls eau et nourriture sont actuellement encodés** ;
+  les trois autres emplacements sont des réserves graphiques, pas des
+  services supplémentaires annoncés.
+- Le préfixe `CUT` signifie toujours **l'heure officielle de barrière**
+  (aucune modification des heures ni du calcul).
+
+**Validation :** tests de contrat et de codec GitHub réussis. Compilation
+Monkey C et contrôle visuel sur Fēnix 9 Pro 51 mm restent nécessaires.
+
 ## 2026-11-13 — Correction des compteurs principaux (capture 06:56)
 
 - La capture Fēnix 9 Pro montrait `5.00` et `1:10` trop petits, séparés
