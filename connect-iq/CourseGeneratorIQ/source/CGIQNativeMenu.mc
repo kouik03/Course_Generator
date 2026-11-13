@@ -18,7 +18,7 @@ class CGIQNativeMenu extends WatchUi.Menu2 {
     var _waves = [0, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, -1, -2, -3, -4, -10];
 
     function initialize() {
-        Menu2.initialize({:title=>"MENU2 NATIF"});
+        Menu2.initialize({:title=>"COURSE GENERATOR IQ"});
         _plan = cgiqLoadWatchPlan();
         _initializing = true;
         showPage(0, 0);
@@ -38,7 +38,7 @@ class CGIQNativeMenu extends WatchUi.Menu2 {
         _page = page;
         _target = target;
         if (_page == 0) {
-            setTitle("MENU2 NATIF");
+            setTitle("COURSE GENERATOR IQ");
             add("Depart en vague", "+" +
                 cgiqWatchStartDelay().format("%d") + " min", 100);
             add("Consulter CP", "Lecture seule", 101);
