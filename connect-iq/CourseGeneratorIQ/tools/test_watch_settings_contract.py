@@ -232,6 +232,42 @@ class OnWatchContractTests(unittest.TestCase):
         self.assertGreater((.457 - .283) * 454 - 4, 70)
         self.assertGreater((.494 - .457) * 454, 12)
 
+    def test_full_screen_progress_bar_is_extended_and_round_safe(self):
+        # The old bar spanned 68% of the watch; the new one targets 86%.
+        # It is centred and constrained by the usable chord at its actual Y.
+        self.assertIn("var desiredSpan = width * (compact ? 0.85 : 0.86);",
+                      self.field)
+        self.assertIn(
+            "var safeSpan = usableTextWidth(dc, y, Graphics.FONT_XTINY) - 20;",
+            self.field,
+        )
+        self.assertIn("if (desiredSpan > safeSpan) { desiredSpan = safeSpan; }",
+                      self.field)
+        self.assertIn("var x = ((width - span) / 2).toNumber();", self.field)
+        self.assertNotIn("compact ? 0.075 : 0.16", self.field)
+        self.assertNotIn("compact ? 0.85 : 0.68", self.field)
+
+        # A 454px circular Fenix display at bar Y=45.7% offers enough
+        # chord for an ~86%-width timeline plus full 9px endpoint rings.
+        import math
+        width = height = 454
+        y = height * 0.457
+        radius = width * .468
+        center_y = y + 9  # approx. half-height of XTINY font
+        chord = 2 * math.sqrt(radius ** 2 -
+                              (center_y - height / 2) ** 2) - 14
+        span = min(width * .86, chord - 20)
+        left = (width - span) / 2
+        self.assertGreater(span / width, .80)
+        self.assertGreater(left - 9, width / 2 - radius)
+        self.assertLess(width - left + 9, width / 2 + radius)
+
+        # CPs at 5, 11 and 18 km retain their actual proportional
+        # positions on the extended 18 km demo timeline.
+        cp_pixels = [left + (km / 18) * span for km in (5, 11, 18)]
+        self.assertEqual(cp_pixels, sorted(cp_pixels))
+        self.assertLessEqual(cp_pixels[-1] + 9, width - left + 9)
+
     def test_progress_bar_has_blue_rings_and_white_current_center(self):
         self.assertIn("dc.setColor(0x354B67, Graphics.COLOR_TRANSPARENT)",
                       self.field)
