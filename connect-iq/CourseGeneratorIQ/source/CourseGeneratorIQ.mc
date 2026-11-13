@@ -801,6 +801,18 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             }
         }
 
+        // Does the white runner dot overlap a checkpoint circle? A small
+        // course-distance tolerance AND a pixel tolerance are both required:
+        // on an 87 km timeline, being visually close alone can still mean
+        // kilometres away from an aid station.
+        var hereX = x + doneW;
+        var onCheckpoint = false;
+        if (fromM == 0.0 &&
+            Math.abs(viewM) <= 100.0 &&
+            Math.abs(hereX - x) <= 8) {
+            onCheckpoint = true;
+        }
+
         // The departure is a genuine timeline checkpoint too. It is
         // not included in _plan.points (the first item is R1), so draw its
         // blue circle explicitly whenever this view begins at km 0.
@@ -822,6 +834,10 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             if (km < fromM || km > toM) { continue; }
             var markerX = x +
                 ((km - fromM) / (toM - fromM) * span).toNumber();
+            if (Math.abs(viewM - km) <= 100.0 &&
+                Math.abs(hereX - markerX) <= 8) {
+                onCheckpoint = true;
+            }
             // Upcoming aid stations have a clear hollow blue ring;
             // completed checkpoints remain filled blue.
             var isPassed = km <= routeM;
@@ -836,15 +852,18 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             }
         }
 
-        // Current position: a PLAIN WHITE DOT with NO blue outline.
-        // Cover any underlying CP/start ring at the exact same position,
-        // so two overlapping symbols never look like an outlined runner.
-        // The departure ring becomes visible once the runner advances.
-        var hereX = x + doneW;
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(hereX, y, 8);
+        // White dot alone while between points; at the departure or at
+        // an aid/CP, retain the BLUE CHECKPOINT RING around the white dot
+        // so it is clear that the runner is at a checkpoint. Paint on top
+        // of the original aid circle to prevent overlapping blue discs.
+        if (onCheckpoint) {
+            dc.setColor(0x86D7FF, Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(hereX, y, 8);
+            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(hereX, y, 5);
+        }
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(hereX, y, 5);
+        dc.fillCircle(hereX, y, 4);
 
 
     }
