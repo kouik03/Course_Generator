@@ -1,5 +1,21 @@
 # Historique Course Generator IQ
 
+## 2026-11-13 — Cercle conservé lorsque le coureur est au ravito
+
+- Le marqueur du coureur reste un **point blanc seul entre deux CP**.
+- **Sur le départ ou près d'un CP**, le point blanc conserve un
+  **cerclage bleu**. Les autres repères de ravitaillement gardent leurs
+  cercles évidés ou pleins selon leur état.
+- Détection visuelle du chevauchement avec deux conditions : position
+  du roadbook à 100 m maximum du CP **et** écart à l'écran de 8 pixels
+  maximum. Une simple proximité visuelle sur la barre globale d'un
+  ultra ne suffit pas à afficher à tort le cerclage.
+- Aucun changement au calcul de progression ni au suivi GPS, ni aux
+  paramètres Garmin.
+
+**Validation :** tests de non-régression sur les cercles de départ,
+les ravitos et le coureur. Rendu Garmin à vérifier dans le simulateur.
+
 ## 2026-11-13 — Repère de départ et curseur blanc simple
 
 - Ajout d'un **cercle au départ (km 0)** sur la barre globale, comme pour
