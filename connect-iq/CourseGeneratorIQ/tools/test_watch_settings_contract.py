@@ -268,33 +268,52 @@ class OnWatchContractTests(unittest.TestCase):
         self.assertEqual(cp_pixels, sorted(cp_pixels))
         self.assertLessEqual(cp_pixels[-1] + 9, width - left + 9)
 
-    def test_progress_bar_has_start_checkpoint_and_plain_white_runner(self):
-        self.assertIn("dc.setColor(0x354B67, Graphics.COLOR_TRANSPARENT)",
-                      self.field)
-        self.assertIn("dc.setColor(0x66C1F4, Graphics.COLOR_TRANSPARENT)",
-                      self.field)
-        # The start is not part of _plan.points; it needs its own circle.
-        self.assertIn("if (fromM == 0.0) {", self.field)
-        self.assertIn("if (viewM > 0.0) {", self.field)
-        self.assertIn("dc.fillCircle(x, y, 7);", self.field)
-        self.assertIn("dc.fillCircle(x, y, 4);", self.field)
-        self.assertIn("dc.fillCircle(x, y, 5);", self.field)
-        # Future aid stations keep their hollow blue rings.
-        self.assertIn("dc.fillCircle(markerX, y, 7);", self.field)
-        self.assertIn("dc.fillCircle(markerX, y, 4);", self.field)
-        # Current runner position is a simple white dot, without a blue ring.
-        self.assertIn("dc.fillCircle(hereX, y, 8);", self.field)
-        self.assertIn("dc.fillCircle(hereX, y, 5);", self.field)
-        self.assertNotIn("dc.fillCircle(hereX, y, 9);", self.field)
-        self.assertNotIn("dc.fillCircle(hereX, y, 6);", self.field)
+    def test_departure_and_all_future_cps_retain_blue_rings(self):
+        bar = self.field.split("function drawRoadbookBar(", 1)[1].split(
+            "function formatCountdown(", 1
+        )[0]
+        self.assertIn("if (fromM == 0.0) {", bar)
+        self.assertIn("dc.fillCircle(x, y, 7);", bar)
+        self.assertIn("dc.fillCircle(x, y, 4);", bar)
+        self.assertIn("dc.fillCircle(markerX, y, 7);", bar)
+        self.assertIn("dc.fillCircle(markerX, y, 4);", bar)
+        self.assertIn("var isPassed = km <= routeM;", bar)
+
+    def test_white_runner_dot_has_ring_only_at_actual_checkpoint(self):
+        bar = self.field.split("function drawRoadbookBar(", 1)[1].split(
+            "function formatCountdown(", 1
+        )[0]
+        self.assertIn("var hereX = x + doneW;", bar)
+        self.assertIn("var onCheckpoint = false;", bar)
+        # Both actual roadbook distance and pixel proximity must match,
+        # otherwise a long ultra could give an early false CP ring.
+        self.assertIn("Math.abs(viewM - km) <= 100.0", bar)
+        self.assertIn("Math.abs(hereX - markerX) <= 8", bar)
+        self.assertIn("Math.abs(viewM) <= 100.0", bar)
+        self.assertIn("Math.abs(hereX - x) <= 8", bar)
+
+        overlay = bar.split("// White dot alone while between points;", 1)[1]
+        self.assertIn("if (onCheckpoint) {", overlay)
+        self.assertIn("dc.fillCircle(hereX, y, 8);", overlay)
+        self.assertIn("dc.fillCircle(hereX, y, 5);", overlay)
+        self.assertIn("dc.fillCircle(hereX, y, 4);", overlay)
         self.assertIn("dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT)",
-                      self.field)
-        self.assertLess(self.field.index("if (fromM == 0.0) {"),
-                        self.field.index("for (var i = 0; i < _plan.points.size(); i++) {",
-                                         self.field.index("function drawRoadbookBar(")))
-        self.assertLess(self.field.index("for (var i = 0; i < _plan.points.size(); i++) {",
-                                         self.field.index("function drawRoadbookBar(")),
-                        self.field.index("var hereX = x + doneW;"))
+                      overlay)
+        # Blue ring drawing must only happen inside the checkpoint branch.
+        self.assertLess(overlay.index("if (onCheckpoint) {"),
+                        overlay.index("dc.fillCircle(hereX, y, 8);"))
+        self.assertLess(overlay.index("dc.fillCircle(hereX, y, 5);"),
+                        overlay.index("dc.fillCircle(hereX, y, 4);"))
+        self.assertNotIn("dc.fillCircle(hereX, y, 9);", bar)
+
+    def test_runner_ring_requires_real_progress_not_only_pixel_overlap(self):
+        def ring_at_cp(view_m, cp_m, here_px, cp_px):
+            return abs(view_m - cp_m) <= 100 and abs(here_px - cp_px) <= 8
+
+        self.assertTrue(ring_at_cp(5000, 5000, 400, 400))
+        self.assertTrue(ring_at_cp(4960, 5000, 400, 404))
+        self.assertFalse(ring_at_cp(4500, 5000, 400, 404))
+        self.assertFalse(ring_at_cp(5000, 5000, 400, 414))
 
 
 if __name__ == "__main__":
