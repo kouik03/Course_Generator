@@ -1,5 +1,24 @@
 # Historique Course Generator IQ
 
+## 2026-11-13 — CUT prioritaire et première ligne remontée
+
+- Capture de référence : le groupe `CP2` + goutte d'eau pouvait remonter
+  nettement, tandis que `CUT 09:55` était coupé (`CUT 09:..`).
+- Le groupe CP + pictogrammes est déplacé de **9,9 % à 5,5 %** de la
+  hauteur du champ ; le nom et le CUT passent de **19,2 % à 15 %**.
+  Les grandes données de course, la barre et le footer ne bougent pas.
+- Nouvelle fonction `drawCheckpointNameAndCut()` : mesure le texte
+  complet de l'heure officielle et le **dessine sans aucune troncature**,
+  aligné au bord droit utilisable du cadran circulaire.
+- Le nom du ravitaillement reçoit **uniquement l'espace restant** et
+  peut être raccourci avec `..`. En cas de largeur extrême, le nom
+  disparaît avant d'amputer le CUT.
+- Tests de contrat pour la priorité de CUT, la hauteur des deux rangées
+  et l'absence de troncature de la barrière officielle.
+
+**Validation :** tests Python GitHub réussis. La compilation Garmin SDK
+et le rendu sur Fēnix 9 Pro restent à vérifier dans le simulateur.
+
 ## 2026-11-13 — En-tête compact inspiré de la capture TrailRace+ PRO
 
 - En-tête principal sur **deux rangées seulement** :
