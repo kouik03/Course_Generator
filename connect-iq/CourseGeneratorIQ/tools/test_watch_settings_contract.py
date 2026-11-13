@@ -268,52 +268,65 @@ class OnWatchContractTests(unittest.TestCase):
         self.assertEqual(cp_pixels, sorted(cp_pixels))
         self.assertLessEqual(cp_pixels[-1] + 9, width - left + 9)
 
-    def test_departure_and_all_future_cps_retain_blue_rings(self):
+    def test_start_and_cps_are_drawn_before_white_runner(self):
         bar = self.field.split("function drawRoadbookBar(", 1)[1].split(
             "function formatCountdown(", 1
         )[0]
-        self.assertIn("if (fromM == 0.0) {", bar)
+        start = bar.index("if (fromM == 0.0) {")
+        cps = bar.index("for (var i = 0; i < _plan.points.size(); i++) {")
+        runner = bar.index("var hereX = x + doneW;")
+        self.assertLess(start, cps)
+        self.assertLess(cps, runner)
         self.assertIn("dc.fillCircle(x, y, 7);", bar)
-        self.assertIn("dc.fillCircle(x, y, 4);", bar)
         self.assertIn("dc.fillCircle(markerX, y, 7);", bar)
-        self.assertIn("dc.fillCircle(markerX, y, 4);", bar)
-        self.assertIn("var isPassed = km <= routeM;", bar)
+        self.assertIn("dc.fillCircle(hereX, y, 4);", bar)
 
-    def test_white_runner_dot_has_ring_only_at_actual_checkpoint(self):
+    def test_passed_start_and_cps_are_solid_blue_not_black_centered(self):
         bar = self.field.split("function drawRoadbookBar(", 1)[1].split(
             "function formatCountdown(", 1
         )[0]
-        self.assertIn("var hereX = x + doneW;", bar)
-        self.assertIn("var onCheckpoint = false;", bar)
-        # Both actual roadbook distance and pixel proximity must match,
-        # otherwise a long ultra could give an early false CP ring.
-        self.assertIn("Math.abs(viewM - km) <= 100.0", bar)
-        self.assertIn("Math.abs(hereX - markerX) <= 8", bar)
-        self.assertIn("Math.abs(viewM) <= 100.0", bar)
-        self.assertIn("Math.abs(hereX - x) <= 8", bar)
+        # Both future and passed points have equal outer diameter.
+        start = bar.split("if (fromM == 0.0) {", 1)[1].split(
+            "for (var i = 0;", 1
+        )[0]
+        self.assertIn("dc.fillCircle(x, y, 7);", start)
+        self.assertIn("if (viewM <= 0.0) {", start)
+        self.assertIn("dc.fillCircle(x, y, 4);", start)
 
-        overlay = bar.split("// White dot alone while between points;", 1)[1]
-        self.assertIn("if (onCheckpoint) {", overlay)
-        self.assertIn("dc.fillCircle(hereX, y, 8);", overlay)
-        self.assertIn("dc.fillCircle(hereX, y, 5);", overlay)
-        self.assertIn("dc.fillCircle(hereX, y, 4);", overlay)
-        self.assertIn("dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT)",
-                      overlay)
-        # Blue ring drawing must only happen inside the checkpoint branch.
-        self.assertLess(overlay.index("if (onCheckpoint) {"),
-                        overlay.index("dc.fillCircle(hereX, y, 8);"))
-        self.assertLess(overlay.index("dc.fillCircle(hereX, y, 5);"),
-                        overlay.index("dc.fillCircle(hereX, y, 4);"))
-        self.assertNotIn("dc.fillCircle(hereX, y, 9);", bar)
+        cps = bar.split("var isPassed = km <= routeM;", 1)[1].split(
+            "// Last layer:", 1
+        )[0]
+        self.assertIn("dc.fillCircle(markerX, y, 7);", cps)
+        self.assertIn("if (!isPassed) {", cps)
+        self.assertIn("dc.fillCircle(markerX, y, 4);", cps)
+        # The center is cleared only for upcoming CPs.
+        self.assertLess(cps.index("if (!isPassed) {"),
+                        cps.index("dc.fillCircle(markerX, y, 4);"))
+        self.assertNotIn("dc.fillCircle(markerX, y, 5);", cps)
 
-    def test_runner_ring_requires_real_progress_not_only_pixel_overlap(self):
-        def ring_at_cp(view_m, cp_m, here_px, cp_px):
-            return abs(view_m - cp_m) <= 100 and abs(here_px - cp_px) <= 8
+    def test_white_dot_never_erases_departure_or_cp_circle(self):
+        bar = self.field.split("function drawRoadbookBar(", 1)[1].split(
+            "function formatCountdown(", 1
+        )[0]
+        runner = bar.split("// Last layer:", 1)[1]
+        self.assertIn("var hereX = x + doneW;", runner)
+        self.assertIn("dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);",
+                      runner)
+        self.assertIn("dc.fillCircle(hereX, y, 4);", runner)
+        self.assertNotIn("Graphics.COLOR_BLACK", runner)
+        self.assertNotIn("onCheckpoint", bar)
+        self.assertNotIn("dc.fillCircle(hereX, y, 8);", bar)
 
-        self.assertTrue(ring_at_cp(5000, 5000, 400, 400))
-        self.assertTrue(ring_at_cp(4960, 5000, 400, 404))
-        self.assertFalse(ring_at_cp(4500, 5000, 400, 404))
-        self.assertFalse(ring_at_cp(5000, 5000, 400, 414))
+    def test_checkpoints_keep_outline_as_runner_exits(self):
+        # The visual layering rule does not depend on GPS proximity or
+        # pixel overlap: an established point cannot vanish as the white
+        # runner dot moves away from its position.
+        background_points = [(0, True), (5000, True), (11000, False)]
+        athlete_m = 5220
+        self.assertEqual([m for m, passed in background_points if passed],
+                         [0, 5000])
+        self.assertGreater(athlete_m, 5000)
+        self.assertIn("dc.fillCircle(markerX, y, 7);", self.field)
 
 
 if __name__ == "__main__":
