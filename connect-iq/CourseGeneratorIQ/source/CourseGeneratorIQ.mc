@@ -1012,9 +1012,9 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         // pace and descent together despite a large unused lower margin.
         var headerY = (height * 0.130).toNumber();
         var nameY = (height * 0.206).toNumber();
-        var numberY = (height * 0.288).toNumber();
-        var progressY = (height * 0.447).toNumber();
-        var marginY = (height * 0.483).toNumber();
+        var numberY = (height * 0.283).toNumber();
+        var progressY = (height * 0.457).toNumber();
+        var marginY = (height * 0.494).toNumber();
         var paceTitleY = (height * 0.563).toNumber();
         var paceValueY = (height * 0.635).toNumber();
         var descentTitleY = (height * 0.731).toNumber();
@@ -1057,14 +1057,14 @@ class CourseGeneratorIQField extends WatchUi.DataField {
                           _atStation ?
                           formatDuration(restRemainingSec(_index)) :
                           (remainingM / 1000.0).format("%.2f"),
-                          _atStation ? "" : "km", width * 0.40,
+                          _atStation ? "" : "km", width * 0.425,
                           numHeight, _atStation ? amber : 0x80BFFF);
 
         var leftToCutoff = goal >= 0 ?
                            formatCountdown(cutoffRemainingSec) : "--:--";
         drawPrimaryMetric(dc, width * 0.718, numberY,
                           leftToCutoff, goal >= 0 ? "h" : "",
-                          width * 0.40, numHeight,
+                          width * 0.425, numHeight,
                           cutoffRemainingSec < 0 ? red : 0x00E8C0);
 
         drawRoadbookBar(dc, progressY, routeM, remainingM, false);
