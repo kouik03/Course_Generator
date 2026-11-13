@@ -857,8 +857,16 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         var iconsWidth = iconCount > 0 ? gap + step * iconCount : 0;
         var available = usableTextWidth(dc, topY, cpFont);
         var total = cpWidth + iconsWidth;
-        if (total > available) {
+        // Width fitting must only REDUCE the font. Never accidentally
+        // enlarge a FONT_XTINY already chosen to satisfy row height.
+        if (total > available && cpFont == Graphics.FONT_MEDIUM) {
             cpFont = Graphics.FONT_SMALL;
+            cpWidth = dc.getTextWidthInPixels(cpCode, cpFont);
+            available = usableTextWidth(dc, topY, cpFont);
+            total = cpWidth + iconsWidth;
+        }
+        if (total > available && cpFont == Graphics.FONT_SMALL) {
+            cpFont = Graphics.FONT_XTINY;
             cpWidth = dc.getTextWidthInPixels(cpCode, cpFont);
             available = usableTextWidth(dc, topY, cpFont);
             total = cpWidth + iconsWidth;
