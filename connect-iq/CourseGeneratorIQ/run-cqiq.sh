@@ -35,8 +35,16 @@ CURRENT_BRANCH="$(git -C "$REPO_ROOT" branch --show-current)"
 [[ "$CURRENT_BRANCH" == "$BRANCH" ]] ||
     fail "Branche actuelle : '$CURRENT_BRANCH'. La commande ne change pas automatiquement de branche. Attendu : '$BRANCH'."
 
-printf '\n[1/4] Synchronisation GitHub (sans ecraser tes modifications locales)...\n'
-git -C "$REPO_ROOT" pull --ff-only origin "$BRANCH"
+# Bash has already loaded the running script into memory. A git pull may
+# replace this very file (or remove an old Jungle file) during the run.
+# Re-exec the freshly updated script once after the pull, so stale variables
+# such as an old monkey.native.jungle path can never be used for compilation.
+if [[ "${CGIQ_POST_PULL:-0}" != "1" ]]; then
+    printf '\n[1/4] Synchronisation GitHub (sans ecraser tes modifications locales)...\n'
+    git -C "$REPO_ROOT" pull --ff-only origin "$BRANCH"
+    exec env CGIQ_POST_PULL=1 bash "$SCRIPT_DIR/run-cqiq.sh" "$@"
+fi
+printf '\n[1/4] Synchronisation terminee. Compilation avec le script actualise.\n'
 
 if [[ -n "${CGIQ_SDK:-}" ]]; then
     SDK="${CGIQ_SDK%/}"
