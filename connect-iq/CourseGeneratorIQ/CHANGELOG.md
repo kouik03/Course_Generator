@@ -1,5 +1,25 @@
 # Historique Course Generator IQ
 
+## 2026-11-13 — Correction des compteurs principaux (capture 06:56)
+
+- La capture Fēnix 9 Pro montrait `5.00` et `1:10` trop petits, séparés
+  de `km` et `h` par de grands espaces. Le défaut provenait de deux
+  contrôles indépendants : un redimensionnement excessif de la police
+  principale et une position absolue pour chaque unité.
+- Nouvelle fonction Monkey C `drawPrimaryMetric()` : mesure la largeur
+  du nombre et de l'unité, centre leur **ensemble**, aligne l'unité plus
+  petite au bas du nombre et ne réduit la police principale que lorsque
+  la largeur ou la hauteur disponible l'exige réellement.
+- La ligne des compteurs remonte légèrement ; la barre progresse un peu
+  plus bas pour récupérer suffisamment de hauteur pour les grands chiffres.
+  Le nom du CP, la BH, la marge, le bas de cadran et le menu `Menu2`
+  restent inchangés.
+- Tests de non-régression ajoutés pour l'alignement chiffres/unités et
+  l'espace réellement réservé aux grandes polices.
+
+**État de validation :** tests Python GitHub réussis ; compilation Monkey C
+et rendu visuel à confirmer dans le simulateur Fēnix 9 Pro 51 mm.
+
 ## 2026-11-13 — Menu Garmin unique, deux PRG et interface de course
 
 - **Menu :** adoption exclusive de `WatchUi.Menu2` et
