@@ -741,8 +741,17 @@ class CourseGeneratorIQField extends WatchUi.DataField {
     // View modes: entire race, current leg, or automatic last-kilometer zoom.
     function drawRoadbookBar(dc, y, routeM, remainingM, compact) {
         var width = dc.getWidth();
-        var x = (width * (compact ? 0.075 : 0.16)).toNumber();
-        var span = (width * (compact ? 0.85 : 0.68)).toNumber();
+        // The full-screen bar used only 68% of the screen even though it
+        // sits near the wide middle chord of the round Fenix display.
+        // Aim for 86%; cap it using the real circular width at this Y,
+        // with a safety margin for the 9px runner ring at either end.
+        // Also adapt to narrow data-field slots rather than clipping CPs.
+        var desiredSpan = width * (compact ? 0.85 : 0.86);
+        var safeSpan = usableTextWidth(dc, y, Graphics.FONT_XTINY) - 20;
+        if (desiredSpan > safeSpan) { desiredSpan = safeSpan; }
+        if (desiredSpan < 24) { return; }
+        var span = desiredSpan.toNumber();
+        var x = ((width - span) / 2).toNumber();
         var last = _plan.points[_plan.points.size() - 1];
         var fromM = 0.0;
         var toM = last.distanceM;
