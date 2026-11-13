@@ -139,6 +139,33 @@ class OnWatchContractTests(unittest.TestCase):
         self.assertIn("roundColumnText(dc, width * 0.718, nameY", self.field)
         self.assertIn("fontForSlot(dc, Graphics.FONT_LARGE,", self.field)
 
+    def test_primary_metric_pairs_unit_with_number(self):
+        # Primary metric numerals and units must share measured horizontal
+        # placement. Independent fixed-column labels created the oversized
+        # gaps visible in the 13 November Fenix 9 Pro screenshot.
+        self.assertIn("function drawPrimaryMetric(", self.field)
+        self.assertIn("var totalW = numberW + gap + unitW;", self.field)
+        self.assertIn("var left = centerX - totalW / 2;", self.field)
+        self.assertIn("var unitY = y + numberH - unitH;", self.field)
+        self.assertIn("dc.drawText(left + numberW + gap, unitY,", self.field)
+        self.assertIn('"km", width * 0.425,', self.field)
+        self.assertIn('"h" : "",', self.field)
+        self.assertEqual(self.field.count("drawPrimaryMetric(dc, width *"), 2)
+        self.assertNotIn('captionFont, "km", width * 0.12', self.field)
+        self.assertNotIn('captionFont, "h", width * 0.10', self.field)
+
+    def test_primary_metrics_have_room_to_fit_large_fonts(self):
+        self.assertIn("var numberY = (height * 0.283).toNumber();",
+                      self.field)
+        self.assertIn("var progressY = (height * 0.457).toNumber();",
+                      self.field)
+        self.assertIn("var marginY = (height * 0.494).toNumber();",
+                      self.field)
+        # At 454 device pixels the number row has almost 80 px
+        # before the bar, while the gap from bar to margin is 17 px.
+        self.assertGreater((.457 - .283) * 454 - 4, 70)
+        self.assertGreater((.494 - .457) * 454, 12)
+
     def test_progress_bar_has_blue_rings_and_white_current_center(self):
         self.assertIn("dc.setColor(0x354B67, Graphics.COLOR_TRANSPARENT)",
                       self.field)
