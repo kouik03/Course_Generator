@@ -268,18 +268,33 @@ class OnWatchContractTests(unittest.TestCase):
         self.assertEqual(cp_pixels, sorted(cp_pixels))
         self.assertLessEqual(cp_pixels[-1] + 9, width - left + 9)
 
-    def test_progress_bar_has_blue_rings_and_white_current_center(self):
+    def test_progress_bar_has_start_checkpoint_and_plain_white_runner(self):
         self.assertIn("dc.setColor(0x354B67, Graphics.COLOR_TRANSPARENT)",
                       self.field)
         self.assertIn("dc.setColor(0x66C1F4, Graphics.COLOR_TRANSPARENT)",
                       self.field)
+        # The start is not part of _plan.points; it needs its own circle.
+        self.assertIn("if (fromM == 0.0) {", self.field)
+        self.assertIn("if (viewM > 0.0) {", self.field)
+        self.assertIn("dc.fillCircle(x, y, 7);", self.field)
+        self.assertIn("dc.fillCircle(x, y, 4);", self.field)
+        self.assertIn("dc.fillCircle(x, y, 5);", self.field)
+        # Future aid stations keep their hollow blue rings.
         self.assertIn("dc.fillCircle(markerX, y, 7);", self.field)
         self.assertIn("dc.fillCircle(markerX, y, 4);", self.field)
-        self.assertIn("dc.fillCircle(hereX, y, 9);", self.field)
-        self.assertIn("dc.fillCircle(hereX, y, 6);", self.field)
-        self.assertIn("dc.fillCircle(hereX, y, 4);", self.field)
+        # Current runner position is a simple white dot, without a blue ring.
+        self.assertIn("dc.fillCircle(hereX, y, 8);", self.field)
+        self.assertIn("dc.fillCircle(hereX, y, 5);", self.field)
+        self.assertNotIn("dc.fillCircle(hereX, y, 9);", self.field)
+        self.assertNotIn("dc.fillCircle(hereX, y, 6);", self.field)
         self.assertIn("dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT)",
                       self.field)
+        self.assertLess(self.field.index("if (fromM == 0.0) {"),
+                        self.field.index("for (var i = 0; i < _plan.points.size(); i++) {",
+                                         self.field.index("function drawRoadbookBar(")))
+        self.assertLess(self.field.index("for (var i = 0; i < _plan.points.size(); i++) {",
+                                         self.field.index("function drawRoadbookBar(")),
+                        self.field.index("var hereX = x + doneW;"))
 
 
 if __name__ == "__main__":
