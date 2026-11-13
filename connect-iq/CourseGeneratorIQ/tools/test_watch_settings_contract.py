@@ -36,10 +36,10 @@ class OnWatchContractTests(unittest.TestCase):
         self.assertNotIn("base.excludeAnnotations", self.jungle)
 
     def test_two_independent_build_slots_share_same_native_menu(self):
-        self.assertIn('BUILD_SLOT="\${1:-main}"', self.runner)
+        self.assertIn('BUILD_SLOT="${1:-main}"', self.runner)
         self.assertIn("main|alternate)", self.runner)
         self.assertIn('JUNGLE="$PROJECT/monkey.jungle"', self.runner)
-        self.assertIn('CourseGeneratorIQ-\${BUILD_SLOT}.prg', self.runner)
+        self.assertIn('CourseGeneratorIQ-${BUILD_SLOT}.prg', self.runner)
         self.assertIn('-f "$JUNGLE"', self.runner)
         self.assertNotIn("monkey.native.jungle", self.runner)
         self.assertNotIn("MENU_MODE", self.runner)
