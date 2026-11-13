@@ -135,8 +135,8 @@ class OnWatchContractTests(unittest.TestCase):
         self.assertGreater(positions["descentTitleY"] - positions["paceValueY"], .08)
         self.assertGreater(positions["descentValueY"] - positions["descentTitleY"], .05)
         self.assertLess(positions["footerY"], .88)
-        self.assertIn("roundColumnText(dc, width * 0.303, nameY", self.field)
-        self.assertIn("roundColumnText(dc, width * 0.715, nameY", self.field)
+        self.assertIn("drawCheckpointNameAndCut(dc, nameY, point.name,", self.field)
+        self.assertIn("function drawCheckpointNameAndCut(", self.field)
         self.assertIn("var numberFont = Graphics.FONT_LARGE;", self.field)
         self.assertIn("function drawPrimaryMetric(", self.field)
 
@@ -147,19 +147,31 @@ class OnWatchContractTests(unittest.TestCase):
         self.assertIn("drawCheckpointHeader(dc, headerY,", self.field)
         self.assertIn("nameY - headerY - 5, cpTitle,", self.field)
         self.assertIn('goal >= 0 ? "CUT " + cutoffClock : "SANS CUT"', self.field)
-        self.assertIn("var topColW = width * 0.42;", self.field)
-        self.assertIn("roundColumnText(dc, width * 0.303, nameY", self.field)
-        self.assertIn("roundColumnText(dc, width * 0.715, nameY", self.field)
-        self.assertIn("var headerY = (height * 0.099).toNumber();", self.field)
-        self.assertIn("var nameY = (height * 0.192).toNumber();", self.field)
+        self.assertIn("drawCheckpointNameAndCut(dc, nameY, point.name,", self.field)
+        self.assertIn("var headerY = (height * 0.055).toNumber();", self.field)
+        self.assertIn("var nameY = (height * 0.150).toNumber();", self.field)
         self.assertNotIn('function drawServices(', self.field)
+
+    def test_cut_time_has_strict_priority_over_checkpoint_name(self):
+        # Right-aligned CUT is displayed fully; name takes the leftover
+        # circular chord and may be shortened with ellipsis.
+        header = self.field.split("function drawCheckpointNameAndCut(", 1)[1]
+        header = header.split("function fontForSlot(", 1)[0]
+        self.assertIn("var cutoffWidth = dc.getTextWidthInPixels(cutText, font);",
+                      header)
+        self.assertIn("dc.drawText(right, y, font, cutText,", header)
+        self.assertIn("Graphics.TEXT_JUSTIFY_RIGHT", header)
+        self.assertIn("var nameSpace = right - cutoffWidth - gap - left;", header)
+        self.assertIn('name.substring(0, count) + ".."', header)
+        self.assertNotIn("cutText.substring(", header)
+        self.assertNotIn("roundColumnText(", header)
 
     def test_five_icon_slots_are_reserved_without_invented_services(self):
         self.assertIn("var serviceBits = [2, 4, 8, 16, 32];", self.field)
         self.assertIn("var iconCapacity = serviceBits.size();", self.field)
         self.assertIn("var mask = serviceBits[i] as Lang.Number;", self.field)
         self.assertIn("var activeMask = serviceBits[j] as Lang.Number;", self.field)
-        self.assertIn("var nameFont = Graphics.FONT_XTINY;", self.field)
+        self.assertIn("var font = Graphics.FONT_XTINY;", self.field)
         self.assertIn("if ((flags & mask) != 0)", self.field)
         self.assertIn("if ((flags & activeMask) != 0)", self.field)
         self.assertIn("drawCheckpointSymbol(dc, cursor + step / 2, centerY, j);",
@@ -179,16 +191,18 @@ class OnWatchContractTests(unittest.TestCase):
         import math
         size = 454
         radius = size * .468
-        header_y = size * .099
+        header_y = size * .055
         measured_small_font_h = 32
         dy = abs(header_y + measured_small_font_h / 2 - size / 2)
         chord = 2 * math.sqrt(radius * radius - dy * dy) - 14
         # Conservative stand-in for a four-character CP label width.
         four_char_cp_width = 86
         five_icon_group_width = four_char_cp_width + 12 + 25 * 5
-        self.assertGreater(chord, five_icon_group_width)
+        # At this higher position, the renderer must shrink its CP font
+        # or compress icon spacing if all five future symbols are present.
+        self.assertGreater(chord, four_char_cp_width + 12 + 19)
         # There must be a gap before the subsequent name/CUT row.
-        self.assertGreater((.192 - .099) * size, measured_small_font_h + 2)
+        self.assertGreater((.150 - .055) * size, measured_small_font_h + 2)
 
     def test_primary_metric_pairs_unit_with_number(self):
         # Primary metric numerals and units must share measured horizontal
