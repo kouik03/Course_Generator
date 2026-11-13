@@ -817,26 +817,39 @@ class CourseGeneratorIQField extends WatchUi.DataField {
             dc.drawLine(x + 5, y - 7, x + 5, y + 8);
             dc.drawLine(x + 5, y - 7, x + 9, y - 3);
         } else {
-            // Inactive reserved slots: do not draw fictional amenities.
+            // Visual placeholders for future service categories. These are
+            // not shown until future blocks explicitly set their bits.
+            dc.setColor(0xB7C6D8, Graphics.COLOR_TRANSPARENT);
+            if (kind == 2) {
+                dc.drawCircle(x, y, 7);
+                dc.fillCircle(x, y, 2);
+            } else if (kind == 3) {
+                dc.drawLine(x - 6, y, x + 6, y);
+                dc.drawLine(x, y - 6, x, y + 6);
+            } else if (kind == 4) {
+                dc.drawLine(x, y - 8, x + 6, y);
+                dc.drawLine(x + 6, y, x, y + 8);
+                dc.drawLine(x, y + 8, x - 6, y);
+                dc.drawLine(x - 6, y, x, y - 8);
+            }
         }
     }
 
     // First row: a single compact CP code followed by up to FIVE possible
     // service icons. Center the entire GROUP, rather than dividing it into
     // two columns. The second row (name / CUT) is much wider on a circle.
-    function drawCheckpointHeader(dc, topY, cpCode, flags, color) {
+    function drawCheckpointHeader(dc, topY, maxHeight, cpCode, flags, color) {
         var w = dc.getWidth();
-        var iconCapacity = 5;
-        var cpFont = Graphics.FONT_MEDIUM;
+        var serviceBits = [2, 4, 8, 16, 32];
+        var iconCapacity = serviceBits.size();
+        var cpFont = fontForSlot(dc, Graphics.FONT_MEDIUM, maxHeight);
         var cpWidth = dc.getTextWidthInPixels(cpCode, cpFont);
         var iconCount = 0;
-        // Bit 0 is cutoff timing, bit 1 water, bit 2 food.
-        if ((flags & 2) != 0) { iconCount++; }
-        if ((flags & 4) != 0) { iconCount++; }
-
-        // Remaining three positions are reserved but not drawn, pending
-        // explicit meaning and support in a future roadbook protocol.
-        if (iconCount > iconCapacity) { iconCount = iconCapacity; }
+        // Bit 0 is cutoff timing; bit 1 water, bit 2 food.
+        // Bits 3-5 are RESERVED and not currently emitted by CGIQ v1.
+        for (var i = 0; i < iconCapacity; i++) {
+            if ((flags & serviceBits[i]) != 0) { iconCount++; }
+        }
 
         var gap = 12;
         var step = 25;
@@ -864,12 +877,11 @@ class CourseGeneratorIQField extends WatchUi.DataField {
         if (iconCount == 0) { return; }
         var cursor = left + cpWidth + gap;
         var centerY = topY + dc.getFontHeight(cpFont) / 2;
-        if ((flags & 2) != 0) {
-            drawCheckpointSymbol(dc, cursor + step / 2, centerY, 0);
-            cursor += step;
-        }
-        if ((flags & 4) != 0) {
-            drawCheckpointSymbol(dc, cursor + step / 2, centerY, 1);
+        for (var j = 0; j < iconCapacity; j++) {
+            if ((flags & serviceBits[j]) != 0) {
+                drawCheckpointSymbol(dc, cursor + step / 2, centerY, j);
+                cursor += step;
+            }
         }
     }
 
@@ -1092,7 +1104,9 @@ class CourseGeneratorIQField extends WatchUi.DataField {
 
         var cpTitle = _index == _plan.points.size() - 1 ?
                       "FIN" : "CP" + (_index + 1).format("%d");
-        drawCheckpointHeader(dc, headerY, cpTitle, point.flags, white);
+        drawCheckpointHeader(dc, headerY,
+                             nameY - headerY - 5, cpTitle,
+                             point.flags, white);
 
         // Separate fields fit within the actual round-screen chord.
         // Long names are allowed to use the smaller X-TINY Garmin font.
